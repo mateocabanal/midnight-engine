@@ -2,6 +2,10 @@
 
 A mobile-first offline PWA roguelite prototype inspired by the upgrade-synergy chaos of games like 20 Minutes Till Dawn.
 
+## Live App
+
+https://mateocabanal.github.io/midnight-engine/
+
 ## Scripts
 
 ```bash

@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  characterOptions,
   createGame,
   drawGame,
   getUpgradeChoices,
   stepGame,
+  weaponOptions,
+  type CharacterId,
   type Choice,
   type Game,
-  type InputState
+  type InputState,
+  type LoadoutConfig,
+  type WeaponId
 } from "./game";
 
 const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: number }) => {
@@ -31,13 +36,20 @@ const getHudStats = (game: Game) => {
 };
 
 export default function App() {
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("saint");
+  const [selectedWeapon, setSelectedWeapon] = useState<WeaponId>("revolver");
+  const loadout = { characterId: selectedCharacter, weaponId: selectedWeapon };
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const gameRef = useRef<Game>(createGame());
+  const gameRef = useRef<Game>(createGame(loadout));
   const inputRef = useRef<InputState>({ moveX: 0, moveY: 0, dash: false });
   const joystickRef = useRef({ activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 });
   const [paused, setPaused] = useState(true);
+  const [menu, setMenu] = useState<"main" | "character" | "weapon" | "run">("main");
   const [choices, setChoices] = useState<Choice[]>([]);
   const [stats, setStats] = useState(getHudStats(gameRef.current));
+
+  const selectedCharacterOption = characterOptions.find((character) => character.id === selectedCharacter) || characterOptions[0];
+  const selectedWeaponOption = weaponOptions.find((weapon) => weapon.id === selectedWeapon) || weaponOptions[0];
 
   useEffect(() => {
     const registerServiceWorker = async () => {
@@ -158,12 +170,23 @@ export default function App() {
     setChoices([]);
   };
 
-  const restart = () => {
-    gameRef.current = createGame();
+  const startRun = (nextLoadout: LoadoutConfig = loadout) => {
+    gameRef.current = createGame(nextLoadout);
     inputRef.current = { moveX: 0, moveY: 0, dash: false };
     joystickRef.current = { activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 };
     setChoices([]);
+    setMenu("run");
     setPaused(false);
+    setStats(getHudStats(gameRef.current));
+  };
+
+  const backToMenu = () => {
+    gameRef.current = createGame(loadout);
+    inputRef.current = { moveX: 0, moveY: 0, dash: false };
+    joystickRef.current = { activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 };
+    setChoices([]);
+    setPaused(true);
+    setMenu("main");
     setStats(getHudStats(gameRef.current));
   };
 
@@ -207,6 +230,7 @@ export default function App() {
       >
         <canvas ref={canvasRef} className="game-canvas" aria-label="Midnight Engine game canvas" />
 
+        {menu === "run" ? (
         <header className="hud" aria-label="Run status">
           <div className="hud-stat timer-stat">
             <span>Timer</span>
@@ -228,7 +252,9 @@ export default function App() {
             <strong>{stats.ammo}</strong>
           </div>
         </header>
+        ) : null}
 
+        {menu === "run" && !stats.gameOver ? (
         <button
           className="dash-button"
           type="button"
@@ -239,23 +265,100 @@ export default function App() {
         >
           Dash
         </button>
+        ) : null}
 
-        {paused && !choices.length && !stats.gameOver ? (
-          <div className="modal intro">
+        {menu === "main" && !stats.gameOver ? (
+          <div className="modal menu-modal" onPointerDown={(event) => event.stopPropagation()}>
             <p className="eyebrow">Midnight Engine</p>
-            <h1>Build a broken combat machine.</h1>
-            <p>
-              Drag the left side to move. Your engine auto-fires at the closest threat. Level up and cross-wire upgrades
-              until the whole screen becomes a bad decision.
-            </p>
-            <button type="button" onClick={() => setPaused(false)}>
-              Start Run
-            </button>
+            <h1>Choose your engine.</h1>
+            <div className="loadout-summary">
+              <div>
+                <span>Character</span>
+                <strong>{selectedCharacterOption.name}</strong>
+                <em>{selectedCharacterOption.tagline}</em>
+              </div>
+              <div>
+                <span>Weapon</span>
+                <strong>{selectedWeaponOption.name}</strong>
+                <em>{selectedWeaponOption.tagline}</em>
+              </div>
+            </div>
+            <div className="menu-actions">
+              <button type="button" onClick={() => startRun()}>
+                Start Run
+              </button>
+              <button type="button" onClick={() => setMenu("character")}>
+                Character Select
+              </button>
+              <button type="button" onClick={() => setMenu("weapon")}>
+                Weapon Select
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {menu === "character" ? (
+          <div className="modal select-modal" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="select-header">
+              <div>
+                <p className="eyebrow">Character Select</p>
+                <h2>Pick a pilot.</h2>
+              </div>
+              <button type="button" onClick={() => setMenu("main")}>
+                Back
+              </button>
+            </div>
+            <div className="select-grid">
+              {characterOptions.map((character) => (
+                <button
+                  className={character.id === selectedCharacter ? "selected" : ""}
+                  key={character.id}
+                  type="button"
+                  onClick={() => setSelectedCharacter(character.id)}
+                >
+                  <strong>{character.name}</strong>
+                  <em>{character.tagline}</em>
+                  <span>{character.description}</span>
+                  <small>{character.strengths.join(" / ")}</small>
+                  <b>{character.tradeoff}</b>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {menu === "weapon" ? (
+          <div className="modal select-modal" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="select-header">
+              <div>
+                <p className="eyebrow">Weapon Select</p>
+                <h2>Pick a weapon.</h2>
+              </div>
+              <button type="button" onClick={() => setMenu("main")}>
+                Back
+              </button>
+            </div>
+            <div className="select-grid weapon-grid">
+              {weaponOptions.map((weapon) => (
+                <button
+                  className={weapon.id === selectedWeapon ? "selected" : ""}
+                  key={weapon.id}
+                  type="button"
+                  onClick={() => setSelectedWeapon(weapon.id)}
+                >
+                  <strong>{weapon.name}</strong>
+                  <em>{weapon.tagline}</em>
+                  <span>{weapon.description}</span>
+                  <small>{weapon.strengths.join(" / ")}</small>
+                  <b>{weapon.tradeoff}</b>
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
 
         {choices.length ? (
-          <div className="modal choice-modal">
+          <div className="modal choice-modal" onPointerDown={(event) => event.stopPropagation()}>
             <p className="eyebrow">Choose a mutation</p>
             <h2>Level up</h2>
             <div className="choices">
@@ -271,13 +374,18 @@ export default function App() {
         ) : null}
 
         {stats.gameOver ? (
-          <div className="modal intro">
+          <div className="modal intro" onPointerDown={(event) => event.stopPropagation()}>
             <p className="eyebrow">Engine collapsed</p>
             <h1>{stats.time} survived</h1>
             <p>The best broken builds always start a little cursed.</p>
-            <button type="button" onClick={restart}>
-              Run It Back
-            </button>
+            <div className="menu-actions">
+              <button type="button" onClick={() => startRun()}>
+                Run It Back
+              </button>
+              <button type="button" onClick={backToMenu}>
+                Main Menu
+              </button>
+            </div>
           </div>
         ) : null}
       </section>

@@ -13,13 +13,6 @@ export default defineConfig({
     port: 5173
   },
   build: {
-    target: "es2020",
-    rollupOptions: {
-      output: {
-        entryFileNames: "assets/app.js",
-        chunkFileNames: "assets/[name].js",
-        assetFileNames: "assets/[name][extname]"
-      }
-    }
+    target: "es2020"
   }
 });

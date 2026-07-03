@@ -5,6 +5,23 @@ export type InputState = {
 };
 
 type Vec = { x: number; y: number };
+export type CharacterId = "saint" | "ilya" | "nox" | "mira";
+export type WeaponId = "revolver" | "shotgun" | "smg" | "crossbow";
+
+export type LoadoutConfig = {
+  characterId: CharacterId;
+  weaponId: WeaponId;
+};
+
+export type LoadoutOption<T extends string> = {
+  id: T;
+  name: string;
+  tagline: string;
+  description: string;
+  strengths: string[];
+  tradeoff: string;
+};
+
 type UpgradeId =
   | "overclock"
   | "split"
@@ -86,6 +103,8 @@ type Player = {
   x: number;
   y: number;
   r: number;
+  characterId: CharacterId;
+  weaponId: WeaponId;
   hp: number;
   maxHp: number;
   shield: number;
@@ -98,6 +117,13 @@ type Player = {
   reloadDuration: number;
   shots: number;
   magazine: number;
+  pellets: number;
+  spread: number;
+  bulletSpeed: number;
+  bulletSize: number;
+  bulletLife: number;
+  bulletPierce: number;
+  reloadSpeed: number;
   dashCooldown: number;
   invuln: number;
   souls: number;
@@ -143,6 +169,77 @@ type UpgradeDef = {
 export type Choice = UpgradeDef;
 
 const TAU = Math.PI * 2;
+const DEFAULT_LOADOUT: LoadoutConfig = { characterId: "saint", weaponId: "revolver" };
+
+export const characterOptions: LoadoutOption<CharacterId>[] = [
+  {
+    id: "saint",
+    name: "Saint, the Empty Gun",
+    tagline: "Reload ritualist",
+    description: "Active: force an emergency reload burst. Passive: reload effects hit harder.",
+    strengths: ["Reload effects", "Blood loops", "Small magazines"],
+    tradeoff: "Starts with less ammo but reloads faster."
+  },
+  {
+    id: "ilya",
+    name: "Ilya, the Storm Nun",
+    tagline: "Lightning crit engine",
+    description: "Active: prime the next hits with lightning. Passive: chain lightning can spike harder.",
+    strengths: ["Lightning", "Fire rate", "Orbit triggers"],
+    tradeoff: "Lower base bullet damage."
+  },
+  {
+    id: "nox",
+    name: "Nox, the Parasite Kid",
+    tagline: "Blood swarm starter",
+    description: "Active: hatch parasites from recent kills. Passive: starts closer to parasite/blood builds.",
+    strengths: ["Parasites", "Blood", "Kill cascades"],
+    tradeoff: "Lower max health."
+  },
+  {
+    id: "mira",
+    name: "Mira, the Twin Shot",
+    tagline: "Copy and split specialist",
+    description: "Active: reflect copied bullets. Passive: mirror-style shots appear earlier.",
+    strengths: ["Copied shots", "Split bullets", "Crit bursts"],
+    tradeoff: "Slightly slower reloads."
+  }
+];
+
+export const weaponOptions: LoadoutOption<WeaponId>[] = [
+  {
+    id: "revolver",
+    name: "Revolver",
+    tagline: "Precise, steady, lethal",
+    description: "Balanced single-shot weapon with strong crit value and clean reload rhythm.",
+    strengths: ["High damage", "Good crit", "Reliable reloads"],
+    tradeoff: "Small magazine."
+  },
+  {
+    id: "shotgun",
+    name: "Shotgun",
+    tagline: "Close-range pellet wall",
+    description: "Fires multiple heavy pellets with big spread and nasty close-range burst.",
+    strengths: ["Pellets", "Knockback feel", "On-hit effects"],
+    tradeoff: "Short range and slow reload."
+  },
+  {
+    id: "smg",
+    name: "SMG",
+    tagline: "Status proc machine",
+    description: "Low damage, huge magazine, and high fire rate for elemental and summon triggers.",
+    strengths: ["Fire rate", "Large magazine", "Lightning/decay setups"],
+    tradeoff: "Weak single-hit damage."
+  },
+  {
+    id: "crossbow",
+    name: "Crossbow",
+    tagline: "Piercing heavy bolts",
+    description: "Slow, hard-hitting bolts that pierce enemies and reward careful positioning.",
+    strengths: ["Pierce", "Range", "Elite damage"],
+    tradeoff: "Slow fire rate."
+  }
+];
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -274,13 +371,15 @@ const upgradeDefs: UpgradeDef[] = [
   }
 ];
 
-export const createGame = (): Game => {
+export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
   const game: Game = {
     screen: { w: 390, h: 780 },
     player: {
       x: 195,
       y: 390,
       r: 13,
+      characterId: loadout.characterId,
+      weaponId: loadout.weaponId,
       hp: 100,
       maxHp: 100,
       shield: 0,
@@ -293,6 +392,13 @@ export const createGame = (): Game => {
       reloadDuration: 0,
       shots: 0,
       magazine: 8,
+      pellets: 1,
+      spread: 0.08,
+      bulletSpeed: 410,
+      bulletSize: 5,
+      bulletLife: 1.25,
+      bulletPierce: 0,
+      reloadSpeed: 1,
       dashCooldown: 0,
       invuln: 0,
       souls: 0,
@@ -322,6 +428,8 @@ export const createGame = (): Game => {
     }
   };
 
+  applyCharacter(game, loadout.characterId);
+  applyWeapon(game, loadout.weaponId);
   for (let i = 0; i < 12; i += 1) spawnEnemy(game, true);
   updateUi(game);
   return game;
@@ -339,6 +447,71 @@ export const getUpgradeChoices = (game: Game): Choice[] => {
   const pool = [...fusions, ...shuffle(basics)].slice(0, Math.max(3, fusions.length ? 2 : 3));
 
   return shuffle(pool).slice(0, 3);
+};
+
+const applyCharacter = (game: Game, characterId: CharacterId) => {
+  const player = game.player;
+  if (characterId === "saint") {
+    player.magazine = 6;
+    player.reloadSpeed *= 1.22;
+    addUpgrade(game, "static");
+  }
+  if (characterId === "ilya") {
+    player.damage *= 0.88;
+    player.fireRate *= 1.12;
+    player.crit += 0.06;
+    addUpgrade(game, "static");
+  }
+  if (characterId === "nox") {
+    player.maxHp = 82;
+    player.hp = 82;
+    player.speed *= 1.06;
+    addUpgrade(game, "parasite");
+  }
+  if (characterId === "mira") {
+    player.reloadSpeed *= 0.9;
+    player.crit += 0.04;
+    addUpgrade(game, "mirror");
+  }
+};
+
+const applyWeapon = (game: Game, weaponId: WeaponId) => {
+  const player = game.player;
+  if (weaponId === "revolver") {
+    player.damage *= 1.18;
+    player.crit += 0.1;
+    player.magazine = Math.max(5, Math.round(player.magazine * 0.88));
+    player.fireRate *= 0.96;
+  }
+  if (weaponId === "shotgun") {
+    player.damage *= 0.58;
+    player.pellets = 5;
+    player.spread = 0.5;
+    player.bulletLife = 0.58;
+    player.bulletSpeed = 360;
+    player.magazine = Math.max(4, Math.round(player.magazine * 0.75));
+    player.reloadSpeed *= 0.78;
+    player.fireRate *= 0.84;
+  }
+  if (weaponId === "smg") {
+    player.damage *= 0.48;
+    player.fireRate *= 2.15;
+    player.magazine = Math.round(player.magazine * 2.75);
+    player.reloadSpeed *= 1.08;
+    player.spread = 0.16;
+    player.bulletSize = 4;
+    player.crit -= 0.03;
+  }
+  if (weaponId === "crossbow") {
+    player.damage *= 1.9;
+    player.fireRate *= 0.52;
+    player.bulletPierce = 2;
+    player.bulletSpeed = 520;
+    player.bulletLife = 1.55;
+    player.bulletSize = 6;
+    player.magazine = Math.max(4, Math.round(player.magazine * 0.72));
+    player.reloadSpeed *= 0.86;
+  }
 };
 
 export const stepGame = (game: Game, input: InputState, dt: number): boolean => {
@@ -518,7 +691,7 @@ const shoot = (game: Game) => {
   if (player.reload > 0) return;
 
   if (player.shots >= player.magazine) {
-    const reloadTime = Math.max(0.22, 0.72 - count(game, "overclock") * 0.04);
+    const reloadTime = Math.max(0.18, (0.72 - count(game, "overclock") * 0.04) / player.reloadSpeed);
     player.reload = reloadTime;
     player.reloadDuration = reloadTime;
     player.shots = 0;
@@ -528,15 +701,18 @@ const shoot = (game: Game) => {
 
   const target = nearestEnemy(game, player.x, player.y);
   const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
-  const spread = 0.08;
   const baseDamage = player.damage * (1 + count(game, "overclock") * 0.04);
   const element = has(game, "frostfire") ? (game.shotCounter % 2 === 0 ? "fire" : "ice") : has(game, "bloodTax") ? "blood" : "kinetic";
 
-  fireBullet(game, player.x, player.y, angle + rand(-spread, spread), baseDamage, element, {
-    split: count(game, "split"),
-    bounces: count(game, "ricochet"),
-    crit: player.crit + count(game, "mirror") * 0.02
-  });
+  for (let i = 0; i < player.pellets; i += 1) {
+    const pelletOffset = player.pellets === 1 ? rand(-player.spread, player.spread) : (i - (player.pellets - 1) / 2) * (player.spread / Math.max(1, player.pellets - 1));
+    fireBullet(game, player.x, player.y, angle + pelletOffset + rand(-player.spread * 0.18, player.spread * 0.18), baseDamage, element, {
+      split: count(game, "split"),
+      bounces: count(game, "ricochet"),
+      pierce: player.bulletPierce,
+      crit: player.crit + count(game, "mirror") * 0.02
+    });
+  }
 
   game.shotCounter += 1;
   player.shots += 1;
@@ -549,6 +725,7 @@ const shoot = (game: Game) => {
       fireBullet(game, player.x, player.y, angle + offset, baseDamage * 0.72, element, {
         split: has(game, "recursiveGun") ? count(game, "split") : 0,
         bounces: count(game, "ricochet"),
+        pierce: Math.max(0, player.bulletPierce - 1),
         crit: player.crit + 0.16
       });
     }
@@ -565,15 +742,15 @@ const fireBullet = (
   element: Bullet["element"],
   mods: Partial<Pick<Bullet, "split" | "bounces" | "crit" | "pierce">> = {}
 ) => {
-  const speed = 410 + count(game, "overclock") * 20;
+  const speed = game.player.bulletSpeed + count(game, "overclock") * 20;
   game.bullets.push({
     x,
     y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    r: element === "void" ? 7 : 5,
+    r: element === "void" ? game.player.bulletSize + 2 : game.player.bulletSize,
     damage,
-    life: 1.25,
+    life: game.player.bulletLife,
     pierce: mods.pierce ?? 0,
     bounces: mods.bounces ?? 0,
     split: mods.split ?? 0,

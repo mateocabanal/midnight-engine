@@ -18,21 +18,15 @@ const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: 
   return { x: (dx / length) * clamped, y: (dy / length) * clamped };
 };
 
-const fusionIds = new Set(["recursiveGun", "stormReactor", "bloodEconomy", "solarFrostbite", "gemSingularity"]);
-
 const getHudStats = (game: Game) => {
   const ammo = Math.max(0, game.player.magazine - game.player.shots);
   const isReloading = game.player.reload > 0;
 
   return {
     ...game.ui,
-    ammo: isReloading ? "RLD" : `${ammo}/${game.player.magazine}`,
-    hp: `${Math.ceil(game.player.hp)}/${game.player.maxHp}`,
-    shield: String(Math.floor(game.player.shield)),
-    levelProgress: `${Math.floor(game.xp)}/${game.nextXp}`,
-    souls: String(game.player.souls),
-    upgrades: String(Object.values(game.upgrades).reduce((total, value) => total + (value || 0), 0)),
-    fusions: String(Object.entries(game.upgrades).filter(([id, value]) => fusionIds.has(id) && (value || 0) > 0).length)
+    ammo: isReloading ? "Reloading" : `${ammo} / ${game.player.magazine}`,
+    isReloading,
+    levelProgress: `${Math.floor(game.xp)} / ${game.nextXp}`
   };
 };
 
@@ -214,35 +208,24 @@ export default function App() {
         <canvas ref={canvasRef} className="game-canvas" aria-label="Midnight Engine game canvas" />
 
         <header className="hud" aria-label="Run status">
-          <div className="hud-core">
+          <div className="hud-stat timer-stat">
+            <span>Timer</span>
             <strong>{stats.time}</strong>
-            <span>L{stats.level}</span>
-            <span>K{stats.kills}</span>
-            <span>AM {stats.ammo}</span>
           </div>
 
-          <div className="hud-meters">
-            <div className="meter-row">
-              <span>HP</span>
-              <div className="bar" aria-label={`HP ${stats.hp}`}>
-                <span style={{ width: `${stats.hpPct}%` }} />
-              </div>
-              <em>{stats.hp}</em>
+          <div className="level-stat">
+            <div className="level-line">
+              <span>Level {stats.level}</span>
+              <em>Experience {stats.levelProgress}</em>
             </div>
-            <div className="meter-row">
-              <span>LVL</span>
-              <div className="bar xp" aria-label={`Level progress ${stats.levelProgress}`}>
-                <span style={{ width: `${stats.xpPct}%` }} />
-              </div>
-              <em>{stats.levelProgress}</em>
+            <div className="bar xp" aria-label={`Level ${stats.level} experience ${stats.levelProgress}`}>
+              <span style={{ width: `${stats.xpPct}%` }} />
             </div>
           </div>
 
-          <div className="hud-chips">
-            <span>SH {stats.shield}</span>
-            <span>S {stats.souls}</span>
-            <span>M {stats.upgrades}</span>
-            <span>F {stats.fusions}</span>
+          <div className={`hud-stat ammo-stat${stats.isReloading ? " is-reloading" : ""}`}>
+            <span>Ammo</span>
+            <strong>{stats.ammo}</strong>
           </div>
         </header>
 
@@ -291,7 +274,7 @@ export default function App() {
           <div className="modal intro">
             <p className="eyebrow">Engine collapsed</p>
             <h1>{stats.time} survived</h1>
-            <p>{stats.kills} enemies deleted. The best broken builds always start a little cursed.</p>
+            <p>The best broken builds always start a little cursed.</p>
             <button type="button" onClick={restart}>
               Run It Back
             </button>

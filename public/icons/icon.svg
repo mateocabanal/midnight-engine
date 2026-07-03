@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Midnight Engine icon</title>
+  <rect width="512" height="512" rx="112" fill="#090a14"/>
+  <circle cx="256" cy="256" r="188" fill="#7dd3fc"/>
+  <circle cx="256" cy="256" r="112" fill="#090a14"/>
+  <path d="M256 96 368 256 256 416 144 256Z" fill="#f8fafc"/>
+  <path d="M256 176 316 256 256 336 196 256Z" fill="#fb7185"/>
+  <path d="M256 32 282 118H230Z" fill="#c084fc"/>
+  <path d="M256 480 230 394H282Z" fill="#c084fc"/>
+</svg>

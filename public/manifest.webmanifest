@@ -1,11 +1,12 @@
 {
   "name": "Midnight Engine",
   "short_name": "Midnight",
-  "description": "A mobile-first offline roguelite prototype with absurd upgrade synergies.",
+  "description": "A mobile-first offline PWA roguelite prototype with absurd upgrade synergies.",
   "start_url": ".",
   "scope": ".",
-  "display": "standalone",
-  "orientation": "portrait",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
   "background_color": "#090a14",
   "theme_color": "#090a14",
   "icons": [

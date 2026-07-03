@@ -63,11 +63,11 @@ button {
   position: absolute;
   top: max(8px, env(safe-area-inset-top));
   left: 50%;
-  width: min(760px, calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right))));
+  width: min(620px, calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right))));
   display: grid;
-  grid-template-columns: auto minmax(180px, 1fr) auto;
+  grid-template-columns: auto minmax(170px, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   padding: 7px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -78,74 +78,66 @@ button {
   pointer-events: none;
 }
 
-.hud-core,
-.hud-chips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.hud-stat,
+.level-stat {
+  display: grid;
   min-width: 0;
 }
 
-.hud-core {
-  flex-wrap: nowrap;
-}
-
-.hud-core strong {
-  min-width: 52px;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.hud-core span,
-.hud-chips span {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 0 7px;
-  border-radius: 999px;
+.hud-stat {
+  gap: 2px;
+  min-width: 78px;
+  padding: 4px 7px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.08);
-  color: #dbeafe;
-  font-size: 11px;
-  font-weight: 900;
+}
+
+.hud-stat span,
+.level-line span,
+.level-line em {
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 850;
+  font-style: normal;
+  line-height: 1;
+  text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
-.hud-chips {
-  justify-content: end;
-}
-
-.hud-meters {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.meter-row {
-  display: grid;
-  grid-template-columns: 24px minmax(72px, 1fr) minmax(44px, max-content);
-  align-items: center;
-  gap: 6px;
-}
-
-.meter-row > span,
-.meter-row em {
-  color: #cbd5e1;
-  font-size: 10px;
-  font-weight: 800;
-  font-style: normal;
+.hud-stat strong {
+  color: #f8fafc;
+  font-size: 18px;
   line-height: 1;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.meter-row em {
-  color: #f8fafc;
-  text-align: right;
+.ammo-stat {
+  min-width: 96px;
+}
+
+.ammo-stat.is-reloading {
+  animation: reloadPulse 520ms ease-in-out infinite alternate;
+  background: rgba(250, 204, 21, 0.16);
+}
+
+.ammo-stat.is-reloading strong {
+  color: #fde68a;
+}
+
+.level-stat {
+  gap: 6px;
+}
+
+.level-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .bar {
-  height: 5px;
+  height: 6px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.09);
@@ -160,11 +152,23 @@ button {
 }
 
 .bar.xp {
-  height: 4px;
+  height: 6px;
 }
 
 .bar.xp span {
   background: linear-gradient(90deg, #818cf8, #c084fc);
+}
+
+@keyframes reloadPulse {
+  from {
+    box-shadow: 0 0 0 rgba(250, 204, 21, 0);
+    transform: translateY(0);
+  }
+
+  to {
+    box-shadow: 0 0 18px rgba(250, 204, 21, 0.25);
+    transform: translateY(-1px);
+  }
 }
 
 .dash-button {
@@ -300,59 +304,51 @@ button {
 @media (max-width: 700px) {
   .hud {
     top: max(7px, env(safe-area-inset-top));
-    grid-template-columns: auto 1fr;
-    width: min(520px, calc(100vw - 18px));
+    grid-template-columns: auto minmax(132px, 1fr) auto;
+    width: min(520px, calc(100vw - 14px));
     gap: 6px;
     padding: 6px;
   }
 
-  .hud-meters {
-    grid-column: 1 / -1;
-    order: 3;
-  }
-
-  .hud-chips {
-    gap: 4px;
-  }
-
-  .hud-core {
-    gap: 4px;
-  }
-
-  .hud-core strong {
-    min-width: 48px;
-  }
-
-  .hud-core span {
-    min-height: 21px;
+  .hud-stat {
+    min-width: 0;
     padding-inline: 6px;
-    font-size: 10px;
   }
 
-  .hud-chips span {
-    min-height: 21px;
-    padding-inline: 6px;
-    font-size: 10px;
+  .timer-stat {
+    min-width: 66px;
+  }
+
+  .ammo-stat {
+    min-width: 78px;
+  }
+
+  .hud-stat strong {
+    font-size: 15px;
+  }
+
+  .hud-stat span,
+  .level-line span,
+  .level-line em {
+    font-size: 9px;
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
   .hud {
     top: max(6px, env(safe-area-inset-top));
-    width: min(720px, calc(100vw - 28px));
-    grid-template-columns: auto minmax(160px, 1fr) auto;
+    width: min(620px, calc(100vw - 28px));
+    grid-template-columns: auto minmax(170px, 1fr) auto;
     padding: 5px 6px;
   }
 
-  .hud-core strong {
-    min-width: 48px;
+  .hud-stat strong {
     font-size: 16px;
   }
 
-  .hud-core span,
-  .hud-chips span,
-  .meter-row > span,
-  .meter-row em {
+  .hud-stat span,
+  .level-line span,
+  .level-line em {
     font-size: 9px;
   }
 

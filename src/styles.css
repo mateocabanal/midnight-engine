@@ -250,6 +250,166 @@ button {
   min-height: 50px;
 }
 
+.menu-modal,
+.select-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.menu-modal h1,
+.select-modal h2 {
+  margin: 0;
+  font-size: clamp(30px, 9vw, 46px);
+  line-height: 0.92;
+  letter-spacing: 0;
+}
+
+.loadout-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.loadout-summary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.loadout-summary span,
+.loadout-summary em {
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 850;
+  font-style: normal;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.loadout-summary strong {
+  overflow: hidden;
+  color: #f8fafc;
+  font-size: 15px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-actions button,
+.select-header button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+.menu-actions button:first-child {
+  background: #f8fafc;
+  color: #070a18;
+}
+
+.select-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.select-header button {
+  min-width: 76px;
+}
+
+.select-grid {
+  display: grid;
+  gap: 8px;
+  max-height: min(58dvh, 420px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.select-grid button {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-height: 132px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  text-align: left;
+}
+
+.select-grid button.selected {
+  border-color: rgba(253, 230, 138, 0.72);
+  background: rgba(250, 204, 21, 0.14);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.18) inset;
+}
+
+.select-grid button.selected::after {
+  content: "Selected";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fde68a;
+  color: #070a18;
+  font-size: 9px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.select-grid strong {
+  padding-right: 78px;
+  font-size: 16px;
+  line-height: 1.05;
+}
+
+.select-grid em {
+  width: max-content;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(147, 197, 253, 0.14);
+  color: #bfdbfe;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.select-grid span,
+.select-grid small,
+.select-grid b {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.select-grid small {
+  color: #ddd6fe;
+}
+
+.select-grid b {
+  color: #fecdd3;
+}
+
 .choices {
   display: grid;
   gap: 9px;
@@ -299,6 +459,14 @@ button {
     width: min(520px, calc(100vw - 48px));
     transform: translate(-50%, -50%);
   }
+
+  .select-modal {
+    width: min(720px, calc(100vw - 48px));
+  }
+
+  .select-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -332,6 +500,10 @@ button {
   .level-line em {
     font-size: 9px;
   }
+
+  .loadout-summary {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
@@ -357,5 +529,21 @@ button {
     height: 76px;
     right: max(20px, env(safe-area-inset-right));
     bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
+  .select-modal {
+    top: 52%;
+    width: min(760px, calc(100vw - 42px));
+    padding: 14px;
+  }
+
+  .select-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: min(58dvh, 290px);
+  }
+
+  .select-grid button {
+    min-height: 118px;
+    padding: 10px;
   }
 }

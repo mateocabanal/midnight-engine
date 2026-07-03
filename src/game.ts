@@ -37,6 +37,7 @@ type Enemy = {
   freeze: number;
   poison: number;
   hitFlash: number;
+  damageNoticeCooldown: number;
 };
 
 type Bullet = {
@@ -94,6 +95,7 @@ type Player = {
   crit: number;
   cooldown: number;
   reload: number;
+  reloadDuration: number;
   shots: number;
   magazine: number;
   dashCooldown: number;
@@ -288,6 +290,7 @@ export const createGame = (): Game => {
       crit: 0.08,
       cooldown: 0,
       reload: 0,
+      reloadDuration: 0,
       shots: 0,
       magazine: 8,
       dashCooldown: 0,
@@ -342,7 +345,8 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
   const player = game.player;
   game.time += dt;
   player.cooldown -= dt;
-  player.reload -= dt;
+  player.reload = Math.max(0, player.reload - dt);
+  if (player.reload <= 0) player.reloadDuration = 0;
   player.dashCooldown -= dt;
   player.invuln -= dt;
   game.spawnTimer -= dt;
@@ -451,9 +455,16 @@ export const drawGame = (
   for (const particle of game.particles) {
     ctx.globalAlpha = clamp(particle.life, 0, 1);
     if (particle.text) {
+      ctx.save();
       ctx.font = `${particle.size}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(3, 7, 18, 0.86)";
+      ctx.strokeText(particle.text, particle.x, particle.y);
       ctx.fillStyle = particle.color;
       ctx.fillText(particle.text, particle.x, particle.y);
+      ctx.restore();
     } else {
       ctx.beginPath();
       ctx.fillStyle = particle.color;
@@ -464,12 +475,23 @@ export const drawGame = (
   }
 
   const p = game.player;
+  const reloadPct = p.reloadDuration > 0 ? clamp(1 - p.reload / p.reloadDuration, 0, 1) : 0;
+  const reloading = p.reload > 0;
   ctx.save();
   ctx.translate(p.x, p.y);
-  ctx.rotate(game.time * 3);
-  ctx.fillStyle = p.invuln > 0 ? "#72f5ff" : "#f8fafc";
-  diamond(ctx, 0, 0, p.r + 4);
+  ctx.rotate(game.time * (reloading ? 9 : 3));
+  ctx.fillStyle = reloading ? "#fde68a" : p.invuln > 0 ? "#72f5ff" : "#f8fafc";
+  diamond(ctx, 0, 0, p.r + 4 + (reloading ? Math.sin(game.time * 18) * 2 : 0));
+  if (reloading) {
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.86)";
+    ctx.lineWidth = 2;
+    ctx.arc(0, 0, p.r + 15 + Math.sin(game.time * 14) * 2, -Math.PI / 2, -Math.PI / 2 + reloadPct * TAU);
+    ctx.stroke();
+  }
   ctx.restore();
+
+  if (reloading) drawReloadBar(ctx, p.x, p.y - p.r - 24, reloadPct);
 
   if (p.shield > 0) {
     ctx.beginPath();
@@ -496,7 +518,9 @@ const shoot = (game: Game) => {
   if (player.reload > 0) return;
 
   if (player.shots >= player.magazine) {
-    player.reload = Math.max(0.22, 0.72 - count(game, "overclock") * 0.04);
+    const reloadTime = Math.max(0.22, 0.72 - count(game, "overclock") * 0.04);
+    player.reload = reloadTime;
+    player.reloadDuration = reloadTime;
     player.shots = 0;
     onReload(game);
     return;
@@ -645,6 +669,7 @@ const updateEnemies = (game: Game, dt: number) => {
     enemy.x += (dx / d) * enemy.speed * freezeSlow * dt;
     enemy.y += (dy / d) * enemy.speed * freezeSlow * dt;
     enemy.hitFlash -= dt;
+    enemy.damageNoticeCooldown -= dt;
 
     if (enemy.burn > 0) {
       enemy.burn -= dt;
@@ -737,7 +762,13 @@ const onReload = (game: Game) => {
 
 const hurtEnemy = (game: Game, enemy: Enemy, amount: number, element: Bullet["element"], flash = true) => {
   enemy.hp -= amount;
-  if (flash) enemy.hitFlash = 0.08;
+  if (flash) {
+    enemy.hitFlash = 0.08;
+    if (enemy.damageNoticeCooldown <= 0) {
+      damageText(game, enemy, amount, bulletColor(element));
+      enemy.damageNoticeCooldown = 0.12;
+    }
+  }
 
   if (element === "fire") enemy.burn = Math.max(enemy.burn, 2.3);
   if (element === "ice") enemy.freeze = Math.max(enemy.freeze, 1.4);
@@ -826,7 +857,8 @@ const spawnEnemy = (game: Game, anywhere = false) => {
     burn: 0,
     freeze: 0,
     poison: 0,
-    hitFlash: 0
+    hitFlash: 0,
+    damageNoticeCooldown: 0
   });
   game.idCounter += 1;
 };
@@ -913,6 +945,20 @@ const text = (game: Game, x: number, y: number, value: string, color: string) =>
   game.particles.push({ x, y, vx: 0, vy: -22, life: 0.8, color, text: value, size: 13 });
 };
 
+const damageText = (game: Game, enemy: Enemy, amount: number, color: string) => {
+  const value = amount < 2 ? amount.toFixed(1) : String(Math.round(amount));
+  game.particles.push({
+    x: enemy.x + rand(-enemy.r * 0.45, enemy.r * 0.45),
+    y: enemy.y - enemy.r - 6,
+    vx: rand(-14, 14),
+    vy: rand(-46, -28),
+    life: 0.62,
+    color,
+    text: value,
+    size: amount > 28 ? 18 : amount > 12 ? 15 : 13
+  });
+};
+
 const updateUi = (game: Game) => {
   const minutes = Math.floor(game.time / 60)
     .toString()
@@ -975,4 +1021,26 @@ const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number)
   ctx.lineTo(x - r, y);
   ctx.closePath();
   ctx.fill();
+};
+
+const drawReloadBar = (ctx: CanvasRenderingContext2D, x: number, y: number, progress: number) => {
+  const width = 48;
+  const height = 5;
+  const left = x - width / 2;
+  ctx.save();
+  ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(left, y, width, height, height / 2);
+  ctx.fill();
+  ctx.stroke();
+  const fillWidth = width * progress;
+  if (fillWidth > 0.5) {
+    ctx.fillStyle = "#fde68a";
+    ctx.beginPath();
+    ctx.roundRect(left, y, fillWidth, height, Math.min(height / 2, fillWidth / 2));
+    ctx.fill();
+  }
+  ctx.restore();
 };

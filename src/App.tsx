@@ -42,13 +42,62 @@ export default function App() {
   useEffect(() => {
     const registerServiceWorker = async () => {
       if ("serviceWorker" in navigator && import.meta.env.PROD) {
-        await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
+        const registration = await navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, {
           scope: import.meta.env.BASE_URL
         });
+
+        const activateWaitingWorker = () => {
+          registration.waiting?.postMessage({ type: "SKIP_WAITING" });
+        };
+
+        registration.addEventListener("updatefound", () => {
+          const worker = registration.installing;
+          if (!worker) return;
+
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              worker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+
+        activateWaitingWorker();
+
+        const checkForUpdate = () => {
+          if (!document.hidden) {
+            registration.update().catch(() => undefined);
+          }
+        };
+
+        const updateTimer = window.setInterval(checkForUpdate, 15 * 60 * 1000);
+        window.addEventListener("focus", checkForUpdate);
+        document.addEventListener("visibilitychange", checkForUpdate);
+
+        return () => {
+          window.clearInterval(updateTimer);
+          window.removeEventListener("focus", checkForUpdate);
+          document.removeEventListener("visibilitychange", checkForUpdate);
+        };
       }
+
+      return undefined;
     };
 
-    registerServiceWorker().catch(() => undefined);
+    let cleanup: (() => void) | undefined;
+    registerServiceWorker()
+      .then((dispose) => {
+        cleanup = dispose;
+      })
+      .catch(() => undefined);
+
+    return () => cleanup?.();
   }, []);
 
   useEffect(() => {
@@ -159,53 +208,34 @@ export default function App() {
         <canvas ref={canvasRef} className="game-canvas" aria-label="Midnight Engine game canvas" />
 
         <header className="hud" aria-label="Run status">
-          <div className="hud-primary">
-            <div className="hud-cell clock">
-              <strong>{stats.time}</strong>
-              <span>night</span>
-            </div>
-            <div className="hud-cell">
-              <strong>{stats.level}</strong>
-              <span>level</span>
-            </div>
-            <div className="hud-cell">
-              <strong>{stats.kills}</strong>
-              <span>kills</span>
-            </div>
+          <div className="hud-core">
+            <strong>{stats.time}</strong>
+            <span>L{stats.level}</span>
+            <span>K{stats.kills}</span>
           </div>
 
           <div className="hud-meters">
             <div className="meter-row">
-              <span>HP {stats.hp}</span>
-              <div className="bar">
+              <span>HP</span>
+              <div className="bar" aria-label={`HP ${stats.hp}`}>
                 <span style={{ width: `${stats.hpPct}%` }} />
               </div>
+              <em>{stats.hp}</em>
             </div>
             <div className="meter-row">
-              <span>XP {stats.xp}</span>
-              <div className="bar xp">
+              <span>XP</span>
+              <div className="bar xp" aria-label={`XP ${stats.xp}`}>
                 <span style={{ width: `${stats.xpPct}%` }} />
               </div>
+              <em>{stats.xp}</em>
             </div>
           </div>
 
-          <div className="hud-secondary">
-            <div>
-              <strong>{stats.shield}</strong>
-              <span>shield</span>
-            </div>
-            <div>
-              <strong>{stats.souls}</strong>
-              <span>souls</span>
-            </div>
-            <div>
-              <strong>{stats.upgrades}</strong>
-              <span>mods</span>
-            </div>
-            <div>
-              <strong>{stats.fusions}</strong>
-              <span>fusions</span>
-            </div>
+          <div className="hud-chips">
+            <span>SH {stats.shield}</span>
+            <span>S {stats.souls}</span>
+            <span>M {stats.upgrades}</span>
+            <span>F {stats.fusions}</span>
           </div>
         </header>
 

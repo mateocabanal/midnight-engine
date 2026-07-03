@@ -1,8 +1,6 @@
-const CACHE_NAME = "midnight-engine-v2";
+const CACHE_NAME = "midnight-engine-v3";
 const SCOPE = self.registration.scope;
-const APP_SHELL = ["", "index.html", "assets/app.js", "assets/index.css", "manifest.webmanifest", "icons/icon.svg"].map(
-  (path) => new URL(path, SCOPE).toString()
-);
+const APP_SHELL = ["", "index.html", "manifest.webmanifest", "icons/icon.svg"].map((path) => new URL(path, SCOPE).toString());
 
 self.addEventListener("install", (event) => {
   const requests = APP_SHELL.map((url) => new Request(url, { cache: "reload" }));
@@ -25,7 +23,7 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request)
+      fetch(new Request(event.request, { cache: "no-store" }))
         .then((response) => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(new URL("index.html", SCOPE).toString(), clone));
@@ -36,17 +34,34 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const url = new URL(event.request.url);
+  const isBuildAsset = url.pathname.includes("/assets/");
+
+  if (!isBuildAsset) {
+    event.respondWith(
+      fetch(new Request(event.request, { cache: "no-store" }))
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
 
       return fetch(event.request)
         .then((response) => {
+          if (!response.ok) return response;
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           return response;
         })
-        .catch(() => caches.match(new URL("index.html", SCOPE).toString()).then((cached) => cached || caches.match(SCOPE)));
+        .catch(() => caches.match(event.request));
     })
   );
 });

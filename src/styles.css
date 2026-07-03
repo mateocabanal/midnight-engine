@@ -86,6 +86,10 @@ button {
   min-width: 0;
 }
 
+.hud-core {
+  flex-wrap: nowrap;
+}
+
 .hud-core strong {
   min-width: 52px;
   font-size: 18px;
@@ -309,6 +313,20 @@ button {
 
   .hud-chips {
     gap: 4px;
+  }
+
+  .hud-core {
+    gap: 4px;
+  }
+
+  .hud-core strong {
+    min-width: 48px;
+  }
+
+  .hud-core span {
+    min-height: 21px;
+    padding-inline: 6px;
+    font-size: 10px;
   }
 
   .hud-chips span {

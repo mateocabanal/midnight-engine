@@ -20,15 +20,21 @@ const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: 
 
 const fusionIds = new Set(["recursiveGun", "stormReactor", "bloodEconomy", "solarFrostbite", "gemSingularity"]);
 
-const getHudStats = (game: Game) => ({
-  ...game.ui,
-  hp: `${Math.ceil(game.player.hp)}/${game.player.maxHp}`,
-  shield: String(Math.floor(game.player.shield)),
-  xp: `${Math.floor(game.xp)}/${game.nextXp}`,
-  souls: String(game.player.souls),
-  upgrades: String(Object.values(game.upgrades).reduce((total, value) => total + (value || 0), 0)),
-  fusions: String(Object.entries(game.upgrades).filter(([id, value]) => fusionIds.has(id) && (value || 0) > 0).length)
-});
+const getHudStats = (game: Game) => {
+  const ammo = Math.max(0, game.player.magazine - game.player.shots);
+  const isReloading = game.player.reload > 0;
+
+  return {
+    ...game.ui,
+    ammo: isReloading ? "RLD" : `${ammo}/${game.player.magazine}`,
+    hp: `${Math.ceil(game.player.hp)}/${game.player.maxHp}`,
+    shield: String(Math.floor(game.player.shield)),
+    levelProgress: `${Math.floor(game.xp)}/${game.nextXp}`,
+    souls: String(game.player.souls),
+    upgrades: String(Object.values(game.upgrades).reduce((total, value) => total + (value || 0), 0)),
+    fusions: String(Object.entries(game.upgrades).filter(([id, value]) => fusionIds.has(id) && (value || 0) > 0).length)
+  };
+};
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -212,6 +218,7 @@ export default function App() {
             <strong>{stats.time}</strong>
             <span>L{stats.level}</span>
             <span>K{stats.kills}</span>
+            <span>AM {stats.ammo}</span>
           </div>
 
           <div className="hud-meters">
@@ -223,11 +230,11 @@ export default function App() {
               <em>{stats.hp}</em>
             </div>
             <div className="meter-row">
-              <span>XP</span>
-              <div className="bar xp" aria-label={`XP ${stats.xp}`}>
+              <span>LVL</span>
+              <div className="bar xp" aria-label={`Level progress ${stats.levelProgress}`}>
                 <span style={{ width: `${stats.xpPct}%` }} />
               </div>
-              <em>{stats.xp}</em>
+              <em>{stats.levelProgress}</em>
             </div>
           </div>
 

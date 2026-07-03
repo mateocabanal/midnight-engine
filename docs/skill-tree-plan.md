@@ -2,6 +2,8 @@
 
 This plan follows the 20 Minutes Till Dawn style: small upgrade trees, readable first picks, strong internal identity, and capstones that become absurd when combined with other trees.
 
+For the broader combat model behind these trees, see [Deep Systems Plan](./deep-systems-plan.md).
+
 ## Upgrade Rules
 
 - Each tree has 1 root, 2 branch upgrades, and 1 capstone.

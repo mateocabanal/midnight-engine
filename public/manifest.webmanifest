@@ -1,0 +1,19 @@
+{
+  "name": "Midnight Engine",
+  "short_name": "Midnight",
+  "description": "A mobile-first offline roguelite prototype with absurd upgrade synergies.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090a14",
+  "theme_color": "#090a14",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

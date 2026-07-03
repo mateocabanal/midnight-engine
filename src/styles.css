@@ -61,87 +61,87 @@ button {
 
 .hud {
   position: absolute;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
-  right: max(12px, env(safe-area-inset-right));
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  width: min(760px, calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right))));
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(7, 10, 24, 0.68);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
-.hud-primary,
-.hud-meters,
-.hud-secondary {
+.hud-core,
+.hud-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(7, 10, 24, 0.72);
-  backdrop-filter: blur(12px);
 }
 
-.hud-primary {
-  display: grid;
-  grid-template-columns: minmax(86px, 1.3fr) repeat(2, minmax(48px, 0.7fr));
-  flex: 1 1 280px;
+.hud-core strong {
+  min-width: 52px;
+  font-size: 18px;
+  line-height: 1;
 }
 
-.hud-cell {
-  min-width: 0;
-  padding: 9px 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.hud-cell:first-child {
-  border-left: 0;
-}
-
-.hud strong,
-.hud span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.hud-core span,
+.hud-chips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #dbeafe;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 
-.hud strong {
-  font-size: clamp(16px, 2.4vw, 22px);
-  line-height: 1.05;
-}
-
-.hud span {
-  margin-top: 3px;
-  color: #a5b4fc;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.hud-chips {
+  justify-content: end;
 }
 
 .hud-meters {
-  flex: 1.5 1 260px;
   display: grid;
-  gap: 8px;
-  padding: 9px 10px;
+  gap: 5px;
+  min-width: 0;
 }
 
 .meter-row {
   display: grid;
-  grid-template-columns: minmax(76px, max-content) minmax(90px, 1fr);
+  grid-template-columns: 24px minmax(72px, 1fr) minmax(44px, max-content);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.meter-row > span {
-  color: #e2e8f0;
-  font-size: 11px;
+.meter-row > span,
+.meter-row em {
+  color: #cbd5e1;
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  font-style: normal;
+  line-height: 1;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
+.meter-row em {
+  color: #f8fafc;
+  text-align: right;
+}
+
 .bar {
-  height: 8px;
+  height: 5px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.09);
@@ -156,27 +156,11 @@ button {
 }
 
 .bar.xp {
-  height: 5px;
+  height: 4px;
 }
 
 .bar.xp span {
   background: linear-gradient(90deg, #818cf8, #c084fc);
-}
-
-.hud-secondary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(42px, 1fr));
-  flex: 0.9 1 250px;
-}
-
-.hud-secondary div {
-  min-width: 0;
-  padding: 9px 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.hud-secondary div:first-child {
-  border-left: 0;
 }
 
 .dash-button {
@@ -309,51 +293,48 @@ button {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 700px) {
   .hud {
-    flex-wrap: wrap;
-    gap: 8px;
+    top: max(7px, env(safe-area-inset-top));
+    grid-template-columns: auto 1fr;
+    width: min(520px, calc(100vw - 18px));
+    gap: 6px;
+    padding: 6px;
   }
 
-  .hud-primary,
-  .hud-meters,
-  .hud-secondary {
-    flex-basis: 100%;
-  }
-
-  .hud-secondary {
+  .hud-meters {
+    grid-column: 1 / -1;
     order: 3;
+  }
+
+  .hud-chips {
+    gap: 4px;
+  }
+
+  .hud-chips span {
+    min-height: 21px;
+    padding-inline: 6px;
+    font-size: 10px;
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
   .hud {
-    left: max(10px, env(safe-area-inset-left));
-    right: max(10px, env(safe-area-inset-right));
-    gap: 8px;
+    top: max(6px, env(safe-area-inset-top));
+    width: min(720px, calc(100vw - 28px));
+    grid-template-columns: auto minmax(160px, 1fr) auto;
+    padding: 5px 6px;
   }
 
-  .hud-primary {
-    flex: 0.95 1 240px;
+  .hud-core strong {
+    min-width: 48px;
+    font-size: 16px;
   }
 
-  .hud-meters {
-    flex: 1.15 1 240px;
-  }
-
-  .hud-secondary {
-    flex: 0.8 1 220px;
-  }
-
-  .hud-cell,
-  .hud-meters,
-  .hud-secondary div {
-    padding: 7px 8px;
-  }
-
-  .hud span,
-  .hud-secondary span,
-  .meter-row > span {
+  .hud-core span,
+  .hud-chips span,
+  .meter-row > span,
+  .meter-row em {
     font-size: 9px;
   }
 

@@ -18,6 +18,18 @@ const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: 
   return { x: (dx / length) * clamped, y: (dy / length) * clamped };
 };
 
+const fusionIds = new Set(["recursiveGun", "stormReactor", "bloodEconomy", "solarFrostbite", "gemSingularity"]);
+
+const getHudStats = (game: Game) => ({
+  ...game.ui,
+  hp: `${Math.ceil(game.player.hp)}/${game.player.maxHp}`,
+  shield: String(Math.floor(game.player.shield)),
+  xp: `${Math.floor(game.xp)}/${game.nextXp}`,
+  souls: String(game.player.souls),
+  upgrades: String(Object.values(game.upgrades).reduce((total, value) => total + (value || 0), 0)),
+  fusions: String(Object.entries(game.upgrades).filter(([id, value]) => fusionIds.has(id) && (value || 0) > 0).length)
+});
+
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameRef = useRef<Game>(createGame());
@@ -25,7 +37,7 @@ export default function App() {
   const joystickRef = useRef({ activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 });
   const [paused, setPaused] = useState(true);
   const [choices, setChoices] = useState<Choice[]>([]);
-  const [stats, setStats] = useState(gameRef.current.ui);
+  const [stats, setStats] = useState(getHudStats(gameRef.current));
 
   useEffect(() => {
     const registerServiceWorker = async () => {
@@ -78,7 +90,7 @@ export default function App() {
       drawGame(ctx, game, joystickRef.current);
       statTimer += dt;
       if (statTimer > 0.08) {
-        setStats({ ...game.ui });
+        setStats(getHudStats(game));
         statTimer = 0;
       }
 
@@ -103,7 +115,7 @@ export default function App() {
     joystickRef.current = { activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 };
     setChoices([]);
     setPaused(false);
-    setStats(gameRef.current.ui);
+    setStats(getHudStats(gameRef.current));
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -146,29 +158,56 @@ export default function App() {
       >
         <canvas ref={canvasRef} className="game-canvas" aria-label="Midnight Engine game canvas" />
 
-        <header className="hud">
-          <div>
-            <strong>{stats.time}</strong>
-            <span>night clock</span>
+        <header className="hud" aria-label="Run status">
+          <div className="hud-primary">
+            <div className="hud-cell clock">
+              <strong>{stats.time}</strong>
+              <span>night</span>
+            </div>
+            <div className="hud-cell">
+              <strong>{stats.level}</strong>
+              <span>level</span>
+            </div>
+            <div className="hud-cell">
+              <strong>{stats.kills}</strong>
+              <span>kills</span>
+            </div>
           </div>
-          <div>
-            <strong>{stats.level}</strong>
-            <span>engine level</span>
+
+          <div className="hud-meters">
+            <div className="meter-row">
+              <span>HP {stats.hp}</span>
+              <div className="bar">
+                <span style={{ width: `${stats.hpPct}%` }} />
+              </div>
+            </div>
+            <div className="meter-row">
+              <span>XP {stats.xp}</span>
+              <div className="bar xp">
+                <span style={{ width: `${stats.xpPct}%` }} />
+              </div>
+            </div>
           </div>
-          <div>
-            <strong>{stats.kills}</strong>
-            <span>kills</span>
+
+          <div className="hud-secondary">
+            <div>
+              <strong>{stats.shield}</strong>
+              <span>shield</span>
+            </div>
+            <div>
+              <strong>{stats.souls}</strong>
+              <span>souls</span>
+            </div>
+            <div>
+              <strong>{stats.upgrades}</strong>
+              <span>mods</span>
+            </div>
+            <div>
+              <strong>{stats.fusions}</strong>
+              <span>fusions</span>
+            </div>
           </div>
         </header>
-
-        <div className="bars" aria-hidden="true">
-          <div className="bar">
-            <span style={{ width: `${stats.hpPct}%` }} />
-          </div>
-          <div className="bar xp">
-            <span style={{ width: `${stats.xpPct}%` }} />
-          </div>
-        </div>
 
         <button
           className="dash-button"

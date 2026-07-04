@@ -482,8 +482,8 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
   const game: Game = {
     screen: { w: 390, h: 780 },
     player: {
-      x: 195,
-      y: 390,
+      x: 0,
+      y: 0,
       r: 13,
       characterId: loadout.characterId,
       weaponId: loadout.weaponId,
@@ -1085,9 +1085,6 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
   }
   input.dash = false;
 
-  player.x = clamp(player.x, 18, game.screen.w - 18);
-  player.y = clamp(player.y, 72, game.screen.h - 18);
-
   if (game.spawnTimer <= 0) {
     const amount = 1 + Math.floor(game.time / 28);
     for (let i = 0; i < amount; i += 1) spawnEnemy(game);
@@ -1120,16 +1117,23 @@ export const drawGame = (
   joystick: { activeId: number; x: number; y: number; knobX: number; knobY: number }
 ) => {
   const { w, h } = game.screen;
+  const camera = {
+    x: w / 2 - game.player.x,
+    y: h / 2 - game.player.y
+  };
   ctx.clearRect(0, 0, w, h);
 
-  const gradient = ctx.createRadialGradient(game.player.x, game.player.y, 20, game.player.x, game.player.y, Math.max(w, h) * 0.78);
+  const gradient = ctx.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, Math.max(w, h) * 0.78);
   gradient.addColorStop(0, "#171a34");
   gradient.addColorStop(0.62, "#0b0d18");
   gradient.addColorStop(1, "#03040a");
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, w, h);
 
-  drawGrid(ctx, w, h, game.time);
+  drawProceduralStage(ctx, w, h, game.time, camera);
+
+  ctx.save();
+  ctx.translate(camera.x, camera.y);
 
   for (const gem of game.gems) {
     ctx.fillStyle = "#a78bfa";
@@ -1206,6 +1210,8 @@ export const drawGame = (
     ctx.arc(p.x, p.y, p.r + 9 + Math.sin(game.time * 8) * 2, 0, TAU);
     ctx.stroke();
   }
+
+  ctx.restore();
 
   if (joystick.activeId !== -1) {
     ctx.beginPath();
@@ -1375,23 +1381,16 @@ const updateBullets = (game: Game, dt: number) => {
 };
 
 const bounceBullet = (game: Game, bullet: Bullet) => {
-  let bounced = false;
-  if (bullet.bounces <= 0) return false;
-  if (bullet.x < 8 || bullet.x > game.screen.w - 8) {
-    bullet.vx *= -1;
-    bullet.x = clamp(bullet.x, 8, game.screen.w - 8);
-    bounced = true;
-  }
-  if (bullet.y < 64 || bullet.y > game.screen.h - 8) {
-    bullet.vy *= -1;
-    bullet.y = clamp(bullet.y, 64, game.screen.h - 8);
-    bounced = true;
-  }
-  if (bounced) {
-    bullet.bounces -= 1;
-    bullet.damage *= has(game, "recursive_gun") ? 0.92 : 0.85;
-  }
-  return bounced;
+  if (bullet.bounces <= 0 || bullet.life > 0.16) return false;
+  const target = nearestEnemy(game, bullet.x, bullet.y);
+  const speed = Math.hypot(bullet.vx, bullet.vy) || game.player.bulletSpeed;
+  const angle = target ? Math.atan2(target.y - bullet.y, target.x - bullet.x) : Math.atan2(bullet.vy, bullet.vx) + rand(-0.95, 0.95);
+  bullet.vx = Math.cos(angle) * speed;
+  bullet.vy = Math.sin(angle) * speed;
+  bullet.life += 0.42;
+  bullet.bounces -= 1;
+  bullet.damage *= has(game, "recursive_gun") ? 0.92 : 0.85;
+  return true;
 };
 
 const splitBullet = (game: Game, bullet: Bullet) => {
@@ -1633,14 +1632,28 @@ const killEnemy = (game: Game, enemy: Enemy) => {
 
 const spawnEnemy = (game: Game, anywhere = false) => {
   const edge = Math.floor(rand(0, 4));
-  const margin = 28;
-  let x = rand(0, game.screen.w);
-  let y = rand(82, game.screen.h);
-  if (!anywhere) {
-    if (edge === 0) x = -margin;
-    if (edge === 1) x = game.screen.w + margin;
-    if (edge === 2) y = 62;
-    if (edge === 3) y = game.screen.h + margin;
+  const margin = 80;
+  const halfW = game.screen.w / 2;
+  const halfH = game.screen.h / 2;
+  let x = game.player.x + rand(-halfW, halfW);
+  let y = game.player.y + rand(-halfH, halfH);
+  if (anywhere) {
+    const angle = rand(0, TAU);
+    const distance = rand(120, Math.max(halfW, halfH) + margin);
+    x = game.player.x + Math.cos(angle) * distance;
+    y = game.player.y + Math.sin(angle) * distance;
+  } else if (edge === 0) {
+    x = game.player.x - halfW - margin;
+    y = game.player.y + rand(-halfH - margin, halfH + margin);
+  } else if (edge === 1) {
+    x = game.player.x + halfW + margin;
+    y = game.player.y + rand(-halfH - margin, halfH + margin);
+  } else if (edge === 2) {
+    x = game.player.x + rand(-halfW - margin, halfW + margin);
+    y = game.player.y - halfH - margin;
+  } else {
+    x = game.player.x + rand(-halfW - margin, halfW + margin);
+    y = game.player.y + halfH + margin;
   }
 
   const minutes = game.time / 60;
@@ -1824,22 +1837,77 @@ const bulletColor = (element: Bullet["element"]) => {
   return "#f8fafc";
 };
 
-const drawGrid = (ctx: CanvasRenderingContext2D, w: number, h: number, time: number) => {
-  ctx.strokeStyle = "rgba(148, 163, 184, 0.06)";
+const hashTile = (x: number, y: number, salt = 0) => {
+  const n = Math.sin(x * 127.1 + y * 311.7 + salt * 74.7) * 43758.5453123;
+  return n - Math.floor(n);
+};
+
+const drawProceduralStage = (ctx: CanvasRenderingContext2D, w: number, h: number, time: number, camera: Vec) => {
+  const grid = 48;
+  const tile = 96;
+  const worldLeft = -camera.x;
+  const worldTop = -camera.y;
+  const worldRight = worldLeft + w;
+  const worldBottom = worldTop + h;
+
+  ctx.strokeStyle = "rgba(148, 163, 184, 0.055)";
   ctx.lineWidth = 1;
-  const gap = 36;
-  const offset = (time * 10) % gap;
-  for (let x = -gap; x < w + gap; x += gap) {
+  const startGridX = Math.floor(worldLeft / grid) * grid;
+  const startGridY = Math.floor(worldTop / grid) * grid;
+  for (let x = startGridX; x < worldRight + grid; x += grid) {
+    const sx = x + camera.x;
     ctx.beginPath();
-    ctx.moveTo(x + offset, 64);
-    ctx.lineTo(x + offset, h);
+    ctx.moveTo(sx, 0);
+    ctx.lineTo(sx, h);
     ctx.stroke();
   }
-  for (let y = 64 - gap; y < h + gap; y += gap) {
+  for (let y = startGridY; y < worldBottom + grid; y += grid) {
+    const sy = y + camera.y;
     ctx.beginPath();
-    ctx.moveTo(0, y + offset);
-    ctx.lineTo(w, y + offset);
+    ctx.moveTo(0, sy);
+    ctx.lineTo(w, sy);
     ctx.stroke();
+  }
+
+  const minTileX = Math.floor(worldLeft / tile) - 1;
+  const maxTileX = Math.floor(worldRight / tile) + 1;
+  const minTileY = Math.floor(worldTop / tile) - 1;
+  const maxTileY = Math.floor(worldBottom / tile) + 1;
+
+  for (let tx = minTileX; tx <= maxTileX; tx += 1) {
+    for (let ty = minTileY; ty <= maxTileY; ty += 1) {
+      const sx = tx * tile + camera.x;
+      const sy = ty * tile + camera.y;
+      const roll = hashTile(tx, ty);
+      const roll2 = hashTile(tx, ty, 2);
+      const roll3 = hashTile(tx, ty, 3);
+
+      if (roll < 0.42) {
+        ctx.fillStyle = roll < 0.2 ? "rgba(30, 41, 59, 0.18)" : "rgba(88, 28, 135, 0.08)";
+        ctx.beginPath();
+        ctx.roundRect(sx + 10 + roll2 * 32, sy + 12 + roll3 * 28, 28 + roll * 54, 12 + roll2 * 22, 8);
+        ctx.fill();
+      }
+
+      if (roll2 > 0.73) {
+        ctx.strokeStyle = "rgba(196, 181, 253, 0.12)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(sx + 14 + roll * 36, sy + 20);
+        ctx.lineTo(sx + 38 + roll2 * 34, sy + 42 + Math.sin(time + tx) * 2);
+        ctx.lineTo(sx + 22 + roll3 * 56, sy + 74);
+        ctx.stroke();
+      }
+
+      if (roll3 > 0.86) {
+        ctx.save();
+        ctx.translate(sx + 18 + roll * 62, sy + 18 + roll2 * 62);
+        ctx.rotate((tx - ty) * 0.4);
+        ctx.fillStyle = "rgba(125, 211, 252, 0.12)";
+        diamond(ctx, 0, 0, 5 + roll * 5);
+        ctx.restore();
+      }
+    }
   }
 };
 

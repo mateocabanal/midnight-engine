@@ -5,8 +5,8 @@ export type InputState = {
 };
 
 type Vec = { x: number; y: number };
-export type CharacterId = "saint" | "ilya" | "nox" | "mira";
-export type WeaponId = "revolver" | "shotgun" | "smg" | "crossbow";
+export type CharacterId = string;
+export type WeaponId = string;
 
 export type LoadoutConfig = {
   characterId: CharacterId;
@@ -22,24 +22,7 @@ export type LoadoutOption<T extends string> = {
   tradeoff: string;
 };
 
-type UpgradeId =
-  | "overclock"
-  | "split"
-  | "mirror"
-  | "static"
-  | "ricochet"
-  | "frostfire"
-  | "grave"
-  | "gemBomb"
-  | "bloodTax"
-  | "vampire"
-  | "orbit"
-  | "parasite"
-  | "recursiveGun"
-  | "stormReactor"
-  | "bloodEconomy"
-  | "solarFrostbite"
-  | "gemSingularity";
+type UpgradeId = string;
 
 type Enemy = {
   id: number;
@@ -53,6 +36,9 @@ type Enemy = {
   burn: number;
   freeze: number;
   poison: number;
+  shock: number;
+  bleed: number;
+  curse: number;
   hitFlash: number;
   damageNoticeCooldown: number;
 };
@@ -70,6 +56,7 @@ type Bullet = {
   split: number;
   crit: number;
   element: "kinetic" | "lightning" | "fire" | "ice" | "blood" | "void";
+  depth: number;
   fromOrbit?: boolean;
 };
 
@@ -112,6 +99,12 @@ type Player = {
   fireRate: number;
   damage: number;
   crit: number;
+  critDamage: number;
+  armour: number;
+  pickupRadius: number;
+  activeCooldown: number;
+  activeTimer: number;
+  weaponSpecial: WeaponId;
   cooldown: number;
   reload: number;
   reloadDuration: number;
@@ -124,6 +117,13 @@ type Player = {
   bulletLife: number;
   bulletPierce: number;
   reloadSpeed: number;
+  summonDamage: number;
+  lightningDamage: number;
+  fireDamage: number;
+  frostDamage: number;
+  poisonDamage: number;
+  bleedDamage: number;
+  curseDamage: number;
   dashCooldown: number;
   invuln: number;
   souls: number;
@@ -160,11 +160,23 @@ export type Game = {
 type UpgradeDef = {
   id: UpgradeId;
   name: string;
+  category?: string;
+  rarity?: "common" | "uncommon" | "rare" | "epic" | "legendary" | "law" | "fusion";
   description: string;
   fusion?: boolean;
+  law?: boolean;
   requires?: UpgradeId[];
   apply: (game: Game) => void;
 };
+
+type RawUpgradeDef = [
+  id: UpgradeId,
+  name: string,
+  category: string,
+  rarity: NonNullable<UpgradeDef["rarity"]>,
+  description: string,
+  requires?: UpgradeId[]
+];
 
 export type Choice = UpgradeDef;
 
@@ -174,35 +186,67 @@ const DEFAULT_LOADOUT: LoadoutConfig = { characterId: "saint", weaponId: "revolv
 export const characterOptions: LoadoutOption<CharacterId>[] = [
   {
     id: "saint",
-    name: "Saint, the Empty Gun",
+    name: "Saint",
     tagline: "Reload ritualist",
-    description: "Active: force an emergency reload burst. Passive: reload effects hit harder.",
-    strengths: ["Reload effects", "Blood loops", "Small magazines"],
-    tradeoff: "Starts with less ammo but reloads faster."
+    description: "Active: Covenant Reload instantly reloads, emits holy bolts, and empowers post-reload damage.",
+    strengths: ["Reload", "Precision", "Shield"],
+    tradeoff: "Litany of Empty Hands shrinks magazine size by 15%."
   },
   {
     id: "ilya",
-    name: "Ilya, the Storm Nun",
+    name: "Ilya",
     tagline: "Lightning crit engine",
-    description: "Active: prime the next hits with lightning. Passive: chain lightning can spike harder.",
-    strengths: ["Lightning", "Fire rate", "Orbit triggers"],
-    tradeoff: "Lower base bullet damage."
+    description: "Active: Stormstep dashes through enemies and leaves a shocking lightning line.",
+    strengths: ["Shock", "Dash", "Chains"],
+    tradeoff: "Conductive Faith reduces direct bullet damage by 10%."
   },
   {
     id: "nox",
-    name: "Nox, the Parasite Kid",
+    name: "Nox",
     tagline: "Blood swarm starter",
-    description: "Active: hatch parasites from recent kills. Passive: starts closer to parasite/blood builds.",
-    strengths: ["Parasites", "Blood", "Kill cascades"],
-    tradeoff: "Lower max health."
+    description: "Active: Brood Burst releases poison mites. Passive: overheal stores brood charges for reload spawns.",
+    strengths: ["Summons", "Poison", "Overheal"],
+    tradeoff: "Overflow Brood lowers max health by 20."
   },
   {
     id: "mira",
-    name: "Mira, the Twin Shot",
+    name: "Mira",
     tagline: "Copy and split specialist",
-    description: "Active: reflect copied bullets. Passive: mirror-style shots appear earlier.",
-    strengths: ["Copied shots", "Split bullets", "Crit bursts"],
-    tradeoff: "Slightly slower reloads."
+    description: "Active: Mirror Sigil creates a firing clone. Passive: every second projectile echoes.",
+    strengths: ["Echo", "Split", "Geometry"],
+    tradeoff: "Echo Chamber slows reload by 12%."
+  },
+  {
+    id: "scarlett",
+    name: "Scarlett",
+    tagline: "Wildfire snowball",
+    description: "Active: Cinder Rite guarantees burn and flame pools on the next shots.",
+    strengths: ["Burn", "Explosions", "Flame pools"],
+    tradeoff: "Pyre Hunger lowers projectile speed by 10%."
+  },
+  {
+    id: "corvus",
+    name: "Corvus",
+    tagline: "Crit curse assassin",
+    description: "Active: Veil Cut grants stealth and a guaranteed piercing crit.",
+    strengths: ["Critical hits", "Curse", "Souls"],
+    tradeoff: "Marked by Night reduces shield generation."
+  },
+  {
+    id: "kaden",
+    name: "Kaden",
+    tagline: "Close-range bastion",
+    description: "Active: Iron Bastion reduces damage and repels enemies around you.",
+    strengths: ["Armour", "Knockback", "Low ammo"],
+    tradeoff: "Last Line lowers fire rate by 15%."
+  },
+  {
+    id: "lyra",
+    name: "Lyra",
+    tagline: "Summon commander",
+    description: "Active: Rally Beasts commands summons to a target point and enrages them.",
+    strengths: ["Summons", "Rally", "Projectile inheritance"],
+    tradeoff: "Choirmother lowers player projectile damage by 12%."
   }
 ];
 
@@ -224,10 +268,10 @@ export const weaponOptions: LoadoutOption<WeaponId>[] = [
     tradeoff: "Short range and slow reload."
   },
   {
-    id: "smg",
-    name: "SMG",
+    id: "needle_smg",
+    name: "Needle SMG",
     tagline: "Status proc machine",
-    description: "Low damage, huge magazine, and high fire rate for elemental and summon triggers.",
+    description: "Low damage, huge magazine, and high fire rate. Every ninth bullet is perfectly accurate.",
     strengths: ["Fire rate", "Large magazine", "Lightning/decay setups"],
     tradeoff: "Weak single-hit damage."
   },
@@ -238,6 +282,70 @@ export const weaponOptions: LoadoutOption<WeaponId>[] = [
     description: "Slow, hard-hitting bolts that pierce enemies and reward careful positioning.",
     strengths: ["Pierce", "Range", "Elite damage"],
     tradeoff: "Slow fire rate."
+  },
+  {
+    id: "flame_cannon",
+    name: "Flame Cannon",
+    tagline: "Burning cone control",
+    description: "Short-range fuel weapon that constantly applies Burn while connecting.",
+    strengths: ["Burn", "Cone damage", "Area denial"],
+    tradeoff: "Very low reach."
+  },
+  {
+    id: "arc_rifle",
+    name: "Arc Rifle",
+    tagline: "Shock chaining rifle",
+    description: "Medium-rate lightning weapon that chains harder against shocked targets.",
+    strengths: ["Shock", "Chains", "Reload fusions"],
+    tradeoff: "Mediocre raw boss damage without shock."
+  },
+  {
+    id: "shard_launcher",
+    name: "Shard Launcher",
+    tagline: "Splash control cannon",
+    description: "Slow explosive rounds that detonate on hit or max range.",
+    strengths: ["Splash", "Overkill", "Pull effects"],
+    tradeoff: "Low fire density."
+  },
+  {
+    id: "rail_lance",
+    name: "Rail Lance",
+    tagline: "Charged armour breaker",
+    description: "Slow hitscan lance with extreme pierce and armour break fantasy.",
+    strengths: ["Boss damage", "Pierce", "Critical hits"],
+    tradeoff: "Execution-heavy and slow."
+  },
+  {
+    id: "chakram",
+    name: "Chakram",
+    tagline: "Returning geometry weapon",
+    description: "Arcing blades hit outbound and return, rewarding positioning and bounce/orbit builds.",
+    strengths: ["Return path", "Orbit", "Bounce"],
+    tradeoff: "Harder to pilot in crowded screens."
+  },
+  {
+    id: "hive_staff",
+    name: "Hive Staff",
+    tagline: "Projectile-summon hybrid",
+    description: "Every third hit spawns a temporary wasp, bridging bullet and summon builds.",
+    strengths: ["Summons", "Poison", "Hybrid scaling"],
+    tradeoff: "Lower raw burst without summon support."
+  },
+  {
+    id: "prism_launcher",
+    name: "Prism Launcher",
+    tagline: "Split spacing weapon",
+    description: "Projectiles split near max range into three shards.",
+    strengths: ["Split", "Spacing", "Projectile size"],
+    tradeoff: "Weak point-blank before upgrades."
+  },
+  {
+    id: "aether_spear",
+    name: "Aether Spear",
+    tagline: "Delayed retarget pressure",
+    description: "Spears stop, hover, then retarget the nearest enemy.",
+    strengths: ["Delayed damage", "Zone control", "Shock/frost"],
+    tradeoff: "Damage arrives late."
   }
 ];
 
@@ -250,126 +358,122 @@ const addUpgrade = (game: Game, id: UpgradeId) => {
   game.upgrades[id] = (game.upgrades[id] || 0) + 1;
 };
 
-const upgradeDefs: UpgradeDef[] = [
-  {
-    id: "overclock",
-    name: "Overclocked Cylinder",
-    description: "+22% fire rate. Every stack makes the engine angrier.",
-    apply: (game) => {
-      addUpgrade(game, "overclock");
-      game.player.fireRate *= 1.22;
-    }
-  },
-  {
-    id: "split",
-    name: "Split Chamber",
-    description: "Bullets split on first hit. More stacks add more child shots.",
-    apply: (game) => addUpgrade(game, "split")
-  },
-  {
-    id: "mirror",
-    name: "Mirror Chamber",
-    description: "Every fifth shot is copied twice with inherited modifiers.",
-    apply: (game) => addUpgrade(game, "mirror")
-  },
-  {
-    id: "static",
-    name: "Static Prayer",
-    description: "Reloads and dashes chain lightning through nearby enemies.",
-    apply: (game) => addUpgrade(game, "static")
-  },
-  {
-    id: "ricochet",
-    name: "Hungry Ricochet",
-    description: "Bullets bounce off walls. Bounced bullets hit harder.",
-    apply: (game) => addUpgrade(game, "ricochet")
-  },
-  {
-    id: "frostfire",
-    name: "Frostfire Rounds",
-    description: "Shots alternate burn and freeze. Burning frozen enemies detonate.",
-    apply: (game) => addUpgrade(game, "frostfire")
-  },
-  {
-    id: "grave",
-    name: "Grave Interest",
-    description: "Kills mint souls. Three souls become a temporary orbiting blade.",
-    apply: (game) => addUpgrade(game, "grave")
-  },
-  {
-    id: "gemBomb",
-    name: "Gem Bomb",
-    description: "Collected XP gems burst for damage. Chain pickups get nasty.",
-    apply: (game) => addUpgrade(game, "gemBomb")
-  },
-  {
-    id: "bloodTax",
-    name: "Blood Tax",
-    description: "Reloads spend a sliver of HP to fire a blood nova.",
-    apply: (game) => addUpgrade(game, "bloodTax")
-  },
-  {
-    id: "vampire",
-    name: "Vampire Circuit",
-    description: "Kills restore HP. Overhealing becomes a small shield.",
-    apply: (game) => addUpgrade(game, "vampire")
-  },
-  {
-    id: "orbit",
-    name: "Crown of Teeth",
-    description: "Gain orbiting teeth. Expired bullets may join the crown.",
-    apply: (game) => {
-      addUpgrade(game, "orbit");
-      game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(42, 62), damage: 7, life: 40, speed: rand(2.2, 3.6) });
-    }
-  },
-  {
-    id: "parasite",
-    name: "Parasite Rounds",
-    description: "Some kills hatch seeking blood shots toward another target.",
-    apply: (game) => addUpgrade(game, "parasite")
-  },
-  {
-    id: "recursiveGun",
-    name: "Fusion: Recursive Gun",
-    description: "Copied bullets can copy, split, and crit again with decay.",
-    fusion: true,
-    requires: ["split", "mirror", "overclock"],
-    apply: (game) => addUpgrade(game, "recursiveGun")
-  },
-  {
-    id: "stormReactor",
-    name: "Fusion: Storm Reactor",
-    description: "Bounces and orbit hits trigger micro-lightning.",
-    fusion: true,
-    requires: ["static", "ricochet", "orbit"],
-    apply: (game) => addUpgrade(game, "stormReactor")
-  },
-  {
-    id: "bloodEconomy",
-    name: "Fusion: Blood Economy",
-    description: "HP, souls, reloads, and shields convert into each other.",
-    fusion: true,
-    requires: ["bloodTax", "vampire", "grave"],
-    apply: (game) => addUpgrade(game, "bloodEconomy")
-  },
-  {
-    id: "solarFrostbite",
-    name: "Fusion: Solar Frostbite",
-    description: "Burn and freeze stack together, then shatter into seeking shards.",
-    fusion: true,
-    requires: ["frostfire", "parasite"],
-    apply: (game) => addUpgrade(game, "solarFrostbite")
-  },
-  {
-    id: "gemSingularity",
-    name: "Fusion: Gem Singularity",
-    description: "Gem explosions pull enemies inward and can collect more gems.",
-    fusion: true,
-    requires: ["gemBomb", "orbit"],
-    apply: (game) => addUpgrade(game, "gemSingularity")
-  }
-];
+const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
+  ["heavy_caliber", "Heavy Caliber", "ballistics", "common", "+22% projectile damage, -10% fire rate."],
+  ["long_barrel", "Long Barrel", "ballistics", "common", "+22% projectile speed, +18% range."],
+  ["rifled_jacket", "Rifled Jacket", "ballistics", "uncommon", "+1 pierce; each pierce after the first reduces remaining damage."],
+  ["buckshot", "Buckshot", "ballistics", "uncommon", "Multi-pellet weapons gain +2 pellets; single-projectile weapons gain angled side shots; -12% range."],
+  ["soft_lead", "Soft Lead", "ballistics", "common", "+35% knockback, +14% projectile size, -12% projectile speed."],
+  ["collateral", "Collateral", "ballistics", "rare", "Overkill deals 40% excess damage in a splash."],
+  ["twin_feed", "Twin Feed", "ballistics", "rare", "+1 projectile, -18% projectile damage."],
+  ["giant_killer", "Giant Killer", "ballistics", "uncommon", "+30% damage to elites, bosses, and healthy enemies."],
+  ["pinpoint", "Pinpoint", "ballistics", "common", "-20% spread; distant targets take extra crit chance."],
+  ["serrated_rounds", "Serrated Rounds", "ballistics", "uncommon", "Crits and pierces apply Bleed; +10% direct hit damage."],
+  ["rebound", "Rebound", "ballistics", "rare", "+1 bounce; bounced projectiles deal reduced damage."],
+  ["shadow_round", "Shadow Round", "ballistics", "epic", "Every fourth shot becomes ethereal, faster, and piercing."],
+  ["bracer_core", "Bracer Core", "ballistics", "common", "+18% projectile size and hit radius; +10% splash radius."],
+  ["momentum_shot", "Momentum Shot", "ballistics", "uncommon", "Projectile damage increases with distance travelled."],
+  ["fin_stabilizer", "Fin Stabilizer", "ballistics", "common", "+14% projectile speed, +10% fire rate, -15% spread bloom."],
+  ["armour_breaker", "Armour Breaker", "ballistics", "rare", "Ignore armour and deal bonus damage to plated enemies."],
+  ["fast_hands", "Fast Hands", "reload", "common", "-18% reload time."],
+  ["extended_magazine", "Extended Magazine", "magazine", "common", "+35% ammo capacity, -10% reload speed."],
+  ["fresh_clip", "Fresh Clip", "reload", "uncommon", "First shot after reload deals +35% damage and gains size."],
+  ["last_straw", "Last Straw", "magazine", "uncommon", "Final 20% of the magazine gains damage and crit chance."],
+  ["bottomless_habit", "Bottomless Habit", "magazine", "rare", "18% chance to not consume ammo."],
+  ["quick_rack", "Quick Rack", "reload", "common", "Move faster while reloading; moving reloads faster."],
+  ["chamber_trick", "Chamber Trick", "reload", "rare", "Perfect empty reload grants a phantom high-damage round."],
+  ["tactical_reload", "Tactical Reload", "reload", "uncommon", "Reloading before empty makes the next reload faster and grants speed."],
+  ["backpressure", "Backpressure", "magazine", "uncommon", "Below 30% magazine, fire rate rises."],
+  ["empty_chamber", "Empty Chamber", "reload", "uncommon", "Hitting 0 ammo fires a shrapnel ring."],
+  ["ammo_printer", "Ammo Printer", "magazine", "rare", "Every 8 kills refund 1 ammo."],
+  ["hair_trigger", "Hair Trigger", "fire_rate", "common", "+18% fire rate, +8% spread."],
+  ["deadeye", "Deadeye", "critical", "common", "+10% critical chance, +8% projectile speed."],
+  ["glass_eye", "Glass Eye", "critical", "rare", "+30% critical damage, -12% maximum health."],
+  ["hollow_point", "Hollow Point", "critical", "uncommon", "Critical hits ignore armour and apply Bleed."],
+  ["headhunter", "Headhunter", "critical", "epic", "Critting elites or bosses grants crit chance; overkill crits spawn shards."],
+  ["ember_touch", "Ember Touch", "fire", "common", "+2 flat fire damage on hit; chance to apply Burn."],
+  ["firestarter", "Firestarter", "fire", "uncommon", "Hits have a stronger chance to apply Burn."],
+  ["lingering_flame", "Lingering Flame", "fire", "uncommon", "Kills leave flame pools."],
+  ["napalm", "Napalm", "fire", "rare", "Flame pools and explosions gain radius and Burn stacks."],
+  ["pyromaniac", "Pyromaniac", "fire", "uncommon", "+25% damage to burning enemies."],
+  ["thermal_lance", "Thermal Lance", "fire", "rare", "Burned enemies lose armour; projectiles gain damage after passing through fire."],
+  ["ash_wake", "Ash Wake", "fire", "rare", "Burning enemy deaths explode and spread Burn."],
+  ["cauterize", "Cauterize", "fire", "epic", "Burn kills heal or shield you."],
+  ["cold_touch", "Cold Touch", "frost", "common", "Hits apply Chill; enough Chill freezes."],
+  ["deep_freeze", "Deep Freeze", "frost", "uncommon", "Freeze duration increases."],
+  ["permafrost", "Permafrost", "frost", "rare", "Frozen enemies take more damage after thaw."],
+  ["brittle", "Brittle", "frost", "rare", "Frozen enemies take much higher critical damage."],
+  ["ice_bloom", "Ice Bloom", "frost", "uncommon", "Frozen enemy deaths release ice shards."],
+  ["cold_snap", "Cold Snap", "frost", "rare", "Every fifth Chill application instantly freezes."],
+  ["rime_ward", "Rime Ward", "frost", "epic", "Freezing an enemy grants shield."],
+  ["snowdrift", "Snowdrift", "frost", "uncommon", "Standing still emits Chill pulses."],
+  ["static_touch", "Static Touch", "shock", "common", "Hits have a chance to apply Shock."],
+  ["chain_spark", "Chain Spark", "shock", "uncommon", "Shock chains to +1 target and gains range.", ["static_touch"]],
+  ["overcharge", "Overcharge", "shock", "rare", "Hitting shocked enemies deals bonus damage and consumes Shock."],
+  ["capacitor", "Capacitor", "shock", "rare", "Reloading zaps the nearest shocked enemies."],
+  ["ionized", "Ionized", "shock", "uncommon", "Projectile speed also grants shock chance and shock damage."],
+  ["thunderhead", "Thunderhead", "shock", "epic", "Shocked, frozen, or stunned deaths fire lightning jumps."],
+  ["conductor", "Conductor", "shock", "rare", "Orbiting, returning, and split projectiles shock and chain harder."],
+  ["stormcall", "Stormcall", "shock", "epic", "Every 18 Shock applications calls a lightning strike."],
+  ["venom_tip", "Venom Tip", "poison", "common", "Hits can Poison."],
+  ["neurotoxin", "Neurotoxin", "poison", "uncommon", "Poison slows enemies and can crit."],
+  ["rotheart", "Rotheart", "poison", "rare", "Poisoned low-health enemies take much more damage."],
+  ["hemorrhage", "Hemorrhage", "bleed", "uncommon", "Critical hits can apply Bleed."],
+  ["blood_scent", "Blood Scent", "bleed", "uncommon", "Move faster and hit harder near bleeding enemies."],
+  ["hex_mark", "Hex Mark", "curse", "common", "Every fifth hit on the same target applies Curse."],
+  ["malediction", "Malediction", "curse", "rare", "Curse cap and damage taken increase."],
+  ["corrosion", "Corrosion", "poison", "rare", "Poison reduces armour over time."],
+  ["wisp_egg", "Wisp Egg", "summon", "common", "Summon 1 Wisp that fires bolts."],
+  ["hound_whistle", "Hound Whistle", "summon", "common", "Summon 1 Hound that bites nearby enemies."],
+  ["bone_turret", "Bone Turret", "summon", "uncommon", "On reload, deploy a temporary turret."],
+  ["mender_drone", "Mender Drone", "summon", "rare", "Orbiting drone restores health or shield."],
+  ["broodmother", "Broodmother", "summon", "uncommon", "Kills can spawn explosive Mites."],
+  ["familiar_training", "Familiar Training", "summon", "common", "Summons gain damage and move speed."],
+  ["soul_shepherd", "Soul Shepherd", "summon", "rare", "Elite and cursed kills drop Souls; Souls spawn Wisps."],
+  ["pack_tactics", "Pack Tactics", "summon", "rare", "Player gains damage per active summon."],
+  ["sacrificial_rite", "Sacrificial Rite", "summon", "epic", "Summon death explodes and applies your best status."],
+  ["twin_spawn", "Twin Spawn", "summon", "rare", "The first summon created by a source duplicates."],
+  ["leash_breaker", "Leash Breaker", "summon", "uncommon", "Summons roam farther and retarget faster."],
+  ["rally_signal", "Rally Signal", "summon", "rare", "Active ability commands summons to dash and enrage."],
+  ["vampiric_shell", "Vampiric Shell", "sustain", "rare", "Lifesteal direct and status damage."],
+  ["bulwark", "Bulwark", "defence", "common", "+2 armour, -8% move speed."],
+  ["phase_boots", "Phase Boots", "utility", "uncommon", "Dash cooldown and invulnerability improve."],
+  ["greed", "Greed", "economy", "common", "Experience gems and elite Soul value increase."],
+  ["magnetism", "Magnetism", "utility", "common", "Pickup radius and pull strength increase."],
+  ["scholars_habit", "Scholar's Habit", "utility", "uncommon", "Gain rerolls and improve high-synergy drafting."],
+  ["scavenger", "Scavenger", "economy", "rare", "Every 10 destroyed enemies drop ammo or shield."],
+  ["grit", "Grit", "defence", "epic", "Survive one lethal hit per run."],
+  ["afterimage", "Afterimage", "defence", "rare", "Dashing leaves a taunting clone that explodes."],
+  ["battle_meditation", "Battle Meditation", "utility", "uncommon", "Standing still grants reload speed and accuracy."],
+  ["soul_furnace", "Soul Furnace", "economy", "rare", "Souls grant temporary all-damage stacks."],
+  ["ward_seal", "Ward Seal", "defence", "uncommon", "Periodically gain shield."],
+  ["law_of_echoes", "Law of Echoes", "law", "law", "Every sixth projectile creates an Echo at 40% damage."],
+  ["law_of_orbit", "Law of Orbit", "law", "law", "Projectiles expiring near the player orbit briefly."],
+  ["law_of_split_blood", "Law of Split Blood", "law", "law", "On death, enemies release blood motes from stored Bleed."],
+  ["law_of_gravity", "Law of Gravity", "law", "law", "Slow projectiles pull enemies during the final part of their life."],
+  ["law_of_sacrifice", "Law of Sacrifice", "law", "law", "Player damage rises after summon deaths."],
+  ["thunder_magazine", "Thunder Magazine", "fusion", "fusion", "Reload fires 5 lightning bolts for 20 damage and applies Shock.", ["fast_hands", "fresh_clip", "chain_spark"]],
+  ["solar_frostbite", "Solar Frostbite", "fusion", "fusion", "Burning frozen enemies shatter for AoE and spread Burn + Chill.", ["firestarter", "brittle", "cold_snap"]],
+  ["blood_economy", "Blood Economy", "fusion", "fusion", "Overheal converts to ammo; Bleed kills grant shield.", ["hemorrhage", "vampiric_shell", "last_straw"]],
+  ["gem_singularity", "Gem Singularity", "fusion", "fusion", "Gems orbit before pickup, then detonate for gem-scaled damage.", ["greed", "magnetism", "scholars_habit"]],
+  ["black_hole_buckshot", "Black Hole Buckshot", "fusion", "fusion", "Centre pellets create a short vortex with heavy pull.", ["buckshot", "collateral", "law_of_gravity"]],
+  ["recursive_gun", "Recursive Gun", "fusion", "fusion", "Echoed or bounced projectiles can spawn child shots, max depth 2.", ["twin_feed", "rebound", "law_of_echoes"]],
+  ["hive_engine", "Hive Engine", "fusion", "fusion", "New summons fire a mini copy of your weapon and gain haste.", ["wisp_egg", "twin_spawn", "rally_signal"]]
+] satisfies RawUpgradeDef[]).map(([id, name, category, rarity, description, requires]) => ({
+  id,
+  name,
+  category,
+  rarity,
+  description,
+  requires,
+  fusion: rarity === "fusion",
+  law: rarity === "law"
+}));
+
+const upgradeDefs: UpgradeDef[] = rawUpgradeDefs.map((upgrade) => ({
+  ...upgrade,
+  apply: (game) => applyUpgrade(game, upgrade.id)
+}));
 
 export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
   const game: Game = {
@@ -387,6 +491,12 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       fireRate: 1,
       damage: 14,
       crit: 0.08,
+      critDamage: 2.2,
+      armour: 0,
+      pickupRadius: 82,
+      activeCooldown: 0,
+      activeTimer: 0,
+      weaponSpecial: loadout.weaponId,
       cooldown: 0,
       reload: 0,
       reloadDuration: 0,
@@ -399,6 +509,13 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       bulletLife: 1.25,
       bulletPierce: 0,
       reloadSpeed: 1,
+      summonDamage: 1,
+      lightningDamage: 1,
+      fireDamage: 1,
+      frostDamage: 1,
+      poisonDamage: 1,
+      bleedDamage: 1,
+      curseDamage: 1,
       dashCooldown: 0,
       invuln: 0,
       souls: 0,
@@ -428,8 +545,8 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
     }
   };
 
-  applyCharacter(game, loadout.characterId);
   applyWeapon(game, loadout.weaponId);
+  applyCharacter(game, loadout.characterId);
   for (let i = 0; i < 12; i += 1) spawnEnemy(game, true);
   updateUi(game);
   return game;
@@ -437,7 +554,8 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
 
 export const getUpgradeChoices = (game: Game): Choice[] => {
   const available = upgradeDefs.filter((upgrade) => {
-    if (upgrade.fusion && has(game, upgrade.id)) return false;
+    if ((upgrade.fusion || upgrade.law) && has(game, upgrade.id)) return false;
+    if (upgrade.law && game.level < 6) return false;
     if (upgrade.requires && !upgrade.requires.every((id) => has(game, id))) return false;
     return true;
   });
@@ -449,68 +567,488 @@ export const getUpgradeChoices = (game: Game): Choice[] => {
   return shuffle(pool).slice(0, 3);
 };
 
+function applyUpgrade(game: Game, id: UpgradeId) {
+  const player = game.player;
+  addUpgrade(game, id);
+
+  switch (id) {
+    case "heavy_caliber":
+      player.damage *= 1.22;
+      player.fireRate *= 0.9;
+      break;
+    case "long_barrel":
+      player.bulletSpeed *= 1.22;
+      player.bulletLife *= 1.18;
+      break;
+    case "rifled_jacket":
+      player.bulletPierce += 1;
+      break;
+    case "buckshot":
+      player.pellets += player.pellets > 1 ? 2 : 2;
+      player.spread = Math.max(player.spread, 0.28);
+      player.bulletLife *= 0.88;
+      break;
+    case "soft_lead":
+      player.bulletSize *= 1.14;
+      player.bulletSpeed *= 0.88;
+      break;
+    case "twin_feed":
+      player.pellets += 1;
+      player.damage *= 0.82;
+      player.spread = Math.max(player.spread, 0.18);
+      break;
+    case "pinpoint":
+      player.spread *= 0.8;
+      player.crit += 0.05;
+      break;
+    case "serrated_rounds":
+      player.damage *= 1.1;
+      break;
+    case "rebound":
+      break;
+    case "shadow_round":
+      player.bulletSpeed *= 1.08;
+      player.bulletPierce += 1;
+      break;
+    case "bracer_core":
+      player.bulletSize *= 1.18;
+      break;
+    case "momentum_shot":
+      player.bulletLife *= 1.1;
+      break;
+    case "fin_stabilizer":
+      player.bulletSpeed *= 1.14;
+      player.fireRate *= 1.1;
+      player.spread *= 0.85;
+      break;
+    case "armour_breaker":
+    case "giant_killer":
+      player.damage *= 1.12;
+      break;
+    case "fast_hands":
+      player.reloadSpeed *= 1.18;
+      break;
+    case "extended_magazine":
+      player.magazine = Math.max(player.magazine + 1, Math.round(player.magazine * 1.35));
+      player.reloadSpeed *= 0.9;
+      break;
+    case "fresh_clip":
+      player.damage *= 1.08;
+      break;
+    case "last_straw":
+      player.crit += 0.04;
+      break;
+    case "quick_rack":
+      player.reloadSpeed *= 1.08;
+      player.speed *= 1.06;
+      break;
+    case "chamber_trick":
+      player.damage *= 1.08;
+      player.reloadSpeed *= 1.05;
+      break;
+    case "tactical_reload":
+      player.reloadSpeed *= 1.12;
+      player.speed *= 1.05;
+      break;
+    case "backpressure":
+      player.fireRate *= 1.12;
+      break;
+    case "ammo_printer":
+      player.magazine += 1;
+      break;
+    case "hair_trigger":
+      player.fireRate *= 1.18;
+      player.spread *= 1.08;
+      break;
+    case "deadeye":
+      player.crit += 0.1;
+      player.bulletSpeed *= 1.08;
+      break;
+    case "glass_eye":
+      player.critDamage *= 1.3;
+      player.maxHp *= 0.88;
+      player.hp = Math.min(player.hp, player.maxHp);
+      break;
+    case "hollow_point":
+      player.crit += 0.04;
+      break;
+    case "headhunter":
+      player.crit += 0.08;
+      player.critDamage *= 1.12;
+      break;
+    case "ember_touch":
+    case "firestarter":
+    case "lingering_flame":
+    case "napalm":
+    case "pyromaniac":
+    case "thermal_lance":
+    case "ash_wake":
+      player.fireDamage *= 1.1;
+      break;
+    case "cauterize":
+      player.fireDamage *= 1.16;
+      player.shield = Math.min(70, player.shield + 10);
+      break;
+    case "cold_touch":
+    case "deep_freeze":
+    case "permafrost":
+    case "brittle":
+    case "ice_bloom":
+    case "cold_snap":
+      player.frostDamage *= 1.1;
+      break;
+    case "rime_ward":
+      player.frostDamage *= 1.12;
+      player.shield = Math.min(70, player.shield + 12);
+      break;
+    case "snowdrift":
+      player.frostDamage *= 1.08;
+      player.speed *= 0.98;
+      break;
+    case "static_touch":
+    case "chain_spark":
+    case "overcharge":
+    case "capacitor":
+    case "ionized":
+    case "thunderhead":
+    case "conductor":
+    case "stormcall":
+      player.lightningDamage *= 1.1;
+      break;
+    case "venom_tip":
+    case "neurotoxin":
+    case "rotheart":
+    case "corrosion":
+      player.poisonDamage *= 1.1;
+      break;
+    case "hemorrhage":
+    case "blood_scent":
+      player.bleedDamage *= 1.1;
+      break;
+    case "hex_mark":
+    case "malediction":
+      player.curseDamage *= 1.1;
+      break;
+    case "wisp_egg":
+      spawnOrbital(game, 10 * player.summonDamage, 18);
+      break;
+    case "hound_whistle":
+      spawnOrbital(game, 14 * player.summonDamage, 18);
+      break;
+    case "bone_turret":
+      player.reloadSpeed *= 1.06;
+      spawnOrbital(game, 8 * player.summonDamage, 14);
+      break;
+    case "mender_drone":
+      player.shield = Math.min(70, player.shield + 18);
+      spawnOrbital(game, 5 * player.summonDamage, 24);
+      break;
+    case "broodmother":
+    case "familiar_training":
+    case "twin_spawn":
+    case "leash_breaker":
+    case "rally_signal":
+      player.summonDamage *= 1.18;
+      break;
+    case "pack_tactics":
+      player.summonDamage *= 1.12;
+      player.damage *= 1.08;
+      break;
+    case "sacrificial_rite":
+      player.summonDamage *= 1.22;
+      player.fireDamage *= 1.06;
+      player.poisonDamage *= 1.06;
+      break;
+    case "soul_shepherd":
+      player.souls += 1;
+      spawnOrbital(game, 11 * player.summonDamage, 18);
+      break;
+    case "vampiric_shell":
+      player.maxHp += 8;
+      player.hp = Math.min(player.maxHp, player.hp + 8);
+      break;
+    case "bulwark":
+      player.armour += 2;
+      player.speed *= 0.92;
+      break;
+    case "phase_boots":
+      player.speed *= 1.1;
+      break;
+    case "greed":
+      player.pickupRadius *= 1.08;
+      break;
+    case "magnetism":
+      player.pickupRadius *= 1.35;
+      break;
+    case "scholars_habit":
+      player.crit += 0.03;
+      player.reloadSpeed *= 1.04;
+      break;
+    case "scavenger":
+      player.magazine += 2;
+      player.shield = Math.min(70, player.shield + 8);
+      break;
+    case "grit":
+      player.maxHp += 16;
+      player.hp += 16;
+      break;
+    case "afterimage":
+      player.speed *= 1.08;
+      break;
+    case "battle_meditation":
+      player.reloadSpeed *= 1.12;
+      player.spread *= 0.9;
+      break;
+    case "soul_furnace":
+      player.damage *= 1.08;
+      player.souls += 2;
+      break;
+    case "ward_seal":
+      player.shield = Math.min(70, player.shield + 18);
+      break;
+    case "law_of_echoes":
+    case "law_of_orbit":
+    case "law_of_split_blood":
+    case "law_of_gravity":
+    case "law_of_sacrifice":
+      player.damage *= 1.06;
+      break;
+    case "thunder_magazine":
+      player.lightningDamage *= 1.24;
+      player.reloadSpeed *= 1.08;
+      break;
+    case "solar_frostbite":
+      player.fireDamage *= 1.18;
+      player.frostDamage *= 1.18;
+      break;
+    case "blood_economy":
+      player.bleedDamage *= 1.16;
+      player.maxHp += 8;
+      break;
+    case "gem_singularity":
+      player.pickupRadius *= 1.18;
+      break;
+    case "black_hole_buckshot":
+      player.pellets += 2;
+      player.spread = Math.max(player.spread, 0.36);
+      break;
+    case "recursive_gun":
+      player.pellets += 1;
+      player.bulletPierce += 1;
+      break;
+    case "hive_engine":
+      player.summonDamage *= 1.28;
+      spawnOrbital(game, 16 * player.summonDamage, 22);
+      break;
+  }
+}
+
 const applyCharacter = (game: Game, characterId: CharacterId) => {
   const player = game.player;
   if (characterId === "saint") {
-    player.magazine = 6;
-    player.reloadSpeed *= 1.22;
-    addUpgrade(game, "static");
+    player.magazine = Math.max(1, Math.round(player.magazine * 0.85));
+    player.reloadSpeed *= 1.15;
+    player.crit += 0.03;
+    player.activeCooldown = 14;
+    addUpgrade(game, "fresh_clip");
   }
   if (characterId === "ilya") {
-    player.damage *= 0.88;
-    player.fireRate *= 1.12;
-    player.crit += 0.06;
-    addUpgrade(game, "static");
+    player.damage *= 0.9;
+    player.lightningDamage *= 1.18;
+    player.speed *= 1.06;
+    player.activeCooldown = 12;
+    addUpgrade(game, "static_touch");
   }
   if (characterId === "nox") {
-    player.maxHp = 82;
-    player.hp = 82;
-    player.speed *= 1.06;
-    addUpgrade(game, "parasite");
+    player.maxHp = Math.max(55, player.maxHp - 20);
+    player.hp = Math.min(player.hp, player.maxHp);
+    player.summonDamage *= 1.12;
+    player.poisonDamage *= 1.14;
+    player.activeCooldown = 16;
+    addUpgrade(game, "venom_tip");
   }
   if (characterId === "mira") {
-    player.reloadSpeed *= 0.9;
+    player.reloadSpeed *= 0.88;
     player.crit += 0.04;
-    addUpgrade(game, "mirror");
+    player.activeCooldown = 20;
+    addUpgrade(game, "rebound");
+  }
+  if (characterId === "scarlett") {
+    player.bulletSpeed *= 0.9;
+    player.fireDamage *= 1.2;
+    player.activeCooldown = 18;
+    addUpgrade(game, "ember_touch");
+  }
+  if (characterId === "corvus") {
+    player.crit += 0.08;
+    player.critDamage *= 1.1;
+    player.curseDamage *= 1.14;
+    player.activeCooldown = 16;
+    addUpgrade(game, "hex_mark");
+  }
+  if (characterId === "kaden") {
+    player.fireRate *= 0.85;
+    player.armour += 2;
+    player.maxHp += 18;
+    player.hp += 18;
+    player.activeCooldown = 22;
+    addUpgrade(game, "bulwark");
+  }
+  if (characterId === "lyra") {
+    player.damage *= 0.88;
+    player.summonDamage *= 1.25;
+    player.activeCooldown = 18;
+    addUpgrade(game, "hound_whistle");
+    spawnOrbital(game, 12 * player.summonDamage, 18);
   }
 };
 
 const applyWeapon = (game: Game, weaponId: WeaponId) => {
   const player = game.player;
+  player.weaponSpecial = weaponId;
   if (weaponId === "revolver") {
-    player.damage *= 1.18;
-    player.crit += 0.1;
-    player.magazine = Math.max(5, Math.round(player.magazine * 0.88));
-    player.fireRate *= 0.96;
+    player.damage = 34;
+    player.fireRate = 3;
+    player.magazine = 6;
+    player.reloadSpeed = 1;
+    player.bulletSpeed = 520;
+    player.bulletLife = 2.7;
+    player.spread = 0.02;
+    player.pellets = 1;
+    player.bulletPierce = 0;
+    player.crit += 0.15;
   }
   if (weaponId === "shotgun") {
-    player.damage *= 0.58;
-    player.pellets = 5;
-    player.spread = 0.5;
-    player.bulletLife = 0.58;
-    player.bulletSpeed = 360;
-    player.magazine = Math.max(4, Math.round(player.magazine * 0.75));
-    player.reloadSpeed *= 0.78;
-    player.fireRate *= 0.84;
+    player.damage = 10;
+    player.fireRate = 1.2;
+    player.magazine = 2;
+    player.reloadSpeed = 0.74;
+    player.bulletSpeed = 430;
+    player.bulletLife = 1.1;
+    player.spread = 0.42;
+    player.pellets = 7;
+    player.bulletPierce = 0;
   }
-  if (weaponId === "smg") {
-    player.damage *= 0.48;
-    player.fireRate *= 2.15;
-    player.magazine = Math.round(player.magazine * 2.75);
-    player.reloadSpeed *= 1.08;
+  if (weaponId === "needle_smg") {
+    player.damage = 9;
+    player.fireRate = 12;
+    player.magazine = 28;
+    player.reloadSpeed = 0.72;
+    player.bulletSpeed = 500;
+    player.bulletLife = 1.9;
     player.spread = 0.16;
     player.bulletSize = 4;
-    player.crit -= 0.03;
+    player.pellets = 1;
+    player.bulletPierce = 0;
+    player.crit = Math.max(0.02, player.crit - 0.03);
   }
   if (weaponId === "crossbow") {
-    player.damage *= 1.9;
-    player.fireRate *= 0.52;
+    player.damage = 62;
+    player.fireRate = 1.1;
+    player.magazine = 1;
+    player.reloadSpeed = 1.05;
+    player.bulletSpeed = 600;
+    player.bulletLife = 2.6;
+    player.spread = 0;
+    player.pellets = 1;
     player.bulletPierce = 2;
-    player.bulletSpeed = 520;
-    player.bulletLife = 1.55;
     player.bulletSize = 6;
-    player.magazine = Math.max(4, Math.round(player.magazine * 0.72));
-    player.reloadSpeed *= 0.86;
+  }
+  if (weaponId === "flame_cannon") {
+    player.damage = 7;
+    player.fireRate = 14;
+    player.magazine = 60;
+    player.reloadSpeed = 0.5;
+    player.bulletSpeed = 300;
+    player.bulletLife = 0.75;
+    player.spread = 0.28;
+    player.pellets = 3;
+    player.bulletPierce = 99;
+    player.bulletSize = 5;
+  }
+  if (weaponId === "arc_rifle") {
+    player.damage = 26;
+    player.fireRate = 2.2;
+    player.magazine = 8;
+    player.reloadSpeed = 0.78;
+    player.bulletSpeed = 700;
+    player.bulletLife = 1.7;
+    player.spread = 0.02;
+    player.pellets = 1;
+    player.bulletPierce = 1;
+    player.lightningDamage *= 1.1;
+  }
+  if (weaponId === "shard_launcher") {
+    player.damage = 70;
+    player.fireRate = 0.8;
+    player.magazine = 4;
+    player.reloadSpeed = 0.56;
+    player.bulletSpeed = 360;
+    player.bulletLife = 2.3;
+    player.spread = 0.03;
+    player.pellets = 1;
+    player.bulletPierce = 0;
+    player.bulletSize = 8;
+  }
+  if (weaponId === "rail_lance") {
+    player.damage = 120;
+    player.fireRate = 0.65;
+    player.magazine = 3;
+    player.reloadSpeed = 0.62;
+    player.bulletSpeed = 900;
+    player.bulletLife = 2.4;
+    player.spread = 0;
+    player.pellets = 1;
+    player.bulletPierce = 99;
+    player.bulletSize = 4;
+  }
+  if (weaponId === "chakram") {
+    player.damage = 28;
+    player.fireRate = 1.8;
+    player.magazine = 3;
+    player.reloadSpeed = 0.66;
+    player.bulletSpeed = 420;
+    player.bulletLife = 1.6;
+    player.spread = 0.12;
+    player.pellets = 1;
+    player.bulletPierce = 4;
+    player.bulletSize = 7;
+  }
+  if (weaponId === "hive_staff") {
+    player.damage = 18;
+    player.fireRate = 1.6;
+    player.magazine = 5;
+    player.reloadSpeed = 0.84;
+    player.bulletSpeed = 450;
+    player.bulletLife = 2.2;
+    player.spread = 0.05;
+    player.pellets = 1;
+    player.bulletPierce = 0;
+    player.poisonDamage *= 1.08;
+  }
+  if (weaponId === "prism_launcher") {
+    player.damage = 24;
+    player.fireRate = 2;
+    player.magazine = 9;
+    player.reloadSpeed = 0.69;
+    player.bulletSpeed = 420;
+    player.bulletLife = 1.55;
+    player.spread = 0.03;
+    player.pellets = 1;
+    player.bulletPierce = 0;
+    player.bulletSize = 6;
+  }
+  if (weaponId === "aether_spear") {
+    player.damage = 24;
+    player.fireRate = 2.4;
+    player.magazine = 6;
+    player.reloadSpeed = 0.74;
+    player.bulletSpeed = 360;
+    player.bulletLife = 1.8;
+    player.spread = 0.02;
+    player.pellets = 1;
+    player.bulletPierce = 1;
+    player.bulletSize = 6;
   }
 };
 
@@ -534,12 +1072,13 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
   if (input.dash && player.dashCooldown <= 0) {
     const dashX = moving ? input.moveX / moveLen : 1;
     const dashY = moving ? input.moveY / moveLen : 0;
-    player.x += dashX * 88;
-    player.y += dashY * 88;
-    player.dashCooldown = 1.4;
-    player.invuln = 0.24;
+    player.x += dashX * (has(game, "phase_boots") ? 108 : 88);
+    player.y += dashY * (has(game, "phase_boots") ? 108 : 88);
+    player.dashCooldown = has(game, "phase_boots") ? 1.12 : 1.4;
+    player.invuln = has(game, "phase_boots") ? 0.34 : 0.24;
     burst(game, player.x, player.y, "#72f5ff", 10);
-    if (has(game, "static")) chainLightning(game, player.x, player.y, 88 + count(game, "static") * 24, 8 + count(game, "static") * 4);
+    if (has(game, "static_touch")) chainLightning(game, player.x, player.y, 88 + count(game, "static_touch") * 24, 8 * player.lightningDamage);
+    if (has(game, "afterimage")) explode(game, player.x - dashX * 44, player.y - dashY * 44, 64, 12, "#c084fc");
   }
   input.dash = false;
 
@@ -607,7 +1146,7 @@ export const drawGame = (
   for (const orbital of game.player.orbitals) {
     const x = game.player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = game.player.y + Math.sin(orbital.angle) * orbital.distance;
-    ctx.fillStyle = has(game, "stormReactor") ? "#72f5ff" : "#f8fafc";
+    ctx.fillStyle = has(game, "conductor") ? "#72f5ff" : "#f8fafc";
     diamond(ctx, x, y, 8);
   }
 
@@ -691,7 +1230,7 @@ const shoot = (game: Game) => {
   if (player.reload > 0) return;
 
   if (player.shots >= player.magazine) {
-    const reloadTime = Math.max(0.18, (0.72 - count(game, "overclock") * 0.04) / player.reloadSpeed);
+    const reloadTime = Math.max(0.18, 0.72 / player.reloadSpeed);
     player.reload = reloadTime;
     player.reloadDuration = reloadTime;
     player.shots = 0;
@@ -701,36 +1240,62 @@ const shoot = (game: Game) => {
 
   const target = nearestEnemy(game, player.x, player.y);
   const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
-  const baseDamage = player.damage * (1 + count(game, "overclock") * 0.04);
-  const element = has(game, "frostfire") ? (game.shotCounter % 2 === 0 ? "fire" : "ice") : has(game, "bloodTax") ? "blood" : "kinetic";
+  const lowAmmo = player.shots / Math.max(1, player.magazine) > 0.8;
+  const freshClip = has(game, "fresh_clip") && player.shots === 0;
+  const baseDamage =
+    player.damage *
+    (freshClip ? 1.35 : 1) *
+    (lowAmmo && has(game, "last_straw") ? 1.25 : 1) *
+    (has(game, "pack_tactics") ? 1 + Math.min(0.3, player.orbitals.length * 0.1) : 1);
+  const element = selectShotElement(game);
+  const consumeAmmo = !has(game, "bottomless_habit") || Math.random() > 0.18;
 
   for (let i = 0; i < player.pellets; i += 1) {
     const pelletOffset = player.pellets === 1 ? rand(-player.spread, player.spread) : (i - (player.pellets - 1) / 2) * (player.spread / Math.max(1, player.pellets - 1));
     fireBullet(game, player.x, player.y, angle + pelletOffset + rand(-player.spread * 0.18, player.spread * 0.18), baseDamage, element, {
-      split: count(game, "split"),
-      bounces: count(game, "ricochet"),
-      pierce: player.bulletPierce,
-      crit: player.crit + count(game, "mirror") * 0.02
+      split: player.weaponSpecial === "prism_launcher" || (has(game, "buckshot") && player.weaponSpecial === "prism_launcher") ? 1 : 0,
+      bounces: count(game, "rebound"),
+      pierce: player.bulletPierce + (game.shotCounter % 4 === 3 && has(game, "shadow_round") ? 1 : 0),
+      crit: player.crit + (lowAmmo && has(game, "last_straw") ? 0.15 : 0) + (freshClip ? 0.04 : 0)
     });
   }
 
   game.shotCounter += 1;
-  player.shots += 1;
+  if (consumeAmmo) player.shots += 1;
   player.cooldown = Math.max(0.07, 0.32 / player.fireRate);
 
-  if (has(game, "mirror") && game.shotCounter % 5 === 0) {
-    const copies = has(game, "recursiveGun") ? 4 : 2;
+  if ((player.characterId === "mira" || has(game, "law_of_echoes")) && game.shotCounter % 6 === 0) {
+    const copies = has(game, "recursive_gun") ? 4 : 2;
     for (let i = 0; i < copies; i += 1) {
       const offset = (i - (copies - 1) / 2) * 0.22;
       fireBullet(game, player.x, player.y, angle + offset, baseDamage * 0.72, element, {
-        split: has(game, "recursiveGun") ? count(game, "split") : 0,
-        bounces: count(game, "ricochet"),
+        split: has(game, "recursive_gun") ? 1 : 0,
+        bounces: count(game, "rebound"),
         pierce: Math.max(0, player.bulletPierce - 1),
         crit: player.crit + 0.16
       });
     }
     burst(game, player.x, player.y, "#c084fc", 7);
   }
+
+  if (player.weaponSpecial === "hive_staff" && game.shotCounter % 3 === 0) spawnOrbital(game, 8 * player.summonDamage, 5);
+  if (player.weaponSpecial === "arc_rifle" && game.shotCounter % 3 === 0) chainLightning(game, player.x, player.y, 110, 5 * player.lightningDamage);
+  if (player.weaponSpecial === "chakram" && game.shotCounter % 3 === 0) spawnOrbital(game, player.damage * 0.4, 2.5);
+  if (has(game, "empty_chamber") && player.shots >= player.magazine) explode(game, player.x, player.y, 72, 10, "#f8fafc");
+};
+
+const selectShotElement = (game: Game): Bullet["element"] => {
+  const { weaponSpecial } = game.player;
+  if (weaponSpecial === "flame_cannon") return "fire";
+  if (weaponSpecial === "arc_rifle") return "lightning";
+  if (weaponSpecial === "hive_staff") return "blood";
+  if (has(game, "solar_frostbite") || (has(game, "firestarter") && has(game, "cold_touch"))) return game.shotCounter % 2 === 0 ? "fire" : "ice";
+  if (has(game, "static_touch") && Math.random() < 0.35) return "lightning";
+  if ((has(game, "ember_touch") || has(game, "firestarter")) && Math.random() < (has(game, "firestarter") ? 0.42 : 0.24)) return "fire";
+  if (has(game, "cold_touch") && Math.random() < 0.32) return "ice";
+  if (has(game, "venom_tip") && Math.random() < 0.34) return "blood";
+  if (has(game, "hex_mark") && game.shotCounter % 5 === 0) return "void";
+  return "kinetic";
 };
 
 const fireBullet = (
@@ -740,9 +1305,9 @@ const fireBullet = (
   angle: number,
   damage: number,
   element: Bullet["element"],
-  mods: Partial<Pick<Bullet, "split" | "bounces" | "crit" | "pierce">> = {}
+  mods: Partial<Pick<Bullet, "split" | "bounces" | "crit" | "pierce" | "depth">> = {}
 ) => {
-  const speed = game.player.bulletSpeed + count(game, "overclock") * 20;
+  const speed = game.player.bulletSpeed;
   game.bullets.push({
     x,
     y,
@@ -755,7 +1320,8 @@ const fireBullet = (
     bounces: mods.bounces ?? 0,
     split: mods.split ?? 0,
     crit: mods.crit ?? 0,
-    element
+    element,
+    depth: mods.depth ?? 0
   });
 };
 
@@ -767,7 +1333,7 @@ const updateBullets = (game: Game, dt: number) => {
     bullet.life -= dt;
 
     const bounced = bounceBullet(game, bullet);
-    if (bounced && has(game, "stormReactor")) chainLightning(game, bullet.x, bullet.y, 70, 5);
+    if (bounced && (has(game, "conductor") || has(game, "recursive_gun"))) chainLightning(game, bullet.x, bullet.y, 70, 5 * game.player.lightningDamage);
 
     let remove = bullet.life <= 0;
     for (const enemy of game.enemies) {
@@ -775,18 +1341,31 @@ const updateBullets = (game: Game, dt: number) => {
       if (d > enemy.r + bullet.r) continue;
 
       const crit = Math.random() < bullet.crit;
-      const damage = bullet.damage * (crit ? 2.2 : 1);
+      const damage = bullet.damage * (crit ? game.player.critDamage : 1);
       hurtEnemy(game, enemy, damage, bullet.element);
       burst(game, bullet.x, bullet.y, crit ? "#fef08a" : bulletColor(bullet.element), crit ? 8 : 4);
 
       if (bullet.split > 0) splitBullet(game, bullet);
+      if (game.player.weaponSpecial === "shard_launcher" || has(game, "collateral")) explode(game, bullet.x, bullet.y, has(game, "napalm") ? 92 : 64, bullet.damage * 0.45, "#fb7185");
+      if (has(game, "black_hole_buckshot") || has(game, "law_of_gravity")) pullEnemies(game, bullet.x, bullet.y, has(game, "black_hole_buckshot") ? 120 : 78, 18);
       if (bullet.pierce > 0) bullet.pierce -= 1;
       else remove = true;
       break;
     }
 
     if (remove) {
-      if (has(game, "orbit") && !bullet.fromOrbit && Math.random() < 0.18 + count(game, "orbit") * 0.08) {
+      if (bullet.life <= 0 && game.player.weaponSpecial === "prism_launcher" && bullet.split > 0) splitBullet(game, bullet);
+      if (bullet.life <= 0 && game.player.weaponSpecial === "shard_launcher") explode(game, bullet.x, bullet.y, 72, bullet.damage * 0.55, "#fb7185");
+      if (bullet.life <= 0 && game.player.weaponSpecial === "aether_spear" && bullet.depth === 0) {
+        const target = nearestEnemy(game, bullet.x, bullet.y);
+        const angle = target ? Math.atan2(target.y - bullet.y, target.x - bullet.x) : Math.atan2(bullet.vy, bullet.vx);
+        fireBullet(game, bullet.x, bullet.y, angle, bullet.damage * 0.72, bullet.element, {
+          pierce: bullet.pierce,
+          crit: bullet.crit,
+          depth: 1
+        });
+      }
+      if (has(game, "law_of_orbit") && !bullet.fromOrbit && Math.random() < 0.18 + count(game, "law_of_orbit") * 0.08) {
         game.player.orbitals.push({
           angle: rand(0, TAU),
           distance: rand(44, 72),
@@ -815,20 +1394,22 @@ const bounceBullet = (game: Game, bullet: Bullet) => {
   }
   if (bounced) {
     bullet.bounces -= 1;
-    bullet.damage *= 1.18;
+    bullet.damage *= has(game, "recursive_gun") ? 0.92 : 0.85;
   }
   return bounced;
 };
 
 const splitBullet = (game: Game, bullet: Bullet) => {
+  if (bullet.depth >= 2) return;
   const angle = Math.atan2(bullet.vy, bullet.vx);
-  const childCount = has(game, "recursiveGun") ? 3 : 2;
+  const childCount = has(game, "recursive_gun") ? 3 : 2;
   for (let i = 0; i < childCount; i += 1) {
     const offset = (i - (childCount - 1) / 2) * 0.62;
     fireBullet(game, bullet.x, bullet.y, angle + offset, bullet.damage * 0.45, bullet.element, {
-      split: has(game, "recursiveGun") ? bullet.split - 1 : 0,
+      split: has(game, "recursive_gun") ? bullet.split - 1 : 0,
       bounces: Math.max(0, bullet.bounces - 1),
-      crit: bullet.crit * 0.8
+      crit: bullet.crit * 0.8,
+      depth: bullet.depth + 1
     });
   }
   bullet.split = 0;
@@ -850,12 +1431,18 @@ const updateEnemies = (game: Game, dt: number) => {
 
     if (enemy.burn > 0) {
       enemy.burn -= dt;
-      hurtEnemy(game, enemy, (has(game, "solarFrostbite") ? 5 : 3) * dt, "fire", false);
+      hurtEnemy(game, enemy, (has(game, "solar_frostbite") ? 5 : 3) * game.player.fireDamage * dt, "fire", false);
     }
     if (enemy.poison > 0) {
       enemy.poison -= dt;
-      hurtEnemy(game, enemy, 4 * dt, "blood", false);
+      hurtEnemy(game, enemy, 4 * game.player.poisonDamage * dt, "blood", false);
     }
+    if (enemy.bleed > 0) {
+      enemy.bleed -= dt;
+      hurtEnemy(game, enemy, 5 * game.player.bleedDamage * dt, "blood", false);
+    }
+    enemy.shock -= dt;
+    enemy.curse -= dt;
     enemy.freeze -= dt;
 
     if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < player.r + enemy.r) {
@@ -876,19 +1463,17 @@ const updateGems = (game: Game, dt: number) => {
     const dx = player.x - gem.x;
     const dy = player.y - gem.y;
     const d = Math.hypot(dx, dy);
-    const magnetRange = 82 + gem.magnet + count(game, "gemBomb") * 24;
+    const magnetRange = player.pickupRadius + gem.magnet + count(game, "gem_singularity") * 24;
     if (d < magnetRange) {
       gem.x += (dx / (d || 1)) * (240 + magnetRange) * dt;
       gem.y += (dy / (d || 1)) * (240 + magnetRange) * dt;
     }
     if (d < player.r + 10) {
       game.xp += gem.value;
-      if (has(game, "gemBomb")) {
-        explode(game, gem.x, gem.y, 62 + count(game, "gemBomb") * 14, 10 + gem.value * 1.5, "#a78bfa");
-        if (has(game, "gemSingularity")) {
-          pullEnemies(game, gem.x, gem.y, 108, 26);
-          collectNearbyGems(game, gem.x, gem.y, 72);
-        }
+      if (has(game, "gem_singularity")) {
+        explode(game, gem.x, gem.y, 76 + count(game, "gem_singularity") * 14, 16 + gem.value * 2, "#a78bfa");
+        pullEnemies(game, gem.x, gem.y, 108, 26);
+        collectNearbyGems(game, gem.x, gem.y, 72);
       }
       game.gems.splice(i, 1);
     }
@@ -905,8 +1490,8 @@ const updateOrbitals = (game: Game, dt: number) => {
     const y = player.y + Math.sin(orbital.angle) * orbital.distance;
     for (const enemy of game.enemies) {
       if (Math.hypot(enemy.x - x, enemy.y - y) < enemy.r + 8) {
-        hurtEnemy(game, enemy, orbital.damage * dt * 5, has(game, "stormReactor") ? "lightning" : "kinetic");
-        if (has(game, "stormReactor") && Math.random() < 0.08) chainLightning(game, x, y, 66, 4);
+        hurtEnemy(game, enemy, orbital.damage * dt * 5, has(game, "conductor") ? "lightning" : "kinetic");
+        if (has(game, "conductor") && Math.random() < 0.08) chainLightning(game, x, y, 66, 4 * player.lightningDamage);
       }
     }
     if (orbital.life <= 0) player.orbitals.splice(i, 1);
@@ -925,12 +1510,20 @@ const updateParticles = (game: Game, dt: number) => {
 
 const onReload = (game: Game) => {
   const player = game.player;
-  if (has(game, "static")) chainLightning(game, player.x, player.y, 96 + count(game, "static") * 20, 8 + count(game, "static") * 4);
+  if (has(game, "capacitor") || has(game, "thunder_magazine")) {
+    chainLightning(game, player.x, player.y, has(game, "thunder_magazine") ? 160 : 108, (has(game, "thunder_magazine") ? 20 : 10) * player.lightningDamage);
+  }
 
-  if (has(game, "bloodTax")) {
-    hurtPlayer(game, has(game, "bloodEconomy") ? 1.2 : 2.8, true);
-    explode(game, player.x, player.y, 76 + count(game, "bloodTax") * 16, 12 + count(game, "bloodTax") * 6, "#fb7185");
-    if (has(game, "bloodEconomy")) {
+  if (has(game, "bone_turret")) spawnOrbital(game, 9 * player.summonDamage, 6);
+  if (has(game, "hive_engine")) {
+    spawnOrbital(game, 12 * player.summonDamage, 8);
+    fireBullet(game, player.x, player.y, rand(0, TAU), player.damage * 0.35, selectShotElement(game), { pierce: 1, crit: player.crit });
+  }
+
+  if (has(game, "blood_economy")) {
+    hurtPlayer(game, 1.2, true);
+    explode(game, player.x, player.y, 76, 12, "#fb7185");
+    if (has(game, "blood_economy")) {
       player.shield = Math.min(55, player.shield + 3 + player.souls);
       player.souls = Math.max(0, player.souls - 1);
     }
@@ -938,30 +1531,46 @@ const onReload = (game: Game) => {
 };
 
 const hurtEnemy = (game: Game, enemy: Enemy, amount: number, element: Bullet["element"], flash = true) => {
-  enemy.hp -= amount;
+  const curseMult = enemy.curse > 0 ? 1 + (has(game, "malediction") ? 0.14 : 0.06) * Math.min(5, count(game, "hex_mark") + 1) : 1;
+  const statusMult =
+    (element === "fire" ? game.player.fireDamage : 1) *
+    (element === "ice" ? game.player.frostDamage : 1) *
+    (element === "blood" ? Math.max(game.player.poisonDamage, game.player.bleedDamage) : 1) *
+    (element === "lightning" ? game.player.lightningDamage : 1) *
+    (element === "void" ? game.player.curseDamage : 1);
+  const damage = amount * curseMult * statusMult;
+  enemy.hp -= damage;
   if (flash) {
     enemy.hitFlash = 0.08;
     if (enemy.damageNoticeCooldown <= 0) {
-      damageText(game, enemy, amount, bulletColor(element));
+      damageText(game, enemy, damage, bulletColor(element));
       enemy.damageNoticeCooldown = 0.12;
     }
   }
 
-  if (element === "fire") enemy.burn = Math.max(enemy.burn, 2.3);
-  if (element === "ice") enemy.freeze = Math.max(enemy.freeze, 1.4);
-  if (element === "blood") enemy.poison = Math.max(enemy.poison, 1.8);
-  if (element === "lightning" && Math.random() < 0.18) chainLightning(game, enemy.x, enemy.y, 78, 4);
+  if (element === "fire") enemy.burn = Math.max(enemy.burn, has(game, "napalm") ? 3.2 : 2.3);
+  if (element === "ice") {
+    enemy.freeze = Math.max(enemy.freeze, has(game, "deep_freeze") ? 1.9 : 1.4);
+    if (has(game, "rime_ward") && Math.random() < 0.08) game.player.shield = Math.min(70, game.player.shield + 3);
+  }
+  if (element === "blood") {
+    enemy.poison = Math.max(enemy.poison, has(game, "neurotoxin") ? 2.4 : 1.8);
+    if (has(game, "hemorrhage") || has(game, "serrated_rounds")) enemy.bleed = Math.max(enemy.bleed, 2.6);
+  }
+  if (element === "void") enemy.curse = Math.max(enemy.curse, has(game, "malediction") ? 7 : 5);
+  if (element === "lightning") {
+    enemy.shock = Math.max(enemy.shock, 2);
+    if (Math.random() < (has(game, "chain_spark") ? 0.32 : 0.18)) chainLightning(game, enemy.x, enemy.y, has(game, "chain_spark") ? 104 : 78, 4 * game.player.lightningDamage);
+  }
 
-  if (has(game, "frostfire") && enemy.burn > 0 && enemy.freeze > 0) {
+  if (has(game, "solar_frostbite") && enemy.burn > 0 && enemy.freeze > 0) {
     enemy.burn = 0;
     enemy.freeze = 0;
-    explode(game, enemy.x, enemy.y, has(game, "solarFrostbite") ? 92 : 58, has(game, "solarFrostbite") ? 24 : 14, "#38bdf8");
-    if (has(game, "solarFrostbite")) {
-      for (let i = 0; i < 5; i += 1) {
-        const target = nearestEnemy(game, enemy.x, enemy.y);
-        const angle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) + rand(-0.4, 0.4) : rand(0, TAU);
-        fireBullet(game, enemy.x, enemy.y, angle, 8, "ice", { pierce: 1, crit: 0.12 });
-      }
+    explode(game, enemy.x, enemy.y, 92, 24, "#38bdf8");
+    for (let i = 0; i < 5; i += 1) {
+      const target = nearestEnemy(game, enemy.x, enemy.y);
+      const angle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) + rand(-0.4, 0.4) : rand(0, TAU);
+      fireBullet(game, enemy.x, enemy.y, angle, 8, "ice", { pierce: 1, crit: 0.12 });
     }
   }
 };
@@ -975,24 +1584,24 @@ const hurtPlayer = (game: Game, amount: number, selfInflicted = false) => {
     player.shield -= blocked;
     damage -= blocked;
   }
-  player.hp -= damage;
+  player.hp -= Math.max(0.1, damage - player.armour * 0.25);
 };
 
 const killEnemy = (game: Game, enemy: Enemy) => {
   game.kills += 1;
-  game.gems.push({ x: enemy.x, y: enemy.y, value: enemy.maxHp > 50 ? 4 : 2, magnet: rand(0, 16) });
+  game.gems.push({ x: enemy.x, y: enemy.y, value: (enemy.maxHp > 50 ? 4 : 2) * (has(game, "greed") ? 1.15 : 1), magnet: rand(0, 16) });
   burst(game, enemy.x, enemy.y, "#fb7185", 9);
 
-  if (has(game, "vampire")) {
-    const heal = has(game, "bloodEconomy") ? 3.2 : 1.6;
+  if ((has(game, "vampiric_shell") || has(game, "cauterize")) && (has(game, "vampiric_shell") || enemy.burn > 0)) {
+    const heal = has(game, "blood_economy") ? 3.2 : 1.6;
     const oldHp = game.player.hp;
     game.player.hp = Math.min(game.player.maxHp, game.player.hp + heal);
     const over = Math.max(0, oldHp + heal - game.player.maxHp);
-    game.player.shield = Math.min(60, game.player.shield + over + (has(game, "bloodEconomy") ? 0.45 : 0));
+    game.player.shield = Math.min(60, game.player.shield + over + (has(game, "blood_economy") ? 0.45 : 0));
   }
 
-  if (has(game, "grave")) {
-    game.player.souls += 1 + (has(game, "bloodEconomy") && Math.random() < 0.35 ? 1 : 0);
+  if (has(game, "soul_shepherd") || enemy.curse > 0) {
+    game.player.souls += 1 + (has(game, "soul_furnace") && Math.random() < 0.35 ? 1 : 0);
     if (game.player.souls >= 3) {
       game.player.souls -= 3;
       game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(46, 78), damage: 10, life: 16, speed: rand(3, 5) });
@@ -1000,10 +1609,30 @@ const killEnemy = (game: Game, enemy: Enemy) => {
     }
   }
 
-  if (has(game, "parasite") && Math.random() < 0.32 + count(game, "parasite") * 0.08) {
+  if (has(game, "broodmother") && Math.random() < 0.32 + count(game, "broodmother") * 0.08) {
     const target = nearestEnemy(game, enemy.x, enemy.y);
     const angle = target ? Math.atan2(target.y - enemy.y, target.x - enemy.x) : rand(0, TAU);
-    fireBullet(game, enemy.x, enemy.y, angle, 12 + count(game, "parasite") * 3, "blood", { pierce: has(game, "solarFrostbite") ? 1 : 0 });
+    fireBullet(game, enemy.x, enemy.y, angle, 12 * game.player.summonDamage + count(game, "broodmother") * 3, "blood", { pierce: has(game, "solar_frostbite") ? 1 : 0 });
+  }
+
+  if (has(game, "ash_wake") && enemy.burn > 0) {
+    explode(game, enemy.x, enemy.y, has(game, "napalm") ? 86 : 64, 18 * game.player.fireDamage, "#fb923c");
+  }
+  if (has(game, "ice_bloom") && enemy.freeze > 0) {
+    for (let i = 0; i < 6; i += 1) fireBullet(game, enemy.x, enemy.y, rand(0, TAU), 8 * game.player.frostDamage, "ice", { pierce: 1 });
+  }
+  if (has(game, "thunderhead") && enemy.shock > 0) {
+    chainLightning(game, enemy.x, enemy.y, 120, 10 * game.player.lightningDamage);
+  }
+  if (has(game, "law_of_split_blood") && enemy.bleed > 0) {
+    for (let i = 0; i < 3; i += 1) fireBullet(game, enemy.x, enemy.y, rand(0, TAU), 12 * game.player.bleedDamage, "blood", { pierce: 1 });
+  }
+  if (has(game, "ammo_printer") && game.kills % 8 === 0) {
+    game.player.shots = Math.max(0, game.player.shots - 1);
+  }
+  if (has(game, "scavenger") && game.kills % 10 === 0) {
+    game.player.shots = Math.max(0, game.player.shots - 2);
+    game.player.shield = Math.min(70, game.player.shield + 4);
   }
 };
 
@@ -1034,6 +1663,9 @@ const spawnEnemy = (game: Game, anywhere = false) => {
     burn: 0,
     freeze: 0,
     poison: 0,
+    shock: 0,
+    bleed: 0,
+    curse: 0,
     hitFlash: 0,
     damageNoticeCooldown: 0
   });
@@ -1054,9 +1686,10 @@ const nearestEnemy = (game: Game, x: number, y: number) => {
 };
 
 const explode = (game: Game, x: number, y: number, radius: number, damage: number, color: string) => {
+  const element: Bullet["element"] = color === "#72f5ff" || color === "#38bdf8" ? "lightning" : color === "#fb923c" ? "fire" : "blood";
   for (const enemy of game.enemies) {
     const d = Math.hypot(enemy.x - x, enemy.y - y);
-    if (d < radius) hurtEnemy(game, enemy, damage * (1 - d / radius) + damage * 0.35, color === "#72f5ff" ? "lightning" : "blood");
+    if (d < radius) hurtEnemy(game, enemy, damage * (1 - d / radius) + damage * 0.35, element);
   }
   burst(game, x, y, color, 18, radius * 0.08);
 };
@@ -1065,7 +1698,7 @@ const chainLightning = (game: Game, x: number, y: number, radius: number, damage
   const targets = game.enemies
     .filter((enemy) => Math.hypot(enemy.x - x, enemy.y - y) < radius)
     .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))
-    .slice(0, 4 + count(game, "static"));
+    .slice(0, 4 + count(game, "chain_spark"));
 
   for (const enemy of targets) {
     hurtEnemy(game, enemy, damage, "lightning");
@@ -1077,6 +1710,29 @@ const chainLightning = (game: Game, x: number, y: number, radius: number, damage
       life: 0.16,
       color: "#72f5ff",
       size: 3
+    });
+  }
+};
+
+const spawnOrbital = (game: Game, damage: number, life: number) => {
+  const player = game.player;
+  const existing = player.orbitals.length;
+  const cap = has(game, "hive_engine") ? 12 : has(game, "twin_spawn") ? 10 : 8;
+  if (existing >= cap) player.orbitals.shift();
+  player.orbitals.push({
+    angle: rand(0, TAU),
+    distance: rand(46, has(game, "leash_breaker") ? 96 : 78),
+    damage,
+    life,
+    speed: rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1)
+  });
+  if (has(game, "twin_spawn") && player.orbitals.length < cap && Math.random() < 0.5) {
+    player.orbitals.push({
+      angle: rand(0, TAU),
+      distance: rand(46, has(game, "leash_breaker") ? 96 : 78),
+      damage: damage * 0.75,
+      life,
+      speed: rand(2.8, 5.2)
     });
   }
 };

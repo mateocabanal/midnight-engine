@@ -63,9 +63,9 @@ button {
   position: absolute;
   top: max(8px, env(safe-area-inset-top));
   left: 50%;
-  width: min(620px, calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right))));
+  width: min(860px, calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right))));
   display: grid;
-  grid-template-columns: auto minmax(170px, 1fr) auto;
+  grid-template-columns: auto minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 7px;
@@ -157,6 +157,103 @@ button {
 
 .bar.xp span {
   background: linear-gradient(90deg, #818cf8, #c084fc);
+}
+
+.bar.objective span {
+  background: linear-gradient(90deg, #fde68a, #fb923c);
+}
+
+.active-stat.is-ready {
+  background: rgba(253, 230, 138, 0.16);
+}
+
+.active-stat.is-ready strong {
+  color: #fde68a;
+}
+
+.active-button {
+  position: absolute;
+  right: max(26px, env(safe-area-inset-right));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 82px;
+  height: 82px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(7, 10, 24, 0.64);
+  color: #f8fafc;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(14px);
+  touch-action: none;
+}
+
+.active-button i {
+  position: absolute;
+  inset: auto 0 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(180deg, rgba(253, 230, 138, 0.1), rgba(251, 146, 60, 0.36));
+  transition: width 120ms ease;
+}
+
+.active-button span,
+.active-button strong {
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.active-button span {
+  color: #cbd5e1;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+}
+
+.active-button strong {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.active-button.is-ready {
+  border-color: rgba(253, 230, 138, 0.65);
+  background: rgba(120, 53, 15, 0.62);
+  box-shadow: 0 0 26px rgba(253, 230, 138, 0.18), 0 14px 40px rgba(0, 0, 0, 0.38);
+}
+
+.run-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.run-summary-grid div {
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.run-summary-grid span {
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.run-summary-grid strong {
+  color: #f8fafc;
+  font-size: 20px;
+  line-height: 1;
 }
 
 @keyframes reloadPulse {
@@ -264,6 +361,119 @@ button {
   min-height: 50px;
 }
 
+.choice-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.draft-actions button,
+.banish-button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.draft-actions button:disabled,
+.banish-button:disabled {
+  opacity: 0.45;
+}
+
+.choices {
+  display: grid;
+  gap: 9px;
+}
+
+.choice-card {
+  display: grid;
+  gap: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.choice-card.rarity-rare,
+.choice-card.rarity-epic,
+.choice-card.rarity-fusion,
+.choice-card.rarity-law {
+  border-color: rgba(253, 230, 138, 0.32);
+  background: linear-gradient(135deg, rgba(253, 230, 138, 0.08), rgba(168, 85, 247, 0.08));
+}
+
+.choice-pick {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 92px;
+  padding: 12px;
+  border: 0;
+  background: transparent;
+  color: #f8fafc;
+  text-align: left;
+}
+
+.choice-pick strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.choice-pick span:not(.choice-meta) {
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.choice-pick em {
+  color: #fde68a;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.choice-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.choice-meta i {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(147, 197, 253, 0.14);
+  color: #bfdbfe;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.banish-button {
+  justify-self: end;
+  width: auto !important;
+  margin: 0 8px 8px;
+  color: #fecdd3;
+}
+
 .menu-modal,
 .select-modal {
   display: grid;
@@ -312,6 +522,24 @@ button {
   line-height: 1.05;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.progress-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.progress-summary span {
+  padding: 6px 9px;
+  border: 1px solid rgba(253, 230, 138, 0.18);
+  border-radius: 999px;
+  background: rgba(253, 230, 138, 0.08);
+  color: #fde68a;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .menu-actions {
@@ -486,8 +714,8 @@ button {
 @media (max-width: 700px) {
   .hud {
     top: max(7px, env(safe-area-inset-top));
-    grid-template-columns: auto minmax(132px, 1fr) auto;
-    width: min(520px, calc(100vw - 14px));
+    grid-template-columns: auto minmax(118px, 1fr) auto auto;
+    width: min(620px, calc(100vw - 14px));
     gap: 6px;
     padding: 6px;
   }
@@ -503,6 +731,21 @@ button {
 
   .ammo-stat {
     min-width: 78px;
+  }
+
+  .objective-stat {
+    display: none;
+  }
+
+  .active-stat {
+    min-width: 70px;
+  }
+
+  .active-button {
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(20px, env(safe-area-inset-bottom));
+    width: 74px;
+    height: 74px;
   }
 
   .hud-stat strong {
@@ -523,8 +766,8 @@ button {
 @media (orientation: landscape) and (max-height: 520px) {
   .hud {
     top: max(6px, env(safe-area-inset-top));
-    width: min(620px, calc(100vw - 28px));
-    grid-template-columns: auto minmax(170px, 1fr) auto;
+    width: min(780px, calc(100vw - 28px));
+    grid-template-columns: auto minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
     padding: 5px 6px;
   }
 

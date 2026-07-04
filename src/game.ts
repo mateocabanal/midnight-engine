@@ -4,11 +4,14 @@ export type InputState = {
   aimX: number;
   aimY: number;
   firing: boolean;
+  active: boolean;
 };
 
 type Vec = { x: number; y: number };
 export type CharacterId = string;
 export type WeaponId = string;
+export type RunState = "playing" | "victory" | "defeat";
+export type RunResult = RunState;
 
 export type LoadoutConfig = {
   characterId: CharacterId;
@@ -26,8 +29,11 @@ export type LoadoutOption<T extends string> = {
 
 type UpgradeId = string;
 
+type EnemyKind = "grunt" | "runner" | "brute" | "spitter" | "charger" | "elite" | "boss";
+
 type Enemy = {
   id: number;
+  kind: EnemyKind;
   x: number;
   y: number;
   r: number;
@@ -43,6 +49,19 @@ type Enemy = {
   curse: number;
   hitFlash: number;
   damageNoticeCooldown: number;
+  attackTimer: number;
+  chargeTimer: number;
+};
+
+type EnemyProjectile = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  damage: number;
+  life: number;
+  color: string;
 };
 
 type Bullet = {
@@ -140,6 +159,7 @@ export type Game = {
   player: Player;
   enemies: Enemy[];
   bullets: Bullet[];
+  enemyProjectiles: EnemyProjectile[];
   gems: Gem[];
   particles: Particle[];
   upgrades: Partial<Record<UpgradeId, number>>;
@@ -152,12 +172,27 @@ export type Game = {
   shotCounter: number;
   idCounter: number;
   gameOver: boolean;
+  runState: RunState;
+  objective: RunObjective;
+  director: DirectorState;
+  draft: DraftState;
+  summary: RunSummary;
+  activeLatch: boolean;
   ui: {
     time: string;
     level: string;
     kills: string;
     hpPct: number;
     xpPct: number;
+    activePct: number;
+    activeReady: boolean;
+    objective: string;
+    objectivePct: number;
+    directorPhase: string;
+    threat: number;
+    rerolls: number;
+    banishes: number;
+    runState: RunState;
     gameOver: boolean;
   };
 };
@@ -185,8 +220,113 @@ type RawUpgradeDef = [
 
 export type Choice = UpgradeDef;
 
+export type SpriteLayer = {
+  shape: "circle" | "diamond" | "polygon" | "capsule" | "ring" | "rect" | "text" | "line";
+  x?: number;
+  y?: number;
+  r?: number;
+  w?: number;
+  h?: number;
+  points?: Vec[];
+  fill?: string;
+  stroke?: string;
+  lineWidth?: number;
+  alpha?: number;
+  rotate?: number;
+  pulse?: number;
+  text?: string;
+  font?: string;
+};
+
+export type SpriteDefinition = {
+  id: string;
+  label: string;
+  palette: { primary: string; secondary: string; accent?: string; shadow?: string };
+  layers: SpriteLayer[];
+};
+
+export type SpriteCatalog = {
+  players: Record<string, SpriteDefinition>;
+  enemies: Record<EnemyKind, SpriteDefinition>;
+  bullets: Record<Bullet["element"], SpriteDefinition>;
+  summons: Record<SummonKind, SpriteDefinition>;
+  pickups: Record<"xp", SpriteDefinition>;
+};
+
+export type RunObjective = {
+  name: string;
+  duration: number;
+  finalWaveDuration: number;
+};
+
+export type DirectorPhase = {
+  name: string;
+  start: number;
+  threat: number;
+  spawnInterval: number;
+  packSize: number;
+  eliteEvery: number;
+  mix: EnemyKind[];
+};
+
+export type DirectorState = {
+  phaseName: string;
+  threat: number;
+  nextEliteAt: number;
+  nextBossAt: number;
+  hordeTimer: number;
+  spawnedBosses: number[];
+};
+
+export type DraftState = {
+  rerolls: number;
+  banishes: number;
+  banished: UpgradeId[];
+  seen: UpgradeId[];
+};
+
+export type RunSummary = {
+  result: RunResult;
+  title: string;
+  time: string;
+  kills: number;
+  level: number;
+  upgrades: number;
+  characterId: CharacterId;
+  weaponId: WeaponId;
+};
+
+export type PersistedProgress = {
+  version: 1;
+  runs: number;
+  victories: number;
+  bestTime: string;
+  bestKills: number;
+  bestLevel: number;
+  discoveredLoadouts: string[];
+  selectedLoadout: LoadoutConfig;
+  lastSummary?: RunSummary;
+};
+
 const TAU = Math.PI * 2;
 const DEFAULT_LOADOUT: LoadoutConfig = { characterId: "saint", weaponId: "revolver" };
+
+export const directorPhases: DirectorPhase[] = [
+  { name: "Opening Dusk", start: 0, threat: 1, spawnInterval: 0.94, packSize: 1, eliteEvery: 95, mix: ["grunt"] },
+  { name: "First Swarm", start: 120, threat: 1.35, spawnInterval: 0.74, packSize: 2, eliteEvery: 72, mix: ["grunt", "runner", "grunt", "brute"] },
+  { name: "Elite Hunt", start: 300, threat: 1.85, spawnInterval: 0.58, packSize: 3, eliteEvery: 52, mix: ["grunt", "runner", "brute", "spitter", "elite"] },
+  { name: "Bullet Hell", start: 540, threat: 2.45, spawnInterval: 0.46, packSize: 4, eliteEvery: 42, mix: ["runner", "spitter", "charger", "grunt", "elite"] },
+  { name: "Night Terror", start: 780, threat: 3.05, spawnInterval: 0.38, packSize: 5, eliteEvery: 34, mix: ["runner", "brute", "spitter", "charger", "elite"] },
+  { name: "Final Dawn", start: 1140, threat: 3.8, spawnInterval: 0.28, packSize: 7, eliteEvery: 22, mix: ["runner", "spitter", "charger", "elite", "brute"] }
+];
+
+export const getDirectorPhase = (time: number): DirectorPhase => {
+  let phase = directorPhases[0];
+  for (const candidate of directorPhases) {
+    if (time >= candidate.start) phase = candidate;
+  }
+  return phase;
+};
 
 export const characterOptions: LoadoutOption<CharacterId>[] = [
   {
@@ -354,6 +494,146 @@ export const weaponOptions: LoadoutOption<WeaponId>[] = [
   }
 ];
 
+const playerSprite = (id: string, label: string, primary: string, secondary: string, glyph: string, layers: SpriteLayer[]): SpriteDefinition => ({
+  id,
+  label,
+  palette: { primary, secondary, accent: "#f8fafc", shadow: primary },
+  layers: [
+    { shape: "ring", r: 21, stroke: secondary, lineWidth: 1.4, alpha: 0.28, pulse: 1.4 },
+    ...layers,
+    { shape: "text", text: glyph, y: 1, fill: primary, stroke: "rgba(3, 7, 18, 0.78)", lineWidth: 3, font: "800 12px Inter, system-ui, sans-serif" }
+  ]
+});
+
+export const spriteCatalog: SpriteCatalog = {
+  players: {
+    saint: playerSprite("saint", "Saint", "#f8fafc", "#fde68a", "S", [
+      { shape: "diamond", r: 19, fill: "rgba(3, 7, 18, 0.84)", stroke: "#fde68a", lineWidth: 2.5, pulse: 1.1 },
+      { shape: "ring", r: 10, stroke: "#f8fafc", lineWidth: 1.3, alpha: 0.7 }
+    ]),
+    ilya: playerSprite("ilya", "Ilya", "#72f5ff", "#2563eb", "I", [
+      { shape: "polygon", fill: "rgba(3, 7, 18, 0.84)", stroke: "#72f5ff", lineWidth: 2.5, points: [
+        { x: -16, y: -16 }, { x: 3, y: -16 }, { x: -3, y: -1 }, { x: 18, y: -1 }, { x: -2, y: 20 }, { x: 2, y: 5 }, { x: -18, y: 5 }
+      ], pulse: 0.9 },
+      { shape: "line", x: -12, y: -7, w: 22, h: 20, stroke: "#bfdbfe", lineWidth: 1.6, alpha: 0.82 }
+    ]),
+    nox: playerSprite("nox", "Nox", "#86efac", "#16a34a", "N", [
+      { shape: "polygon", fill: "rgba(3, 7, 18, 0.84)", stroke: "#86efac", lineWidth: 2.5, points: [
+        { x: 0, y: -21 }, { x: 18, y: -6 }, { x: 20, y: 8 }, { x: 7, y: 22 }, { x: -7, y: 22 }, { x: -20, y: 8 }, { x: -18, y: -6 }
+      ], pulse: 0.8 },
+      { shape: "circle", r: 4, x: -8, y: -3, fill: "#bbf7d0" },
+      { shape: "circle", r: 4, x: 8, y: -3, fill: "#bbf7d0" }
+    ]),
+    mira: playerSprite("mira", "Mira", "#e9d5ff", "#a78bfa", "M", [
+      { shape: "diamond", x: -8, y: 2, r: 16, fill: "#a78bfa", alpha: 0.32 },
+      { shape: "diamond", x: 8, y: 2, r: 16, fill: "#a78bfa", alpha: 0.32 },
+      { shape: "diamond", r: 19, fill: "rgba(3, 7, 18, 0.84)", stroke: "#e9d5ff", lineWidth: 2.5, pulse: 1 }
+    ]),
+    scarlett: playerSprite("scarlett", "Scarlett", "#fb923c", "#dc2626", "R", [
+      { shape: "polygon", fill: "rgba(3, 7, 18, 0.84)", stroke: "#fb923c", lineWidth: 2.5, points: [
+        { x: 0, y: -24 }, { x: 19, y: -2 }, { x: 8, y: 23 }, { x: 0, y: 16 }, { x: -8, y: 23 }, { x: -19, y: -2 }
+      ], pulse: 1.2 },
+      { shape: "diamond", r: 7, y: -5, fill: "#fed7aa", alpha: 0.85 }
+    ]),
+    corvus: playerSprite("corvus", "Corvus", "#c4b5fd", "#1f123d", "C", [
+      { shape: "polygon", fill: "rgba(3, 7, 18, 0.9)", stroke: "#c4b5fd", lineWidth: 2.5, points: [
+        { x: 0, y: -22 }, { x: 27, y: 16 }, { x: 7, y: 12 }, { x: 0, y: 24 }, { x: -7, y: 12 }, { x: -27, y: 16 }
+      ], pulse: 0.9 }
+    ]),
+    kaden: playerSprite("kaden", "Kaden", "#fed7aa", "#92400e", "K", [
+      { shape: "polygon", fill: "rgba(3, 7, 18, 0.86)", stroke: "#fed7aa", lineWidth: 3, points: [
+        { x: 0, y: -22 }, { x: 22, y: -3 }, { x: 16, y: 17 }, { x: 0, y: 24 }, { x: -16, y: 17 }, { x: -22, y: -3 }
+      ], pulse: 0.65 },
+      { shape: "rect", w: 24, h: 8, y: 8, fill: "rgba(146, 64, 14, 0.72)", stroke: "#fed7aa", lineWidth: 1 }
+    ]),
+    lyra: playerSprite("lyra", "Lyra", "#f0abfc", "#7c3aed", "L", [
+      { shape: "ring", r: 20, stroke: "#f0abfc", lineWidth: 3, pulse: 1.1 },
+      { shape: "circle", r: 12, fill: "rgba(3, 7, 18, 0.84)", stroke: "#f0abfc", lineWidth: 2 },
+      { shape: "line", x: -14, y: 0, w: 28, h: 0, stroke: "#f5d0fe", lineWidth: 1.4, alpha: 0.72 }
+    ])
+  },
+  enemies: {
+    grunt: { id: "grunt", label: "Husk", palette: { primary: "#e11d48", secondary: "#fb7185", shadow: "#e11d48" }, layers: [
+      { shape: "circle", r: 12, fill: "#e11d48", stroke: "#fb7185", lineWidth: 1.5 },
+      { shape: "circle", x: -4, y: -3, r: 2.2, fill: "#fecdd3" },
+      { shape: "circle", x: 4, y: -3, r: 2.2, fill: "#fecdd3" }
+    ]},
+    runner: { id: "runner", label: "Skitter", palette: { primary: "#fb7185", secondary: "#fecdd3", shadow: "#fb7185" }, layers: [
+      { shape: "polygon", fill: "#be123c", stroke: "#fb7185", lineWidth: 1.5, points: [{x:14,y:0},{x:0,y:-9},{x:-12,y:-5},{x:-6,y:0},{x:-12,y:5},{x:0,y:9}], pulse: 1.2 },
+      { shape: "line", x: -4, y: -9, w: 10, h: -8, stroke: "#fecdd3", lineWidth: 1.2 },
+      { shape: "line", x: -4, y: 9, w: 10, h: 8, stroke: "#fecdd3", lineWidth: 1.2 }
+    ]},
+    brute: { id: "brute", label: "Grave Brute", palette: { primary: "#dc2626", secondary: "#fed7aa", shadow: "#991b1b" }, layers: [
+      { shape: "ring", r: 18, stroke: "#7f1d1d", lineWidth: 5, alpha: 0.5 },
+      { shape: "circle", r: 17, fill: "#7f1d1d", stroke: "#fed7aa", lineWidth: 2.2 },
+      { shape: "rect", w: 23, h: 7, y: 7, fill: "#dc2626", stroke: "#fed7aa", lineWidth: 1.1 }
+    ]},
+    spitter: { id: "spitter", label: "Venom Choir", palette: { primary: "#86efac", secondary: "#bbf7d0", shadow: "#16a34a" }, layers: [
+      { shape: "diamond", r: 15, fill: "#14532d", stroke: "#86efac", lineWidth: 2, pulse: 1.1 },
+      { shape: "circle", r: 6, fill: "#86efac", alpha: 0.75 },
+      { shape: "line", x: -12, y: 12, w: 24, h: -24, stroke: "#bbf7d0", lineWidth: 1.4 }
+    ]},
+    charger: { id: "charger", label: "Gore Charger", palette: { primary: "#f43f5e", secondary: "#fef2f2", shadow: "#be123c" }, layers: [
+      { shape: "polygon", fill: "#881337", stroke: "#f43f5e", lineWidth: 2, points: [{x:22,y:0},{x:3,y:-15},{x:-15,y:-9},{x:-8,y:0},{x:-15,y:9},{x:3,y:15}], pulse: 0.9 },
+      { shape: "line", x: 2, y: -10, w: 17, h: 10, stroke: "#fef2f2", lineWidth: 1.5 },
+      { shape: "line", x: 2, y: 10, w: 17, h: -10, stroke: "#fef2f2", lineWidth: 1.5 }
+    ]},
+    elite: { id: "elite", label: "Bellguard", palette: { primary: "#f97316", secondary: "#fde68a", shadow: "#fb923c" }, layers: [
+      { shape: "ring", r: 20, stroke: "#fde68a", lineWidth: 2.4, alpha: 0.72, pulse: 1 },
+      { shape: "diamond", r: 17, fill: "#9f1239", stroke: "#fb923c", lineWidth: 2.2 },
+      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#ffedd5", lineWidth: 1.8 }
+    ]},
+    boss: { id: "boss", label: "Cathedral Bell", palette: { primary: "#a855f7", secondary: "#fde68a", shadow: "#a855f7" }, layers: [
+      { shape: "ring", r: 33, stroke: "#fde68a", lineWidth: 3, alpha: 0.78, pulse: 2 },
+      { shape: "polygon", fill: "#2e1065", stroke: "#c4b5fd", lineWidth: 3, points: [
+        { x: 0, y: -34 }, { x: 27, y: -9 }, { x: 22, y: 23 }, { x: 0, y: 34 }, { x: -22, y: 23 }, { x: -27, y: -9 }
+      ]},
+      { shape: "diamond", r: 11, fill: "#fde68a", alpha: 0.85 }
+    ]}
+  },
+  bullets: {
+    kinetic: { id: "kinetic", label: "Kinetic", palette: { primary: "#f8fafc", secondary: "#cbd5e1" }, layers: [{ shape: "capsule", w: 16, h: 7, fill: "#f8fafc" }] },
+    lightning: { id: "lightning", label: "Lightning", palette: { primary: "#72f5ff", secondary: "#2563eb" }, layers: [{ shape: "line", x: -10, y: -4, w: 8, h: 6, stroke: "#72f5ff", lineWidth: 2 }, { shape: "line", x: -2, y: 2, w: 12, h: -6, stroke: "#72f5ff", lineWidth: 2 }] },
+    fire: { id: "fire", label: "Fire", palette: { primary: "#fb923c", secondary: "#fed7aa" }, layers: [{ shape: "polygon", fill: "#fb923c", points: [{x: 12, y:0},{x:-3,y:-8},{x:-9,y:0},{x:-3,y:8}] }] },
+    ice: { id: "ice", label: "Ice", palette: { primary: "#93c5fd", secondary: "#e0f2fe" }, layers: [{ shape: "diamond", r: 8, fill: "#93c5fd", stroke: "#e0f2fe", lineWidth: 1.5 }] },
+    blood: { id: "blood", label: "Blood", palette: { primary: "#fb7185", secondary: "#fecdd3" }, layers: [{ shape: "circle", r: 6, fill: "#fb7185" }, { shape: "diamond", r: 4, x: 7, fill: "#fecdd3", alpha: 0.72 }] },
+    void: { id: "void", label: "Void", palette: { primary: "#c084fc", secondary: "#581c87" }, layers: [{ shape: "ring", r: 8, stroke: "#c084fc", lineWidth: 2 }, { shape: "circle", r: 3, fill: "#f5d0fe" }] }
+  },
+  summons: {
+    wisp: { id: "wisp", label: "Wisp", palette: { primary: "#f0abfc", secondary: "#f5d0fe" }, layers: [{ shape: "ring", r: 13, stroke: "#f0abfc", lineWidth: 1.8, alpha: 0.55 }, { shape: "circle", r: 7, fill: "#f0abfc" }] },
+    hound: { id: "hound", label: "Hound", palette: { primary: "#fbbf24", secondary: "#fde68a" }, layers: [{ shape: "capsule", w: 20, h: 10, fill: "#fbbf24" }, { shape: "circle", x: 10, y: -4, r: 5, fill: "#fde68a" }] },
+    turret: { id: "turret", label: "Turret", palette: { primary: "#cbd5e1", secondary: "#94a3b8" }, layers: [{ shape: "rect", w: 16, h: 16, fill: "rgba(3,7,18,0.76)", stroke: "#cbd5e1", lineWidth: 2 }, { shape: "line", x: 0, y: 0, w: 16, h: 0, stroke: "#cbd5e1", lineWidth: 2 }] },
+    drone: { id: "drone", label: "Drone", palette: { primary: "#67e8f9", secondary: "#cffafe" }, layers: [{ shape: "ring", r: 9, stroke: "#67e8f9", lineWidth: 2 }, { shape: "line", x: -14, y: 0, w: 28, h: 0, stroke: "#cffafe", lineWidth: 1.4 }] },
+    mite: { id: "mite", label: "Mite", palette: { primary: "#86efac", secondary: "#bbf7d0" }, layers: [{ shape: "polygon", fill: "#86efac", points: [{x:10,y:0},{x:0,y:-7},{x:-9,y:-4},{x:-5,y:0},{x:-9,y:4},{x:0,y:7}] }] },
+    blade: { id: "blade", label: "Blade", palette: { primary: "#c4b5fd", secondary: "#ddd6fe" }, layers: [{ shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#c4b5fd", lineWidth: 2.2 }, { shape: "ring", r: 8, stroke: "#ddd6fe", lineWidth: 1.4 }] },
+    wasp: { id: "wasp", label: "Wasp", palette: { primary: "#86efac", secondary: "#fef08a" }, layers: [{ shape: "polygon", fill: "#86efac", points: [{x:11,y:0},{x:0,y:-7},{x:-10,y:-4},{x:-5,y:0},{x:-10,y:4},{x:0,y:7}] }, { shape: "circle", x: -2, y: -7, r: 5, fill: "#fef08a", alpha: 0.42 }, { shape: "circle", x: -2, y: 7, r: 5, fill: "#fef08a", alpha: 0.42 }] },
+    chakram: { id: "chakram", label: "Chakram", palette: { primary: "#c4b5fd", secondary: "#f5d0fe" }, layers: [{ shape: "ring", r: 10, stroke: "#c4b5fd", lineWidth: 2.2 }, { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#f5d0fe", lineWidth: 1.4 }] },
+    orb: { id: "orb", label: "Orb", palette: { primary: "#f8fafc", secondary: "#cbd5e1" }, layers: [{ shape: "diamond", r: 8, fill: "#f8fafc", stroke: "#cbd5e1", lineWidth: 1.4 }] }
+  },
+  pickups: {
+    xp: { id: "xp", label: "Experience", palette: { primary: "#a78bfa", secondary: "#ddd6fe" }, layers: [{ shape: "diamond", r: 6, fill: "#a78bfa", stroke: "#ddd6fe", lineWidth: 1.2 }] }
+  }
+};
+
+type SpriteGroupName = keyof SpriteCatalog | "player" | "enemy" | "bullet" | "summon" | "pickup";
+
+export const getSpriteDefinition = (kind: SpriteGroupName, id: string): SpriteDefinition => {
+  const normalized =
+    kind === "player"
+      ? "players"
+      : kind === "enemy"
+        ? "enemies"
+        : kind === "bullet"
+          ? "bullets"
+          : kind === "summon"
+            ? "summons"
+            : kind === "pickup"
+              ? "pickups"
+              : kind;
+  const group = spriteCatalog[normalized] as Record<string, SpriteDefinition>;
+  return group[id] || group[Object.keys(group)[0]];
+};
+
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const len = (x: number, y: number) => Math.hypot(x, y) || 1;
@@ -361,6 +641,120 @@ const has = (game: Game, id: UpgradeId) => (game.upgrades[id] || 0) > 0;
 const count = (game: Game, id: UpgradeId) => game.upgrades[id] || 0;
 const addUpgrade = (game: Game, id: UpgradeId) => {
   game.upgrades[id] = (game.upgrades[id] || 0) + 1;
+};
+
+const formatRunTime = (time: number) => {
+  const minutes = Math.floor(time / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = Math.floor(time % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const createSummary = (game: Pick<Game, "player" | "time" | "kills" | "level" | "upgrades">, result: RunResult = "playing"): RunSummary => ({
+  result,
+  title: result === "victory" ? "Midnight Broken" : result === "defeat" ? "Engine Collapsed" : "Run in progress",
+  time: formatRunTime(game.time),
+  kills: game.kills,
+  level: game.level,
+  upgrades: Object.keys(game.upgrades).length,
+  characterId: game.player.characterId,
+  weaponId: game.player.weaponId
+});
+
+const finishRun = (game: Game, result: Exclude<RunResult, "playing">) => {
+  if (game.runState !== "playing") return;
+  game.runState = result;
+  game.gameOver = true;
+  game.summary = createSummary(game, result);
+  text(game, game.player.x, game.player.y - 42, game.summary.title, result === "victory" ? "#fde68a" : "#fb7185");
+};
+
+const PROGRESS_STORAGE_KEY = "midnight-engine-progress-v1";
+
+const defaultProgress = (): PersistedProgress => ({
+  version: 1,
+  runs: 0,
+  victories: 0,
+  bestTime: "00:00",
+  bestKills: 0,
+  bestLevel: 1,
+  discoveredLoadouts: [],
+  selectedLoadout: DEFAULT_LOADOUT
+});
+
+const storage = () => {
+  try {
+    return typeof window === "undefined" ? undefined : window.localStorage;
+  } catch {
+    return undefined;
+  }
+};
+
+const timeToSeconds = (time: string) => {
+  const [minutes = "0", seconds = "0"] = time.split(":");
+  return Number(minutes) * 60 + Number(seconds);
+};
+
+export const loadProgress = (): PersistedProgress => {
+  const store = storage();
+  if (!store) return defaultProgress();
+  try {
+    const raw = store.getItem(PROGRESS_STORAGE_KEY);
+    if (!raw) return defaultProgress();
+    const parsed = JSON.parse(raw) as Partial<PersistedProgress>;
+    return {
+      ...defaultProgress(),
+      ...parsed,
+      selectedLoadout: {
+        characterId: parsed.selectedLoadout?.characterId || DEFAULT_LOADOUT.characterId,
+        weaponId: parsed.selectedLoadout?.weaponId || DEFAULT_LOADOUT.weaponId
+      },
+      discoveredLoadouts: Array.isArray(parsed.discoveredLoadouts) ? parsed.discoveredLoadouts : []
+    };
+  } catch {
+    return defaultProgress();
+  }
+};
+
+const saveProgress = (progress: PersistedProgress) => {
+  const store = storage();
+  if (!store) return;
+  try {
+    store.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(progress));
+  } catch {
+    // Ignore quota/private-mode failures; gameplay should continue.
+  }
+};
+
+export const saveSelectedLoadout = (loadout: LoadoutConfig) => {
+  const progress = loadProgress();
+  progress.selectedLoadout = loadout;
+  saveProgress(progress);
+};
+
+export const recordRunSummary = (summary: RunSummary): PersistedProgress => {
+  const progress = loadProgress();
+  if (summary.result === "playing") return progress;
+
+  const loadoutKey = `${summary.characterId}:${summary.weaponId}`;
+  const discoveredLoadouts = new Set(progress.discoveredLoadouts);
+  discoveredLoadouts.add(loadoutKey);
+
+  const next: PersistedProgress = {
+    ...progress,
+    runs: progress.runs + 1,
+    victories: progress.victories + (summary.result === "victory" ? 1 : 0),
+    bestTime: timeToSeconds(summary.time) > timeToSeconds(progress.bestTime) ? summary.time : progress.bestTime,
+    bestKills: Math.max(progress.bestKills, summary.kills),
+    bestLevel: Math.max(progress.bestLevel, summary.level),
+    discoveredLoadouts: [...discoveredLoadouts].sort(),
+    lastSummary: summary
+  };
+  saveProgress(next);
+  return next;
 };
 
 const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
@@ -522,17 +916,18 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       bleedDamage: 1,
       curseDamage: 1,
       dashCooldown: 0,
-      invuln: 0,
+      invuln: 22.5,
       souls: 0,
       orbitals: []
     },
     enemies: [],
     bullets: [],
+    enemyProjectiles: [],
     gems: [],
     particles: [],
     upgrades: {},
     time: 0,
-    spawnTimer: 0,
+    spawnTimer: 2.4,
     level: 1,
     xp: 0,
     nextXp: 12,
@@ -540,25 +935,66 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
     shotCounter: 0,
     idCounter: 1,
     gameOver: false,
+    runState: "playing",
+    objective: {
+      name: "Survive Until Dawn",
+      duration: 20 * 60,
+      finalWaveDuration: 60
+    },
+    director: {
+      phaseName: directorPhases[0].name,
+      threat: directorPhases[0].threat,
+      nextEliteAt: 95,
+      nextBossAt: 5 * 60,
+      hordeTimer: 26,
+      spawnedBosses: []
+    },
+    draft: {
+      rerolls: 1,
+      banishes: 1,
+      banished: [],
+      seen: []
+    },
+    summary: {
+      result: "playing",
+      title: "Run in progress",
+      time: "00:00",
+      kills: 0,
+      level: 1,
+      upgrades: 0,
+      characterId: loadout.characterId,
+      weaponId: loadout.weaponId
+    },
+    activeLatch: false,
     ui: {
       time: "00:00",
       level: "1",
       kills: "0",
       hpPct: 100,
       xpPct: 0,
+      activePct: 100,
+      activeReady: true,
+      objective: "Survive Until Dawn",
+      objectivePct: 0,
+      directorPhase: directorPhases[0].name,
+      threat: directorPhases[0].threat,
+      rerolls: 1,
+      banishes: 1,
+      runState: "playing",
       gameOver: false
     }
   };
 
   applyWeapon(game, loadout.weaponId);
   applyCharacter(game, loadout.characterId);
-  for (let i = 0; i < 12; i += 1) spawnEnemy(game, true);
+  for (let i = 0; i < 8; i += 1) spawnEnemy(game, true);
   updateUi(game);
   return game;
 };
 
 export const getUpgradeChoices = (game: Game): Choice[] => {
   const available = upgradeDefs.filter((upgrade) => {
+    if (game.draft.banished.includes(upgrade.id)) return false;
     if ((upgrade.fusion || upgrade.law) && has(game, upgrade.id)) return false;
     if (upgrade.law && game.level < 6) return false;
     if (upgrade.requires && !upgrade.requires.every((id) => has(game, id))) return false;
@@ -566,10 +1002,72 @@ export const getUpgradeChoices = (game: Game): Choice[] => {
   });
 
   const fusions = available.filter((upgrade) => upgrade.fusion);
-  const basics = available.filter((upgrade) => !upgrade.fusion);
-  const pool = [...fusions, ...shuffle(basics)].slice(0, Math.max(3, fusions.length ? 2 : 3));
+  const laws = available.filter((upgrade) => upgrade.law);
+  const basics = available.filter((upgrade) => !upgrade.fusion && !upgrade.law);
+  const guaranteed = [...fusions, ...laws].slice(0, game.level >= 8 ? 2 : 1);
+  const weighted = pickWeightedChoices(game, basics, 3 - guaranteed.length);
+  const choices = shuffle([...guaranteed, ...weighted]).slice(0, 3);
 
-  return shuffle(pool).slice(0, 3);
+  for (const choice of choices) {
+    if (!game.draft.seen.includes(choice.id)) game.draft.seen.push(choice.id);
+  }
+
+  return choices;
+};
+
+export const rerollUpgradeChoices = (game: Game): Choice[] => {
+  if (game.draft.rerolls > 0) {
+    game.draft.rerolls -= 1;
+    text(game, game.player.x, game.player.y - 48, "reroll", "#93c5fd");
+  }
+  return getUpgradeChoices(game);
+};
+
+export const banishUpgrade = (game: Game, id: UpgradeId): Choice[] => {
+  if (game.draft.banishes > 0 && !game.draft.banished.includes(id)) {
+    game.draft.banishes -= 1;
+    game.draft.banished.push(id);
+    text(game, game.player.x, game.player.y - 48, "banished", "#fb7185");
+  }
+  return getUpgradeChoices(game);
+};
+
+const rarityWeight = (rarity: UpgradeDef["rarity"] = "common") => {
+  if (rarity === "common") return 8;
+  if (rarity === "uncommon") return 5;
+  if (rarity === "rare") return 2.8;
+  if (rarity === "epic") return 1.4;
+  if (rarity === "legendary") return 0.7;
+  return 1;
+};
+
+const synergyWeight = (game: Game, upgrade: UpgradeDef) => {
+  let weight = rarityWeight(upgrade.rarity);
+  const strengths = characterOptions.find((character) => character.id === game.player.characterId)?.strengths.join(" ").toLowerCase() || "";
+  const textValue = `${upgrade.category || ""} ${upgrade.name} ${upgrade.description}`.toLowerCase();
+  for (const token of strengths.split(/\s+|\//).filter(Boolean)) {
+    if (token.length > 3 && textValue.includes(token)) weight *= 1.25;
+  }
+  if (upgrade.requires?.some((id) => has(game, id))) weight *= 1.6;
+  if (game.draft.seen.includes(upgrade.id)) weight *= 0.65;
+  return weight;
+};
+
+const pickWeightedChoices = (game: Game, pool: UpgradeDef[], amount: number): UpgradeDef[] => {
+  const selected: UpgradeDef[] = [];
+  const remaining = [...pool];
+  while (selected.length < amount && remaining.length) {
+    const total = remaining.reduce((sum, upgrade) => sum + synergyWeight(game, upgrade), 0);
+    let roll = Math.random() * total;
+    let index = 0;
+    for (; index < remaining.length; index += 1) {
+      roll -= synergyWeight(game, remaining[index]);
+      if (roll <= 0) break;
+    }
+    const [choice] = remaining.splice(Math.min(index, remaining.length - 1), 1);
+    selected.push(choice);
+  }
+  return selected;
 };
 
 function applyUpgrade(game: Game, id: UpgradeId) {
@@ -1057,14 +1555,69 @@ const applyWeapon = (game: Game, weaponId: WeaponId) => {
   }
 };
 
+const updateDirector = (game: Game, dt: number): DirectorPhase => {
+  const phase = getDirectorPhase(game.time);
+  const levelPressure = Math.min(0.55, Math.max(0, game.level - 1) * 0.035);
+  const killPressure = Math.min(0.5, game.kills / 450);
+  const nextThreat = phase.threat + levelPressure + killPressure;
+
+  if (game.director.phaseName !== phase.name) {
+    text(game, game.player.x, game.player.y - 62, phase.name, phase.name === "Final Dawn" ? "#fde68a" : "#93c5fd");
+    burst(game, game.player.x, game.player.y, phase.name === "Final Dawn" ? "#fde68a" : "#93c5fd", 26, 4);
+  }
+
+  game.director.phaseName = phase.name;
+  game.director.threat = nextThreat;
+  game.director.hordeTimer -= dt;
+
+  if (game.time >= game.director.nextEliteAt) {
+    spawnEnemy(game, true, "elite");
+    game.director.nextEliteAt += Math.max(18, phase.eliteEvery - Math.min(18, game.level));
+    text(game, game.player.x, game.player.y - 56, "elite hunt", "#fb923c");
+  }
+
+  const bossMarks = [5 * 60, 10 * 60, 15 * 60, game.objective.duration - game.objective.finalWaveDuration];
+  for (const mark of bossMarks) {
+    if (game.time >= mark && !game.director.spawnedBosses.includes(mark)) {
+      game.director.spawnedBosses.push(mark);
+      spawnEnemy(game, true, "boss");
+      text(game, game.player.x, game.player.y - 66, mark >= game.objective.duration - game.objective.finalWaveDuration ? "The Dawn Bell" : "mini-boss", "#fde68a");
+      burst(game, game.player.x, game.player.y, "#fde68a", 32, 5);
+    }
+  }
+
+  if (game.director.hordeTimer <= 0) {
+    const hordeSize = Math.min(14, phase.packSize + Math.floor(nextThreat * 2));
+    for (let i = 0; i < hordeSize; i += 1) spawnEnemy(game, false, pickEnemyKind(game, phase, i));
+    game.director.hordeTimer = Math.max(11, 28 - nextThreat * 3.2);
+    text(game, game.player.x, game.player.y - 52, "horde", "#fb7185");
+  }
+
+  return phase;
+};
+
+const pickEnemyKind = (game: Game, phase: DirectorPhase, index: number): EnemyKind => {
+  if (phase.name === "Final Dawn" && index === 0) return "charger";
+  const slot = Math.abs(Math.floor(game.time * 10) + game.kills + game.enemies.length + index) % phase.mix.length;
+  return phase.mix[slot];
+};
+
 export const stepGame = (game: Game, input: InputState, dt: number): boolean => {
   const player = game.player;
+
+  if (game.runState !== "playing") {
+    updateParticles(game, dt);
+    updateUi(game);
+    return false;
+  }
+
   game.time += dt;
   player.cooldown -= dt;
   player.reload = Math.max(0, player.reload - dt);
   if (player.reload <= 0) player.reloadDuration = 0;
-  player.dashCooldown -= dt;
-  player.invuln -= dt;
+  player.dashCooldown = Math.max(0, player.dashCooldown - dt);
+  player.invuln = Math.max(0, player.invuln - dt);
+  player.activeTimer = Math.max(0, player.activeTimer - dt);
   game.spawnTimer -= dt;
 
   const moveLen = len(input.moveX, input.moveY);
@@ -1074,14 +1627,21 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
     player.y += (input.moveY / moveLen) * player.speed * dt;
   }
 
+  const activePressed = input.active && !game.activeLatch;
+  if (activePressed && player.activeTimer <= 0) triggerActiveAbility(game, input);
+  game.activeLatch = input.active;
+
+  const phase = updateDirector(game, dt);
+
   if (game.spawnTimer <= 0) {
-    const amount = 1 + Math.floor(game.time / 28);
-    for (let i = 0; i < amount; i += 1) spawnEnemy(game);
-    game.spawnTimer = Math.max(0.22, 0.92 - game.time * 0.006);
+    const amount = phase.packSize + Math.floor(game.director.threat * 0.65);
+    for (let i = 0; i < amount; i += 1) spawnEnemy(game, false, pickEnemyKind(game, phase, i));
+    game.spawnTimer = Math.max(0.16, phase.spawnInterval / Math.sqrt(game.director.threat));
   }
 
   if (input.firing && player.reload <= 0 && player.cooldown <= 0) shoot(game, input);
   updateBullets(game, dt);
+  updateEnemyProjectiles(game, dt);
   updateEnemies(game, dt);
   updateGems(game, dt);
   updateOrbitals(game, dt);
@@ -1095,9 +1655,102 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
     player.hp = Math.min(player.maxHp, player.hp + 8);
   }
 
-  if (player.hp <= 0) game.gameOver = true;
+  if (player.hp <= 0) finishRun(game, "defeat");
+  else if (game.time >= game.objective.duration) finishRun(game, "victory");
+
+  game.summary = createSummary(game, game.runState);
   updateUi(game);
   return leveled;
+};
+
+const triggerActiveAbility = (game: Game, input: InputState) => {
+  const player = game.player;
+  const aimLen = Math.hypot(input.aimX, input.aimY);
+  const moveLen = Math.hypot(input.moveX, input.moveY);
+  const angle = aimLen > 0.1 ? Math.atan2(input.aimY, input.aimX) : moveLen > 0.1 ? Math.atan2(input.moveY, input.moveX) : -Math.PI / 2;
+  player.activeTimer = Math.max(4, player.activeCooldown || 12);
+
+  if (player.characterId === "saint") {
+    player.shots = 0;
+    player.reload = 0;
+    player.reloadDuration = 0;
+    player.shield = Math.min(75, player.shield + 10);
+    for (let i = 0; i < 6; i += 1) fireBullet(game, player.x, player.y, angle + (i - 2.5) * 0.28, player.damage * 0.72, "void", { pierce: 1, crit: player.crit + 0.2 });
+    burst(game, player.x, player.y, "#fde68a", 18, 4);
+    text(game, player.x, player.y - 32, "Covenant Reload", "#fde68a");
+    return;
+  }
+
+  if (player.characterId === "ilya") {
+    const dashDistance = 112;
+    player.x += Math.cos(angle) * dashDistance;
+    player.y += Math.sin(angle) * dashDistance;
+    player.invuln = Math.max(player.invuln, 0.48);
+    player.dashCooldown = Math.max(player.dashCooldown, 0.8);
+    chainLightning(game, player.x, player.y, 170, 18 * player.lightningDamage);
+    burst(game, player.x, player.y, "#72f5ff", 20, 3.5);
+    text(game, player.x, player.y - 34, "Stormstep", "#72f5ff");
+    return;
+  }
+
+  if (player.characterId === "nox") {
+    for (let i = 0; i < 5; i += 1) {
+      spawnOrbital(game, 9 * player.summonDamage, 8, "mite");
+      fireBullet(game, player.x, player.y, angle + (i - 2) * 0.48, 12 * player.poisonDamage, "blood", { pierce: 1, crit: 0.08 });
+    }
+    burst(game, player.x, player.y, "#86efac", 22, 3.8);
+    text(game, player.x, player.y - 34, "Brood Burst", "#86efac");
+    return;
+  }
+
+  if (player.characterId === "mira") {
+    for (let i = 0; i < 8; i += 1) fireBullet(game, player.x + Math.cos(angle + Math.PI / 2) * 16, player.y + Math.sin(angle + Math.PI / 2) * 16, angle + (i - 3.5) * 0.18, player.damage * 0.62, selectShotElement(game), { split: 1, bounces: 1, crit: player.crit + 0.1 });
+    burst(game, player.x, player.y, "#c084fc", 20, 4);
+    text(game, player.x, player.y - 34, "Mirror Sigil", "#e9d5ff");
+    return;
+  }
+
+  if (player.characterId === "scarlett") {
+    explode(game, player.x, player.y, 120, 24 * player.fireDamage, "#fb923c");
+    for (let i = 0; i < 10; i += 1) fireBullet(game, player.x, player.y, i * (TAU / 10), player.damage * 0.52, "fire", { pierce: 1, crit: player.crit });
+    text(game, player.x, player.y - 34, "Cinder Rite", "#fb923c");
+    return;
+  }
+
+  if (player.characterId === "corvus") {
+    player.invuln = Math.max(player.invuln, 1.25);
+    for (let i = 0; i < 4; i += 1) fireBullet(game, player.x, player.y, angle + (i - 1.5) * 0.08, player.damage * 1.35, "void", { pierce: 4, crit: 1 });
+    pullEnemies(game, player.x, player.y, 120, 20);
+    text(game, player.x, player.y - 34, "Veil Cut", "#c4b5fd");
+    return;
+  }
+
+  if (player.characterId === "kaden") {
+    player.shield = Math.min(90, player.shield + 24);
+    player.invuln = Math.max(player.invuln, 0.7);
+    for (const enemy of game.enemies) {
+      const dx = enemy.x - player.x;
+      const dy = enemy.y - player.y;
+      const d = Math.hypot(dx, dy);
+      if (d < 140) {
+        enemy.x += (dx / (d || 1)) * 54;
+        enemy.y += (dy / (d || 1)) * 54;
+        hurtEnemy(game, enemy, 16, "kinetic");
+      }
+    }
+    burst(game, player.x, player.y, "#fed7aa", 24, 4.5);
+    text(game, player.x, player.y - 34, "Iron Bastion", "#fed7aa");
+    return;
+  }
+
+  for (let i = 0; i < 3; i += 1) spawnOrbital(game, 15 * player.summonDamage, 14, "hound");
+  for (const orbital of player.orbitals) {
+    orbital.damage *= 1.18;
+    orbital.life += 4;
+    orbital.speed *= 1.18;
+  }
+  burst(game, player.x, player.y, "#f0abfc", 24, 4);
+  text(game, player.x, player.y - 34, "Rally Beasts", "#f0abfc");
 };
 
 export const drawGame = (
@@ -1128,12 +1781,18 @@ export const drawGame = (
   ctx.translate(camera.x, camera.y);
 
   for (const gem of game.gems) {
-    ctx.fillStyle = "#a78bfa";
-    diamond(ctx, gem.x, gem.y, 4 + gem.value * 0.4);
+    ctx.save();
+    ctx.translate(gem.x, gem.y);
+    drawSpriteDefinition(ctx, getSpriteDefinition("pickups", "xp"), game.time + gem.value, 0.7 + gem.value * 0.04);
+    ctx.restore();
   }
 
   for (const bullet of game.bullets) {
     drawBullet(ctx, bullet, game.player.weaponSpecial, game.time);
+  }
+
+  for (const shot of game.enemyProjectiles) {
+    drawEnemyProjectile(ctx, shot);
   }
 
   for (const orbital of game.player.orbitals) {
@@ -1143,17 +1802,7 @@ export const drawGame = (
   }
 
   for (const enemy of game.enemies) {
-    const hpPct = enemy.hp / enemy.maxHp;
-    ctx.beginPath();
-    ctx.fillStyle = enemy.freeze > 0 ? "#7dd3fc" : enemy.burn > 0 ? "#fb923c" : "#e11d48";
-    ctx.globalAlpha = enemy.hitFlash > 0 ? 0.62 : 0.92;
-    ctx.arc(enemy.x, enemy.y, enemy.r, 0, TAU);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "#320715";
-    ctx.fillRect(enemy.x - enemy.r, enemy.y - enemy.r - 8, enemy.r * 2, 3);
-    ctx.fillStyle = "#fda4af";
-    ctx.fillRect(enemy.x - enemy.r, enemy.y - enemy.r - 8, enemy.r * 2 * hpPct, 3);
+    drawEnemy(ctx, enemy, game.time);
   }
 
   for (const particle of game.particles) {
@@ -1393,6 +2042,36 @@ const splitBullet = (game: Game, bullet: Bullet) => {
   bullet.split = 0;
 };
 
+const fireEnemyProjectile = (game: Game, enemy: Enemy, angle: number, speed: number, damage: number, color = "#86efac") => {
+  game.enemyProjectiles.push({
+    x: enemy.x,
+    y: enemy.y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    r: enemy.kind === "boss" ? 7 : 5,
+    damage,
+    life: enemy.kind === "boss" ? 4.2 : 3.2,
+    color
+  });
+};
+
+const updateEnemyProjectiles = (game: Game, dt: number) => {
+  const player = game.player;
+  for (let i = game.enemyProjectiles.length - 1; i >= 0; i -= 1) {
+    const shot = game.enemyProjectiles[i];
+    shot.x += shot.vx * dt;
+    shot.y += shot.vy * dt;
+    shot.life -= dt;
+    if (Math.hypot(player.x - shot.x, player.y - shot.y) < player.r + shot.r) {
+      hurtPlayer(game, shot.damage);
+      burst(game, shot.x, shot.y, shot.color, 7, 2.4);
+      game.enemyProjectiles.splice(i, 1);
+      continue;
+    }
+    if (shot.life <= 0) game.enemyProjectiles.splice(i, 1);
+  }
+};
+
 const updateEnemies = (game: Game, dt: number) => {
   const player = game.player;
 
@@ -1401,9 +2080,44 @@ const updateEnemies = (game: Game, dt: number) => {
     const dx = player.x - enemy.x;
     const dy = player.y - enemy.y;
     const d = len(dx, dy);
+    const angle = Math.atan2(dy, dx);
     const freezeSlow = enemy.freeze > 0 ? 0.38 : 1;
-    enemy.x += (dx / d) * enemy.speed * freezeSlow * dt;
-    enemy.y += (dy / d) * enemy.speed * freezeSlow * dt;
+    enemy.attackTimer -= dt;
+    enemy.chargeTimer -= dt;
+
+    let moveDirection = 1;
+    let speedMultiplier = 1;
+    if (enemy.kind === "spitter") {
+      moveDirection = d < 210 ? -1 : d > 320 ? 1 : 0.12;
+      if (enemy.attackTimer <= 0 && d < 620) {
+        fireEnemyProjectile(game, enemy, angle, 190 + game.director.threat * 16, enemy.damage * 0.72, "#86efac");
+        enemy.attackTimer = Math.max(1.1, 2.15 - game.director.threat * 0.18);
+        burst(game, enemy.x, enemy.y, "#86efac", 5, 2);
+      }
+    } else if (enemy.kind === "charger") {
+      if (enemy.chargeTimer <= 0 && d < 520) {
+        enemy.chargeTimer = Math.max(1.0, 2.6 - game.director.threat * 0.16);
+        enemy.attackTimer = 0.38;
+        text(game, enemy.x, enemy.y - enemy.r - 14, "!", "#fef2f2");
+      }
+      speedMultiplier = enemy.attackTimer > 0 ? 3.2 : 0.95;
+    } else if (enemy.kind === "boss") {
+      speedMultiplier = d > 260 ? 1 : 0.22;
+      if (enemy.attackTimer <= 0) {
+        const spokes = 8 + Math.min(8, game.director.spawnedBosses.length * 2);
+        for (let shot = 0; shot < spokes; shot += 1) {
+          fireEnemyProjectile(game, enemy, shot * (TAU / spokes) + game.time * 0.2, 145 + game.director.threat * 15, enemy.damage * 0.38, "#c084fc");
+        }
+        enemy.attackTimer = Math.max(1.45, 3 - game.director.threat * 0.2);
+      }
+    } else if (enemy.kind === "runner") {
+      speedMultiplier = 1.2;
+    } else if (enemy.kind === "brute") {
+      speedMultiplier = 0.72;
+    }
+
+    enemy.x += (dx / d) * enemy.speed * speedMultiplier * moveDirection * freezeSlow * dt;
+    enemy.y += (dy / d) * enemy.speed * speedMultiplier * moveDirection * freezeSlow * dt;
     enemy.hitFlash -= dt;
     enemy.damageNoticeCooldown -= dt;
 
@@ -1614,7 +2328,7 @@ const killEnemy = (game: Game, enemy: Enemy) => {
   }
 };
 
-const spawnEnemy = (game: Game, anywhere = false) => {
+const spawnEnemy = (game: Game, anywhere = false, forcedKind?: EnemyKind) => {
   const edge = Math.floor(rand(0, 4));
   const margin = 80;
   const halfW = game.screen.w / 2;
@@ -1623,7 +2337,7 @@ const spawnEnemy = (game: Game, anywhere = false) => {
   let y = game.player.y + rand(-halfH, halfH);
   if (anywhere) {
     const angle = rand(0, TAU);
-    const distance = rand(120, Math.max(halfW, halfH) + margin);
+    const distance = rand(360, Math.max(halfW, halfH) + margin + 220);
     x = game.player.x + Math.cos(angle) * distance;
     y = game.player.y + Math.sin(angle) * distance;
   } else if (edge === 0) {
@@ -1641,17 +2355,32 @@ const spawnEnemy = (game: Game, anywhere = false) => {
   }
 
   const minutes = game.time / 60;
-  const elite = Math.random() < Math.min(0.04 + minutes * 0.03, 0.22);
-  const hp = elite ? 58 + minutes * 24 : 18 + minutes * 8;
+  const phase = getDirectorPhase(game.time);
+  const threat = game.director?.threat || phase.threat;
+  const elite = forcedKind ? forcedKind !== "grunt" : Math.random() < Math.min(0.03 + minutes * 0.018, 0.18);
+  const kind: EnemyKind = forcedKind || (elite ? "elite" : pickEnemyKind(game, phase, 0));
+  const baseHp = 18 + minutes * 7 + threat * 3;
+  const profile: Record<EnemyKind, { hp: number; r: number; speed: number; damage: number; attackTimer: number; chargeTimer: number }> = {
+    grunt: { hp: baseHp, r: rand(9, 13), speed: rand(54, 82) + minutes * 3.8, damage: 11 + threat, attackTimer: rand(0.4, 1.2), chargeTimer: rand(0.6, 1.5) },
+    runner: { hp: baseHp * 0.68, r: 9.5, speed: 104 + minutes * 5.2, damage: 9 + threat, attackTimer: rand(0.2, 0.9), chargeTimer: rand(0.5, 1.4) },
+    brute: { hp: baseHp * 2.7, r: 20, speed: 42 + minutes * 2.1, damage: 21 + threat * 1.8, attackTimer: rand(0.6, 1.5), chargeTimer: rand(1, 2) },
+    spitter: { hp: baseHp * 1.18, r: 14, speed: 50 + minutes * 2.2, damage: 13 + threat * 1.2, attackTimer: rand(0.4, 1.2), chargeTimer: rand(0.8, 1.8) },
+    charger: { hp: baseHp * 1.55, r: 15.5, speed: 72 + minutes * 3.8, damage: 17 + threat * 1.6, attackTimer: rand(0.1, 0.8), chargeTimer: rand(0.5, 1.5) },
+    elite: { hp: 70 + minutes * 28 + threat * 18, r: 17, speed: rand(42, 62) + minutes * 2.2, damage: 22 + threat * 2, attackTimer: rand(0.3, 1), chargeTimer: rand(0.8, 1.8) },
+    boss: { hp: 560 + minutes * 88 + threat * 75, r: 30, speed: 30 + minutes * 0.9, damage: 34 + threat * 3, attackTimer: 0.8, chargeTimer: 1.5 }
+  };
+  const stats = profile[kind];
+  const hp = stats.hp;
   game.enemies.push({
     id: game.idCounter,
+    kind,
     x,
     y,
-    r: elite ? 17 : rand(9, 13),
+    r: stats.r,
     hp,
     maxHp: hp,
-    speed: elite ? rand(38, 58) : rand(54, 82) + minutes * 5,
-    damage: elite ? 22 : 12,
+    speed: stats.speed,
+    damage: stats.damage,
     burn: 0,
     freeze: 0,
     poison: 0,
@@ -1659,7 +2388,9 @@ const spawnEnemy = (game: Game, anywhere = false) => {
     bleed: 0,
     curse: 0,
     hitFlash: 0,
-    damageNoticeCooldown: 0
+    damageNoticeCooldown: 0,
+    attackTimer: stats.attackTimer,
+    chargeTimer: stats.chargeTimer
   });
   game.idCounter += 1;
 };
@@ -1787,18 +2518,23 @@ const damageText = (game: Game, enemy: Enemy, amount: number, color: string) => 
 };
 
 const updateUi = (game: Game) => {
-  const minutes = Math.floor(game.time / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = Math.floor(game.time % 60)
-    .toString()
-    .padStart(2, "0");
+  const objectivePct = clamp((game.time / game.objective.duration) * 100, 0, 100);
+  const finalWaveStarted = game.time >= game.objective.duration - game.objective.finalWaveDuration;
   game.ui = {
-    time: `${minutes}:${seconds}`,
+    time: formatRunTime(game.time),
     level: String(game.level),
     kills: String(game.kills),
     hpPct: clamp((game.player.hp / game.player.maxHp) * 100, 0, 100),
     xpPct: clamp((game.xp / game.nextXp) * 100, 0, 100),
+    activePct: game.player.activeCooldown > 0 ? clamp(100 - (game.player.activeTimer / game.player.activeCooldown) * 100, 0, 100) : 100,
+    activeReady: game.player.activeTimer <= 0,
+    objective: finalWaveStarted ? "Final Dawn" : game.objective.name,
+    objectivePct,
+    directorPhase: game.director.phaseName,
+    threat: Number(game.director.threat.toFixed(1)),
+    rerolls: game.draft.rerolls,
+    banishes: game.draft.banishes,
+    runState: game.runState,
     gameOver: game.gameOver
   };
 };
@@ -1812,14 +2548,7 @@ const shuffle = <T,>(values: T[]) => {
   return copy;
 };
 
-const bulletColor = (element: Bullet["element"]) => {
-  if (element === "lightning") return "#72f5ff";
-  if (element === "fire") return "#fb923c";
-  if (element === "ice") return "#93c5fd";
-  if (element === "blood") return "#fb7185";
-  if (element === "void") return "#c084fc";
-  return "#f8fafc";
-};
+const bulletColor = (element: Bullet["element"]) => getSpriteDefinition("bullets", element).palette.primary;
 
 const hashTile = (x: number, y: number, salt = 0) => {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 74.7) * 43758.5453123;
@@ -1905,16 +2634,6 @@ const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number)
   ctx.fill();
 };
 
-const characterVisuals: Record<string, { primary: string; secondary: string; glyph: string }> = {
-  saint: { primary: "#f8fafc", secondary: "#fde68a", glyph: "S" },
-  ilya: { primary: "#72f5ff", secondary: "#2563eb", glyph: "I" },
-  nox: { primary: "#86efac", secondary: "#16a34a", glyph: "N" },
-  mira: { primary: "#e9d5ff", secondary: "#a78bfa", glyph: "M" },
-  scarlett: { primary: "#fb923c", secondary: "#dc2626", glyph: "R" },
-  corvus: { primary: "#c4b5fd", secondary: "#1f123d", glyph: "C" },
-  kaden: { primary: "#fed7aa", secondary: "#92400e", glyph: "K" },
-  lyra: { primary: "#f0abfc", secondary: "#7c3aed", glyph: "L" }
-};
 
 const drawPolygon = (ctx: CanvasRenderingContext2D, points: Vec[]) => {
   if (!points.length) return;
@@ -1929,94 +2648,131 @@ const drawCapsule = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.roundRect(x - w / 2, y - h / 2, w, h, radius);
 };
 
-const drawCharacter = (ctx: CanvasRenderingContext2D, player: Player, time: number, reloading: boolean) => {
-  const visual = characterVisuals[player.characterId] || characterVisuals.saint;
-  const pulse = reloading ? Math.sin(time * 18) * 2 : Math.sin(time * 6) * 0.9;
-
+const drawSpriteDefinition = (ctx: CanvasRenderingContext2D, sprite: SpriteDefinition, time: number, scale = 1) => {
   ctx.save();
-  ctx.shadowColor = reloading ? "#fde68a" : visual.primary;
-  ctx.shadowBlur = reloading ? 18 : 11;
-  ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
-  ctx.strokeStyle = visual.secondary;
-  ctx.lineWidth = 2.5;
+  ctx.shadowColor = sprite.palette.shadow || sprite.palette.primary;
+  ctx.shadowBlur = 10 * scale;
 
-  if (player.characterId === "kaden") {
-    drawPolygon(ctx, [
-      { x: 0, y: -player.r - 7 - pulse },
-      { x: player.r + 9, y: -3 },
-      { x: player.r + 5, y: player.r + 5 },
-      { x: 0, y: player.r + 11 + pulse },
-      { x: -player.r - 5, y: player.r + 5 },
-      { x: -player.r - 9, y: -3 }
-    ]);
-  } else if (player.characterId === "corvus") {
-    drawPolygon(ctx, [
-      { x: 0, y: -player.r - 8 - pulse },
-      { x: player.r + 14, y: player.r + 3 },
-      { x: player.r * 0.32, y: player.r + 1 },
-      { x: 0, y: player.r + 12 },
-      { x: -player.r * 0.32, y: player.r + 1 },
-      { x: -player.r - 14, y: player.r + 3 }
-    ]);
-  } else if (player.characterId === "scarlett") {
-    drawPolygon(ctx, [
-      { x: 0, y: -player.r - 11 - pulse },
-      { x: player.r + 8, y: -2 },
-      { x: player.r + 2, y: player.r + 10 },
-      { x: 0, y: player.r + 5 },
-      { x: -player.r - 2, y: player.r + 10 },
-      { x: -player.r - 8, y: -2 }
-    ]);
-  } else if (player.characterId === "mira") {
-    ctx.globalAlpha = 0.36;
-    ctx.fillStyle = visual.secondary;
-    diamond(ctx, -8, 2, player.r + 2);
-    diamond(ctx, 8, 2, player.r + 2);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
-    diamond(ctx, 0, 0, player.r + 6 + pulse);
-  } else if (player.characterId === "ilya") {
-    drawPolygon(ctx, [
-      { x: -player.r - 3, y: -player.r - 4 },
-      { x: 2, y: -player.r - 4 - pulse },
-      { x: -3, y: -1 },
-      { x: player.r + 6, y: -1 },
-      { x: -2, y: player.r + 9 + pulse },
-      { x: 2, y: 4 },
-      { x: -player.r - 6, y: 4 }
-    ]);
-  } else if (player.characterId === "lyra") {
-    ctx.beginPath();
-    ctx.arc(0, 0, player.r + 7 + pulse, 0.2 * Math.PI, 1.8 * Math.PI);
-    ctx.closePath();
-  } else if (player.characterId === "nox") {
-    drawPolygon(ctx, [
-      { x: 0, y: -player.r - 8 - pulse },
-      { x: player.r + 6, y: -player.r * 0.35 },
-      { x: player.r + 8, y: player.r * 0.55 },
-      { x: player.r * 0.3, y: player.r + 11 },
-      { x: -player.r * 0.3, y: player.r + 11 },
-      { x: -player.r - 8, y: player.r * 0.55 },
-      { x: -player.r - 6, y: -player.r * 0.35 }
-    ]);
-  } else {
-    diamond(ctx, 0, 0, player.r + 6 + pulse);
+  for (const layer of sprite.layers) {
+    const layerScale = scale * (1 + Math.sin(time * 6) * 0.035 * (layer.pulse || 0));
+    const x = (layer.x || 0) * layerScale;
+    const y = (layer.y || 0) * layerScale;
+    const r = (layer.r || 0) * layerScale;
+    const w = (layer.w || 0) * layerScale;
+    const h = (layer.h || 0) * layerScale;
+
+    ctx.save();
+    ctx.globalAlpha *= layer.alpha ?? 1;
+    ctx.rotate(layer.rotate || 0);
+    ctx.fillStyle = layer.fill || sprite.palette.primary;
+    ctx.strokeStyle = layer.stroke || sprite.palette.secondary;
+    ctx.lineWidth = (layer.lineWidth || 1.8) * layerScale;
+
+    if (layer.shape === "circle") {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      if (layer.fill) ctx.fill();
+      if (layer.stroke) ctx.stroke();
+    } else if (layer.shape === "diamond") {
+      if (layer.fill) ctx.fillStyle = layer.fill;
+      diamond(ctx, x, y, r);
+      if (layer.stroke) ctx.stroke();
+    } else if (layer.shape === "polygon") {
+      drawPolygon(
+        ctx,
+        (layer.points || []).map((point) => ({ x: point.x * layerScale + x, y: point.y * layerScale + y }))
+      );
+      if (layer.fill) ctx.fill();
+      if (layer.stroke) ctx.stroke();
+    } else if (layer.shape === "capsule") {
+      drawCapsule(ctx, x, y, w, h, Math.max(1, Math.min(w, h) / 2));
+      if (layer.fill) ctx.fill();
+      if (layer.stroke) ctx.stroke();
+    } else if (layer.shape === "ring") {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.stroke();
+    } else if (layer.shape === "rect") {
+      ctx.beginPath();
+      ctx.roundRect(x - w / 2, y - h / 2, w, h, Math.min(6 * layerScale, Math.min(w, h) / 2));
+      if (layer.fill) ctx.fill();
+      if (layer.stroke) ctx.stroke();
+    } else if (layer.shape === "line") {
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + w, y + h);
+      ctx.stroke();
+    } else if (layer.shape === "text") {
+      ctx.shadowBlur = 0;
+      ctx.font = layer.font || `${Math.round(12 * layerScale)}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      if (layer.stroke) ctx.strokeText(layer.text || "", x, y);
+      if (layer.fill) ctx.fillText(layer.text || "", x, y);
+    }
+
+    ctx.restore();
   }
 
+  ctx.restore();
+};
+
+const drawEnemyProjectile = (ctx: CanvasRenderingContext2D, shot: EnemyProjectile) => {
+  const speed = Math.hypot(shot.vx, shot.vy);
+  const angle = Math.atan2(shot.vy, shot.vx);
+  ctx.save();
+  ctx.translate(shot.x, shot.y);
+  ctx.rotate(angle);
+  ctx.shadowColor = shot.color;
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = shot.color;
+  drawCapsule(ctx, 0, 0, Math.max(shot.r * 2.8, speed * 0.018), shot.r * 1.25);
   ctx.fill();
-  ctx.stroke();
+  ctx.restore();
+};
 
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = visual.primary;
-  ctx.strokeStyle = "rgba(3, 7, 18, 0.74)";
-  ctx.lineWidth = 3;
-  ctx.font = "700 12px Inter, system-ui, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.strokeText(visual.glyph, 0, 1);
-  ctx.fillText(visual.glyph, 0, 1);
+const drawEnemy = (ctx: CanvasRenderingContext2D, enemy: Enemy, time: number) => {
+  const hpPct = clamp(enemy.hp / enemy.maxHp, 0, 1);
+  const sprite = getSpriteDefinition("enemies", enemy.kind);
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
+  ctx.globalAlpha = enemy.hitFlash > 0 ? 0.64 : 0.96;
+  if (enemy.freeze > 0) ctx.globalAlpha *= 0.82;
+  drawSpriteDefinition(ctx, sprite, time + enemy.id * 0.11, enemy.r / (enemy.kind === "boss" ? 30 : enemy.kind === "elite" ? 17 : 12));
+  if (enemy.burn > 0 || enemy.freeze > 0 || enemy.poison > 0 || enemy.shock > 0 || enemy.curse > 0) {
+    ctx.beginPath();
+    ctx.strokeStyle = enemy.freeze > 0 ? "#7dd3fc" : enemy.burn > 0 ? "#fb923c" : enemy.shock > 0 ? "#72f5ff" : enemy.curse > 0 ? "#c084fc" : "#86efac";
+    ctx.lineWidth = 2;
+    ctx.arc(0, 0, enemy.r + 6 + Math.sin(time * 8) * 1.5, 0, TAU);
+    ctx.stroke();
+  }
+  ctx.restore();
 
-  drawWeaponBadge(ctx, player.weaponSpecial, visual.primary);
+  ctx.fillStyle = "#320715";
+  ctx.fillRect(enemy.x - enemy.r, enemy.y - enemy.r - 9, enemy.r * 2, 3.5);
+  ctx.fillStyle = enemy.kind === "boss" ? "#fde68a" : "#fda4af";
+  ctx.fillRect(enemy.x - enemy.r, enemy.y - enemy.r - 9, enemy.r * 2 * hpPct, 3.5);
+};
+
+const drawCharacter = (ctx: CanvasRenderingContext2D, player: Player, time: number, reloading: boolean) => {
+  const sprite = getSpriteDefinition("players", player.characterId);
+  const cooldownPulse = player.activeTimer <= 0 ? 1 + Math.sin(time * 8) * 0.04 : 1;
+
+  ctx.save();
+  if (player.invuln > 0) {
+    ctx.globalAlpha = 0.72 + Math.sin(time * 28) * 0.18;
+  }
+  drawSpriteDefinition(ctx, sprite, time + (reloading ? 3 : 0), (player.r / 13) * cooldownPulse);
+
+  if (player.activeTimer <= 0) {
+    ctx.beginPath();
+    ctx.strokeStyle = "rgba(253, 230, 138, 0.72)";
+    ctx.lineWidth = 1.4;
+    ctx.arc(0, 0, player.r + 18 + Math.sin(time * 7) * 2, 0, TAU);
+    ctx.stroke();
+  }
+
+  drawWeaponBadge(ctx, player.weaponSpecial, sprite.palette.primary);
   ctx.restore();
 };
 
@@ -2194,85 +2950,20 @@ const drawBullet = (ctx: CanvasRenderingContext2D, bullet: Bullet, weaponId: Wea
 };
 
 const drawSummon = (ctx: CanvasRenderingContext2D, orbital: Orbital, x: number, y: number, time: number, charged: boolean) => {
-  const color = charged ? "#72f5ff" : summonColor(orbital.kind);
+  const sprite = getSpriteDefinition("summons", orbital.kind);
   const bob = Math.sin(time * 8 + orbital.angle) * 1.5;
 
   ctx.save();
   ctx.translate(x, y + bob);
   ctx.rotate(orbital.angle + time * (orbital.kind === "chakram" ? 5 : 1.2));
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 11;
-  ctx.fillStyle = color;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-
-  if (orbital.kind === "hound") {
-    drawCapsule(ctx, 0, 1, 18, 9);
-    ctx.fill();
+  drawSpriteDefinition(ctx, sprite, time + orbital.angle, charged ? 1.18 : 1);
+  if (charged) {
     ctx.beginPath();
-    ctx.arc(9, -4, 5, 0, TAU);
-    ctx.fill();
-    ctx.fillRect(-7, 5, 4, 6);
-    ctx.fillRect(4, 5, 4, 6);
-  } else if (orbital.kind === "turret") {
-    ctx.fillStyle = "rgba(3, 7, 18, 0.76)";
-    ctx.fillRect(-7, -7, 14, 14);
-    ctx.strokeRect(-7, -7, 14, 14);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(15, 0);
+    ctx.strokeStyle = "#72f5ff";
+    ctx.lineWidth = 1.6;
+    ctx.arc(0, 0, 15, 0, TAU);
     ctx.stroke();
-  } else if (orbital.kind === "drone") {
-    ctx.beginPath();
-    ctx.arc(0, 0, 8, 0, TAU);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, 3, 0, TAU);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-13, 0);
-    ctx.lineTo(-6, 0);
-    ctx.moveTo(6, 0);
-    ctx.lineTo(13, 0);
-    ctx.stroke();
-  } else if (orbital.kind === "mite" || orbital.kind === "wasp") {
-    drawPolygon(ctx, [
-      { x: 10, y: 0 },
-      { x: 0, y: -7 },
-      { x: -9, y: -4 },
-      { x: -5, y: 0 },
-      { x: -9, y: 4 },
-      { x: 0, y: 7 }
-    ]);
-    ctx.fill();
-    ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.ellipse(-1, -7, 6, 3, -0.5, 0, TAU);
-    ctx.ellipse(-1, 7, 6, 3, 0.5, 0, TAU);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  } else if (orbital.kind === "blade" || orbital.kind === "chakram") {
-    ctx.beginPath();
-    ctx.arc(0, 0, orbital.kind === "chakram" ? 10 : 8, 0, TAU);
-    ctx.arc(0, 0, orbital.kind === "chakram" ? 4 : 2, 0, TAU);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(-11, 0);
-    ctx.lineTo(11, 0);
-    ctx.stroke();
-  } else if (orbital.kind === "wisp") {
-    ctx.beginPath();
-    ctx.arc(0, 0, 7, 0, TAU);
-    ctx.fill();
-    ctx.globalAlpha = 0.5;
-    ctx.beginPath();
-    ctx.arc(0, 0, 13, 0, TAU);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  } else {
-    diamond(ctx, 0, 0, 8);
   }
-
   ctx.restore();
 };
 
@@ -2338,3 +3029,4 @@ const drawFixedJoystick = (
   ctx.fillText(label, stick.x, stick.y + 82);
   ctx.restore();
 };
+

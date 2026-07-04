@@ -1759,6 +1759,7 @@ export const drawGame = (
   controls: {
     move: { activeId: number; x: number; y: number; knobX: number; knobY: number };
     aim: { activeId: number; x: number; y: number; knobX: number; knobY: number };
+    layout?: string;
   }
 ) => {
   const { w, h } = game.screen;
@@ -1854,8 +1855,12 @@ export const drawGame = (
 
   ctx.restore();
 
-  drawFixedJoystick(ctx, controls.move, "Move", "#93c5fd");
-  drawFixedJoystick(ctx, controls.aim, "Shoot", "#fb7185");
+  if (controls.layout !== "keyboard-only") {
+    const moveLabel = controls.layout === "southpaw" ? "Shoot" : "Move";
+    const aimLabel = controls.layout === "southpaw" ? "Move" : "Shoot";
+    drawFixedJoystick(ctx, controls.move, moveLabel, "#93c5fd");
+    drawFixedJoystick(ctx, controls.aim, aimLabel, "#fb7185");
+  }
 };
 
 const shoot = (game: Game, input: InputState) => {

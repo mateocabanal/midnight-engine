@@ -348,7 +348,7 @@ button {
 }
 
 .intro button,
-.choices button {
+.choices > button {
   width: 100%;
   border: 0;
   border-radius: 8px;
@@ -571,6 +571,46 @@ button {
 
 .select-header button {
   min-width: 76px;
+}
+
+.options-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.layout-grid {
+  display: grid;
+  gap: 8px;
+  max-height: none;
+  overflow-y: visible;
+}
+
+.layout-grid button {
+  display: grid;
+  gap: 4px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f8fafc;
+  text-align: left;
+}
+
+.layout-grid button.selected {
+  border-color: rgba(147, 197, 253, 0.48);
+  background: rgba(59, 130, 246, 0.14);
+}
+
+.layout-grid button strong {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.layout-grid button span {
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .select-grid {

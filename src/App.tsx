@@ -30,15 +30,45 @@ const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: 
 
 const makeStick = (x = 0, y = 0) => ({ activeId: -1, x, y, knobX: x, knobY: y });
 
-const makeControls = (width = 0, height = 0) => {
+type ControlLayout = "twin-stick" | "southpaw" | "keyboard-only";
+
+const controlLayoutOptions: { id: ControlLayout; name: string; description: string }[] = [
+  { id: "twin-stick", name: "Twin Stick", description: "Move left, aim right (default). Best for two thumbs." },
+  { id: "southpaw", name: "Southpaw", description: "Move right, aim left. For left-handed players." },
+  { id: "keyboard-only", name: "Keyboard Only", description: "Hides touch controls. Use WASD + IJKL on desktop." }
+];
+
+const makeControls = (width = 0, height = 0, layout: ControlLayout = "twin-stick") => {
   const bottom = Math.max(96, height - 92);
+  if (layout === "southpaw") {
+    return {
+      move: makeStick(Math.max(width - 112, width * 0.82), bottom),
+      aim: makeStick(Math.max(86, Math.min(112, width * 0.18)), bottom),
+      layout
+    };
+  }
   return {
     move: makeStick(Math.max(86, Math.min(112, width * 0.18)), bottom),
-    aim: makeStick(Math.max(width - 112, width * 0.82), bottom)
+    aim: makeStick(Math.max(width - 112, width * 0.82), bottom),
+    layout
   };
 };
 
 type ControlsState = ReturnType<typeof makeControls>;
+
+const CONTROL_LAYOUT_KEY = "midnight-engine-control-layout";
+
+const loadControlLayout = (): ControlLayout => {
+  try {
+    const stored = localStorage.getItem(CONTROL_LAYOUT_KEY);
+    if (stored === "twin-stick" || stored === "southpaw" || stored === "keyboard-only") return stored;
+  } catch { /* ignore */ }
+  return "twin-stick";
+};
+
+const saveControlLayout = (layout: ControlLayout) => {
+  try { localStorage.setItem(CONTROL_LAYOUT_KEY, layout); } catch { /* ignore */ }
+};
 
 const makeInput = (): InputState => ({ moveX: 0, moveY: 0, aimX: 1, aimY: 0, firing: false, active: false });
 
@@ -64,10 +94,11 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameRef = useRef<Game>(createGame(loadout));
   const inputRef = useRef<InputState>(makeInput());
-  const controlsRef = useRef<ControlsState>(makeControls());
+  const controlsRef = useRef<ControlsState>(makeControls(0, 0, loadControlLayout()));
   const keysRef = useRef<Set<string>>(new Set());
   const [paused, setPaused] = useState(true);
-  const [menu, setMenu] = useState<"main" | "character" | "weapon" | "run">("main");
+  const [menu, setMenu] = useState<"main" | "character" | "weapon" | "options" | "run">("main");
+  const [controlLayout, setControlLayout] = useState<ControlLayout>(loadControlLayout());
   const [choices, setChoices] = useState<Choice[]>([]);
   const [stats, setStats] = useState(getHudStats(gameRef.current));
   const [progress, setProgress] = useState(initialProgress);
@@ -230,7 +261,7 @@ export default function App() {
       gameRef.current.screen.w = rect.width;
       gameRef.current.screen.h = rect.height;
       const previous = controlsRef.current;
-      controlsRef.current = makeControls(rect.width, rect.height);
+      controlsRef.current = makeControls(rect.width, rect.height, controlLayout);
       if (previous.move.activeId !== -1) controlsRef.current.move.activeId = previous.move.activeId;
       if (previous.aim.activeId !== -1) controlsRef.current.aim.activeId = previous.aim.activeId;
     };
@@ -283,6 +314,12 @@ export default function App() {
     setStats(getHudStats(gameRef.current));
   };
 
+  const handleControlLayoutChange = (layout: ControlLayout) => {
+    setControlLayout(layout);
+    saveControlLayout(layout);
+    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, layout);
+  };
+
   const skipUpgrade = () => {
     const game = gameRef.current;
     game.player.hp = Math.min(game.player.maxHp, game.player.hp + 12);
@@ -294,7 +331,7 @@ export default function App() {
   const resetInput = () => {
     inputRef.current = makeInput();
     keysRef.current.clear();
-    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h);
+    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, controlLayout);
   };
 
   const startRun = (nextLoadout: LoadoutConfig = loadout) => {
@@ -325,7 +362,9 @@ export default function App() {
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     const controls = controlsRef.current;
-    const stick = point.x < rect.width / 2 ? controls.move : controls.aim;
+    const leftStick = controlLayout === "southpaw" ? controls.aim : controls.move;
+    const rightStick = controlLayout === "southpaw" ? controls.move : controls.aim;
+    const stick = point.x < rect.width / 2 ? leftStick : rightStick;
     if (stick.activeId !== -1) return;
 
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -334,7 +373,8 @@ export default function App() {
     stick.knobX = stick.x + vec.x * 54;
     stick.knobY = stick.y + vec.y * 54;
 
-    if (stick === controls.move) {
+    const isMoveStick = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
+    if (isMoveStick) {
       inputRef.current.moveX = vec.x;
       inputRef.current.moveY = vec.y;
     } else {
@@ -355,7 +395,8 @@ export default function App() {
     stick.knobX = stick.x + vec.x * 54;
     stick.knobY = stick.y + vec.y * 54;
 
-    if (stick === controls.move) {
+    const isMoveStick = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
+    if (isMoveStick) {
       inputRef.current.moveX = vec.x;
       inputRef.current.moveY = vec.y;
     } else {
@@ -373,7 +414,8 @@ export default function App() {
     stick.knobX = stick.x;
     stick.knobY = stick.y;
 
-    if (stick === controls.move) {
+    const isMoveStick = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
+    if (isMoveStick) {
       inputRef.current.moveX = 0;
       inputRef.current.moveY = 0;
     } else {
@@ -490,6 +532,36 @@ export default function App() {
               <button type="button" onClick={() => setMenu("weapon")}>
                 Weapon Select
               </button>
+              <button type="button" onClick={() => setMenu("options")}>
+                Options
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {menu === "options" ? (
+          <div className="modal options-modal" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="select-header">
+              <div>
+                <p className="eyebrow">Options</p>
+                <h2>Control layout</h2>
+              </div>
+              <button type="button" onClick={() => setMenu("main")}>
+                Back
+              </button>
+            </div>
+            <div className="select-grid layout-grid">
+              {controlLayoutOptions.map((layout) => (
+                <button
+                  className={layout.id === controlLayout ? "selected" : ""}
+                  key={layout.id}
+                  type="button"
+                  onClick={() => handleControlLayoutChange(layout.id)}
+                >
+                  <strong>{layout.name}</strong>
+                  <span>{layout.description}</span>
+                </button>
+              ))}
             </div>
           </div>
         ) : null}

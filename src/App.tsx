@@ -23,6 +23,18 @@ const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: 
   return { x: (dx / length) * clamped, y: (dy / length) * clamped };
 };
 
+const makeStick = (x = 0, y = 0) => ({ activeId: -1, x, y, knobX: x, knobY: y });
+
+const makeControls = (width = 0, height = 0) => {
+  const bottom = Math.max(96, height - 92);
+  return {
+    move: makeStick(Math.max(86, Math.min(112, width * 0.18)), bottom),
+    aim: makeStick(Math.max(width - 112, width * 0.82), bottom)
+  };
+};
+
+type ControlsState = ReturnType<typeof makeControls>;
+
 const getHudStats = (game: Game) => {
   const ammo = Math.max(0, game.player.magazine - game.player.shots);
   const isReloading = game.player.reload > 0;
@@ -41,8 +53,8 @@ export default function App() {
   const loadout = { characterId: selectedCharacter, weaponId: selectedWeapon };
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameRef = useRef<Game>(createGame(loadout));
-  const inputRef = useRef<InputState>({ moveX: 0, moveY: 0, dash: false });
-  const joystickRef = useRef({ activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 });
+  const inputRef = useRef<InputState>({ moveX: 0, moveY: 0, aimX: 0, aimY: 0, firing: false });
+  const controlsRef = useRef<ControlsState>(makeControls());
   const [paused, setPaused] = useState(true);
   const [menu, setMenu] = useState<"main" | "character" | "weapon" | "run">("main");
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -131,6 +143,10 @@ export default function App() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       gameRef.current.screen.w = rect.width;
       gameRef.current.screen.h = rect.height;
+      const previous = controlsRef.current;
+      controlsRef.current = makeControls(rect.width, rect.height);
+      if (previous.move.activeId !== -1) controlsRef.current.move.activeId = previous.move.activeId;
+      if (previous.aim.activeId !== -1) controlsRef.current.aim.activeId = previous.aim.activeId;
     };
 
     resize();
@@ -148,7 +164,7 @@ export default function App() {
         }
       }
 
-      drawGame(ctx, game, joystickRef.current);
+      drawGame(ctx, game, controlsRef.current);
       statTimer += dt;
       if (statTimer > 0.08) {
         setStats(getHudStats(game));
@@ -170,10 +186,16 @@ export default function App() {
     setChoices([]);
   };
 
+  const resetInput = () => {
+    inputRef.current = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, firing: false };
+    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h);
+  };
+
   const startRun = (nextLoadout: LoadoutConfig = loadout) => {
+    const screen = gameRef.current.screen;
     gameRef.current = createGame(nextLoadout);
-    inputRef.current = { moveX: 0, moveY: 0, dash: false };
-    joystickRef.current = { activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 };
+    gameRef.current.screen = screen;
+    resetInput();
     setChoices([]);
     setMenu("run");
     setPaused(false);
@@ -181,9 +203,10 @@ export default function App() {
   };
 
   const backToMenu = () => {
+    const screen = gameRef.current.screen;
     gameRef.current = createGame(loadout);
-    inputRef.current = { moveX: 0, moveY: 0, dash: false };
-    joystickRef.current = { activeId: -1, x: 0, y: 0, knobX: 0, knobY: 0 };
+    gameRef.current.screen = screen;
+    resetInput();
     setChoices([]);
     setPaused(true);
     setMenu("main");
@@ -191,32 +214,66 @@ export default function App() {
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (menu !== "run" || paused || choices.length || stats.gameOver) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    if (point.x > rect.width * 0.55 || point.y < rect.height * 0.45) return;
+    const controls = controlsRef.current;
+    const stick = point.x < rect.width / 2 ? controls.move : controls.aim;
+    if (stick.activeId !== -1) return;
 
     event.currentTarget.setPointerCapture(event.pointerId);
-    joystickRef.current = { activeId: event.pointerId, x: point.x, y: point.y, knobX: point.x, knobY: point.y };
+    stick.activeId = event.pointerId;
+    const vec = pointerVector(stick, point);
+    stick.knobX = stick.x + vec.x * 54;
+    stick.knobY = stick.y + vec.y * 54;
+
+    if (stick === controls.move) {
+      inputRef.current.moveX = vec.x;
+      inputRef.current.moveY = vec.y;
+    } else {
+      inputRef.current.aimX = vec.x;
+      inputRef.current.aimY = vec.y;
+      inputRef.current.firing = Math.hypot(vec.x, vec.y) > 0.12;
+    }
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const stick = joystickRef.current;
-    if (stick.activeId !== event.pointerId) return;
+    const controls = controlsRef.current;
+    const stick = controls.move.activeId === event.pointerId ? controls.move : controls.aim.activeId === event.pointerId ? controls.aim : undefined;
+    if (!stick) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     const vec = pointerVector(stick, point);
-    inputRef.current.moveX = vec.x;
-    inputRef.current.moveY = vec.y;
     stick.knobX = stick.x + vec.x * 54;
     stick.knobY = stick.y + vec.y * 54;
+
+    if (stick === controls.move) {
+      inputRef.current.moveX = vec.x;
+      inputRef.current.moveY = vec.y;
+    } else {
+      inputRef.current.aimX = vec.x;
+      inputRef.current.aimY = vec.y;
+      inputRef.current.firing = Math.hypot(vec.x, vec.y) > 0.12;
+    }
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (joystickRef.current.activeId !== event.pointerId) return;
-    joystickRef.current.activeId = -1;
-    inputRef.current.moveX = 0;
-    inputRef.current.moveY = 0;
+    const controls = controlsRef.current;
+    const stick = controls.move.activeId === event.pointerId ? controls.move : controls.aim.activeId === event.pointerId ? controls.aim : undefined;
+    if (!stick) return;
+    stick.activeId = -1;
+    stick.knobX = stick.x;
+    stick.knobY = stick.y;
+
+    if (stick === controls.move) {
+      inputRef.current.moveX = 0;
+      inputRef.current.moveY = 0;
+    } else {
+      inputRef.current.aimX = 0;
+      inputRef.current.aimY = 0;
+      inputRef.current.firing = false;
+    }
   };
 
   return (
@@ -252,19 +309,6 @@ export default function App() {
             <strong>{stats.ammo}</strong>
           </div>
         </header>
-        ) : null}
-
-        {menu === "run" && !stats.gameOver ? (
-        <button
-          className="dash-button"
-          type="button"
-          onPointerDown={(event) => {
-            event.preventDefault();
-            inputRef.current.dash = true;
-          }}
-        >
-          Dash
-        </button>
         ) : null}
 
         {menu === "main" && !stats.gameOver ? (
@@ -388,6 +432,13 @@ export default function App() {
             </div>
           </div>
         ) : null}
+
+        <div className="rotate-lock" aria-hidden="true">
+          <div>
+            <strong>Rotate to landscape</strong>
+            <span>Midnight Engine uses twin-stick controls.</span>
+          </div>
+        </div>
       </section>
     </main>
   );

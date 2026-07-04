@@ -171,29 +171,6 @@ button {
   }
 }
 
-.dash-button {
-  position: absolute;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(26px, env(safe-area-inset-bottom));
-  width: 88px;
-  height: 88px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.2), transparent 36px),
-    rgba(14, 18, 38, 0.76);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(14px);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.dash-button:active {
-  transform: scale(0.96);
-  background-color: rgba(30, 41, 59, 0.92);
-}
-
 .modal {
   position: absolute;
   left: 16px;
@@ -207,6 +184,43 @@ button {
   background: rgba(7, 10, 24, 0.88);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(18px);
+}
+
+.rotate-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  place-items: center;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(251, 113, 133, 0.18), transparent 18rem),
+    rgba(7, 10, 24, 0.96);
+  text-align: center;
+}
+
+.rotate-lock div {
+  display: grid;
+  gap: 8px;
+  max-width: 280px;
+}
+
+.rotate-lock strong {
+  color: #f8fafc;
+  font-size: 28px;
+  line-height: 0.95;
+}
+
+.rotate-lock span {
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-lock {
+    display: grid;
+  }
 }
 
 .intro h1,
@@ -522,13 +536,6 @@ button {
   .level-line span,
   .level-line em {
     font-size: 9px;
-  }
-
-  .dash-button {
-    width: 76px;
-    height: 76px;
-    right: max(20px, env(safe-area-inset-right));
-    bottom: max(18px, env(safe-area-inset-bottom));
   }
 
   .select-modal {

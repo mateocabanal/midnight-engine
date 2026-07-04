@@ -1,7 +1,9 @@
 export type InputState = {
   moveX: number;
   moveY: number;
-  dash: boolean;
+  aimX: number;
+  aimY: number;
+  firing: boolean;
 };
 
 type Vec = { x: number; y: number };
@@ -1072,26 +1074,13 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
     player.y += (input.moveY / moveLen) * player.speed * dt;
   }
 
-  if (input.dash && player.dashCooldown <= 0) {
-    const dashX = moving ? input.moveX / moveLen : 1;
-    const dashY = moving ? input.moveY / moveLen : 0;
-    player.x += dashX * (has(game, "phase_boots") ? 108 : 88);
-    player.y += dashY * (has(game, "phase_boots") ? 108 : 88);
-    player.dashCooldown = has(game, "phase_boots") ? 1.12 : 1.4;
-    player.invuln = has(game, "phase_boots") ? 0.34 : 0.24;
-    burst(game, player.x, player.y, "#72f5ff", 10);
-    if (has(game, "static_touch")) chainLightning(game, player.x, player.y, 88 + count(game, "static_touch") * 24, 8 * player.lightningDamage);
-    if (has(game, "afterimage")) explode(game, player.x - dashX * 44, player.y - dashY * 44, 64, 12, "#c084fc");
-  }
-  input.dash = false;
-
   if (game.spawnTimer <= 0) {
     const amount = 1 + Math.floor(game.time / 28);
     for (let i = 0; i < amount; i += 1) spawnEnemy(game);
     game.spawnTimer = Math.max(0.22, 0.92 - game.time * 0.006);
   }
 
-  if (player.reload <= 0 && player.cooldown <= 0) shoot(game);
+  if (input.firing && player.reload <= 0 && player.cooldown <= 0) shoot(game, input);
   updateBullets(game, dt);
   updateEnemies(game, dt);
   updateGems(game, dt);
@@ -1114,7 +1103,10 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
 export const drawGame = (
   ctx: CanvasRenderingContext2D,
   game: Game,
-  joystick: { activeId: number; x: number; y: number; knobX: number; knobY: number }
+  controls: {
+    move: { activeId: number; x: number; y: number; knobX: number; knobY: number };
+    aim: { activeId: number; x: number; y: number; knobX: number; knobY: number };
+  }
 ) => {
   const { w, h } = game.screen;
   const camera = {
@@ -1213,19 +1205,11 @@ export const drawGame = (
 
   ctx.restore();
 
-  if (joystick.activeId !== -1) {
-    ctx.beginPath();
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    ctx.arc(joystick.x, joystick.y, 62, 0, TAU);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.fillStyle = "rgba(255,255,255,0.28)";
-    ctx.arc(joystick.knobX, joystick.knobY, 24, 0, TAU);
-    ctx.fill();
-  }
+  drawFixedJoystick(ctx, controls.move, "Move", "#93c5fd");
+  drawFixedJoystick(ctx, controls.aim, "Shoot", "#fb7185");
 };
 
-const shoot = (game: Game) => {
+const shoot = (game: Game, input: InputState) => {
   const player = game.player;
   if (player.reload > 0) return;
 
@@ -1238,8 +1222,8 @@ const shoot = (game: Game) => {
     return;
   }
 
-  const target = nearestEnemy(game, player.x, player.y);
-  const angle = target ? Math.atan2(target.y - player.y, target.x - player.x) : -Math.PI / 2;
+  const aimLen = len(input.aimX, input.aimY);
+  const angle = Math.atan2(input.aimY / aimLen, input.aimX / aimLen);
   const lowAmmo = player.shots / Math.max(1, player.magazine) > 0.8;
   const freshClip = has(game, "fresh_clip") && player.shots === 0;
   const baseDamage =
@@ -2321,5 +2305,36 @@ const drawReloadBar = (ctx: CanvasRenderingContext2D, x: number, y: number, prog
     ctx.roundRect(left, y, fillWidth, height, Math.min(height / 2, fillWidth / 2));
     ctx.fill();
   }
+  ctx.restore();
+};
+
+const drawFixedJoystick = (
+  ctx: CanvasRenderingContext2D,
+  stick: { activeId: number; x: number; y: number; knobX: number; knobY: number },
+  label: string,
+  color: string
+) => {
+  ctx.save();
+  ctx.globalAlpha = stick.activeId === -1 ? 0.5 : 0.86;
+  ctx.fillStyle = "rgba(7, 10, 24, 0.52)";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(stick.x, stick.y, 62, 0, TAU);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.globalAlpha = stick.activeId === -1 ? 0.42 : 0.95;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(stick.knobX, stick.knobY, 24, 0, TAU);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.78;
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "800 10px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, stick.x, stick.y + 82);
   ctx.restore();
 };

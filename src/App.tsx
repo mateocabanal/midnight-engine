@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  banishUpgrade,
   characterOptions,
   createGame,
   drawGame,
   getUpgradeChoices,
+  loadProgress,
+  recordRunSummary,
+  rerollUpgradeChoices,
+  saveSelectedLoadout,
   stepGame,
   weaponOptions,
   type CharacterId,
@@ -35,6 +40,10 @@ const makeControls = (width = 0, height = 0) => {
 
 type ControlsState = ReturnType<typeof makeControls>;
 
+const makeInput = (): InputState => ({ moveX: 0, moveY: 0, aimX: 1, aimY: 0, firing: false, active: false });
+
+const initialProgress = loadProgress();
+
 const getHudStats = (game: Game) => {
   const ammo = Math.max(0, game.player.magazine - game.player.shots);
   const isReloading = game.player.reload > 0;
@@ -43,25 +52,41 @@ const getHudStats = (game: Game) => {
     ...game.ui,
     ammo: isReloading ? "Reloading" : `${ammo} / ${game.player.magazine}`,
     isReloading,
-    levelProgress: `${Math.floor(game.xp)} / ${game.nextXp}`
+    levelProgress: `${Math.floor(game.xp)} / ${game.nextXp}`,
+    summary: game.summary
   };
 };
 
 export default function App() {
-  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>("saint");
-  const [selectedWeapon, setSelectedWeapon] = useState<WeaponId>("revolver");
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>(initialProgress.selectedLoadout.characterId);
+  const [selectedWeapon, setSelectedWeapon] = useState<WeaponId>(initialProgress.selectedLoadout.weaponId);
   const loadout = { characterId: selectedCharacter, weaponId: selectedWeapon };
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameRef = useRef<Game>(createGame(loadout));
-  const inputRef = useRef<InputState>({ moveX: 0, moveY: 0, aimX: 0, aimY: 0, firing: false });
+  const inputRef = useRef<InputState>(makeInput());
   const controlsRef = useRef<ControlsState>(makeControls());
+  const keysRef = useRef<Set<string>>(new Set());
   const [paused, setPaused] = useState(true);
   const [menu, setMenu] = useState<"main" | "character" | "weapon" | "run">("main");
   const [choices, setChoices] = useState<Choice[]>([]);
   const [stats, setStats] = useState(getHudStats(gameRef.current));
+  const [progress, setProgress] = useState(initialProgress);
+  const savedSummaryKeyRef = useRef("");
 
   const selectedCharacterOption = characterOptions.find((character) => character.id === selectedCharacter) || characterOptions[0];
   const selectedWeaponOption = weaponOptions.find((weapon) => weapon.id === selectedWeapon) || weaponOptions[0];
+
+  useEffect(() => {
+    saveSelectedLoadout(loadout);
+  }, [loadout.characterId, loadout.weaponId]);
+
+  useEffect(() => {
+    if (!stats.gameOver || stats.summary.result === "playing") return;
+    const summaryKey = `${stats.summary.result}:${stats.summary.time}:${stats.summary.kills}:${stats.summary.level}`;
+    if (savedSummaryKeyRef.current === summaryKey) return;
+    savedSummaryKeyRef.current = summaryKey;
+    setProgress(recordRunSummary(stats.summary));
+  }, [stats.gameOver, stats.summary]);
 
   useEffect(() => {
     const registerServiceWorker = async () => {
@@ -125,6 +150,67 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const gameplayEnabled = menu === "run" && !paused && !choices.length && !stats.gameOver;
+
+    const updateFromKeys = () => {
+      const keys = keysRef.current;
+      const moveX = (keys.has("d") || keys.has("arrowright") ? 1 : 0) - (keys.has("a") || keys.has("arrowleft") ? 1 : 0);
+      const moveY = (keys.has("s") || keys.has("arrowdown") ? 1 : 0) - (keys.has("w") || keys.has("arrowup") ? 1 : 0);
+      const aimX = (keys.has("l") ? 1 : 0) - (keys.has("j") ? 1 : 0);
+      const aimY = (keys.has("k") ? 1 : 0) - (keys.has("i") ? 1 : 0);
+      const aiming = Math.abs(aimX) + Math.abs(aimY) > 0;
+
+      inputRef.current.moveX = moveX;
+      inputRef.current.moveY = moveY;
+      if (aiming) {
+        inputRef.current.aimX = aimX;
+        inputRef.current.aimY = aimY;
+      } else if (moveX || moveY) {
+        inputRef.current.aimX = moveX;
+        inputRef.current.aimY = moveY;
+      }
+      inputRef.current.firing = aiming || keys.has(" ") || keys.has("enter");
+      inputRef.current.active = keys.has("e") || keys.has("shift");
+    };
+
+    const isGameplayKey = (key: string) =>
+      ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "i", "j", "k", "l", " ", "enter", "e", "shift"].includes(key);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!gameplayEnabled) return;
+      const key = event.key.toLowerCase();
+      if (!isGameplayKey(key)) return;
+      event.preventDefault();
+      keysRef.current.add(key);
+      updateFromKeys();
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if (!isGameplayKey(key)) return;
+      event.preventDefault();
+      keysRef.current.delete(key);
+      updateFromKeys();
+    };
+
+    const clearKeys = () => {
+      keysRef.current.clear();
+      inputRef.current = makeInput();
+    };
+
+    if (!gameplayEnabled) clearKeys();
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", clearKeys);
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", clearKeys);
+    };
+  }, [choices.length, menu, paused, stats.gameOver]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -184,10 +270,30 @@ export default function App() {
   const chooseUpgrade = (choice: Choice) => {
     choice.apply(gameRef.current);
     setChoices([]);
+    setStats(getHudStats(gameRef.current));
+  };
+
+  const rerollChoices = () => {
+    setChoices(rerollUpgradeChoices(gameRef.current));
+    setStats(getHudStats(gameRef.current));
+  };
+
+  const banishChoice = (choice: Choice) => {
+    setChoices(banishUpgrade(gameRef.current, choice.id));
+    setStats(getHudStats(gameRef.current));
+  };
+
+  const skipUpgrade = () => {
+    const game = gameRef.current;
+    game.player.hp = Math.min(game.player.maxHp, game.player.hp + 12);
+    game.player.shield = Math.min(75, game.player.shield + 4);
+    setChoices([]);
+    setStats(getHudStats(game));
   };
 
   const resetInput = () => {
-    inputRef.current = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, firing: false };
+    inputRef.current = makeInput();
+    keysRef.current.clear();
     controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h);
   };
 
@@ -195,6 +301,7 @@ export default function App() {
     const screen = gameRef.current.screen;
     gameRef.current = createGame(nextLoadout);
     gameRef.current.screen = screen;
+    savedSummaryKeyRef.current = "";
     resetInput();
     setChoices([]);
     setMenu("run");
@@ -288,27 +395,68 @@ export default function App() {
         <canvas ref={canvasRef} className="game-canvas" aria-label="Midnight Engine game canvas" />
 
         {menu === "run" ? (
-        <header className="hud" aria-label="Run status">
-          <div className="hud-stat timer-stat">
-            <span>Timer</span>
-            <strong>{stats.time}</strong>
-          </div>
-
-          <div className="level-stat">
-            <div className="level-line">
-              <span>Level {stats.level}</span>
-              <em>Experience {stats.levelProgress}</em>
+          <header className="hud" aria-label="Run status">
+            <div className="hud-stat timer-stat">
+              <span>Timer</span>
+              <strong>{stats.time}</strong>
             </div>
-            <div className="bar xp" aria-label={`Level ${stats.level} experience ${stats.levelProgress}`}>
-              <span style={{ width: `${stats.xpPct}%` }} />
-            </div>
-          </div>
 
-          <div className={`hud-stat ammo-stat${stats.isReloading ? " is-reloading" : ""}`}>
-            <span>Ammo</span>
-            <strong>{stats.ammo}</strong>
-          </div>
-        </header>
+            <div className="level-stat">
+              <div className="level-line">
+                <span>Level {stats.level}</span>
+                <em>Experience {stats.levelProgress}</em>
+              </div>
+              <div className="bar xp" aria-label={`Level ${stats.level} experience ${stats.levelProgress}`}>
+                <span style={{ width: `${stats.xpPct}%` }} />
+              </div>
+            </div>
+
+            <div className="level-stat objective-stat">
+              <div className="level-line">
+                <span>{stats.objective}</span>
+                <em>{stats.directorPhase} · T{stats.threat}</em>
+              </div>
+              <div className="bar objective" aria-label={`${stats.objective} ${Math.round(stats.objectivePct)} percent`}>
+                <span style={{ width: `${stats.objectivePct}%` }} />
+              </div>
+            </div>
+
+            <div className={`hud-stat active-stat${stats.activeReady ? " is-ready" : ""}`}>
+              <span>Active</span>
+              <strong>{stats.activeReady ? "Ready" : `${Math.round(stats.activePct)}%`}</strong>
+            </div>
+
+            <div className={`hud-stat ammo-stat${stats.isReloading ? " is-reloading" : ""}`}>
+              <span>Ammo</span>
+              <strong>{stats.ammo}</strong>
+            </div>
+          </header>
+        ) : null}
+
+        {menu === "run" && !stats.gameOver ? (
+          <button
+            type="button"
+            className={`active-button${stats.activeReady ? " is-ready" : ""}`}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              inputRef.current.active = true;
+            }}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              inputRef.current.active = false;
+            }}
+            onPointerCancel={(event) => {
+              event.stopPropagation();
+              inputRef.current.active = false;
+            }}
+            onPointerLeave={() => {
+              inputRef.current.active = false;
+            }}
+          >
+            <i style={{ width: `${stats.activePct}%` }} />
+            <span>{stats.activeReady ? "Tap / E" : "Charging"}</span>
+            <strong>Active</strong>
+          </button>
         ) : null}
 
         {menu === "main" && !stats.gameOver ? (
@@ -326,6 +474,11 @@ export default function App() {
                 <strong>{selectedWeaponOption.name}</strong>
                 <em>{selectedWeaponOption.tagline}</em>
               </div>
+            </div>
+            <div className="progress-summary" aria-label="Local progress summary">
+              <span>Best {progress.bestTime}</span>
+              <span>{progress.bestKills} kills</span>
+              <span>{progress.victories} clears</span>
             </div>
             <div className="menu-actions">
               <button type="button" onClick={() => startRun()}>
@@ -403,25 +556,51 @@ export default function App() {
 
         {choices.length ? (
           <div className="modal choice-modal" onPointerDown={(event) => event.stopPropagation()}>
-            <p className="eyebrow">Choose a mutation</p>
-            <h2>Level up</h2>
+            <div className="choice-header">
+              <div>
+                <p className="eyebrow">Choose a mutation</p>
+                <h2>Level up</h2>
+              </div>
+              <div className="draft-actions" aria-label="Draft controls">
+                <button type="button" onClick={rerollChoices} disabled={stats.rerolls <= 0}>
+                  Reroll {stats.rerolls}
+                </button>
+                <button type="button" onClick={skipUpgrade}>
+                  Skip + Heal
+                </button>
+              </div>
+            </div>
             <div className="choices">
               {choices.map((choice) => (
-                <button key={choice.id} type="button" onClick={() => chooseUpgrade(choice)}>
-                  <strong>{choice.name}</strong>
-                  <span>{choice.description}</span>
-                  {choice.fusion ? <em>Fusion online</em> : null}
-                </button>
+                <article key={choice.id} className={`choice-card rarity-${choice.rarity || "common"}`}>
+                  <button className="choice-pick" type="button" onClick={() => chooseUpgrade(choice)}>
+                    <span className="choice-meta">
+                      <i>{choice.rarity || "common"}</i>
+                      <i>{choice.category || "mutation"}</i>
+                    </span>
+                    <strong>{choice.name}</strong>
+                    <span>{choice.description}</span>
+                    {choice.fusion ? <em>Fusion online</em> : choice.law ? <em>Law mutation</em> : null}
+                  </button>
+                  <button className="banish-button" type="button" onClick={() => banishChoice(choice)} disabled={stats.banishes <= 0}>
+                    Banish {stats.banishes}
+                  </button>
+                </article>
               ))}
             </div>
           </div>
         ) : null}
 
         {stats.gameOver ? (
-          <div className="modal intro" onPointerDown={(event) => event.stopPropagation()}>
-            <p className="eyebrow">Engine collapsed</p>
-            <h1>{stats.time} survived</h1>
-            <p>The best broken builds always start a little cursed.</p>
+          <div className="modal intro summary-modal" onPointerDown={(event) => event.stopPropagation()}>
+            <p className="eyebrow">{stats.summary.result === "victory" ? "Midnight Broken" : "Engine collapsed"}</p>
+            <h1>{stats.summary.time}</h1>
+            <p>{stats.summary.result === "victory" ? "The Cathedral Bell cracked. The engine lives to run again." : "The best broken builds always start a little cursed."}</p>
+            <div className="run-summary-grid">
+              <div><span>Kills</span><strong>{stats.summary.kills}</strong></div>
+              <div><span>Level</span><strong>{stats.summary.level}</strong></div>
+              <div><span>Upgrades</span><strong>{stats.summary.upgrades}</strong></div>
+            </div>
             <div className="menu-actions">
               <button type="button" onClick={() => startRun()}>
                 Run It Back

@@ -38,23 +38,70 @@ const controlLayoutOptions: { id: ControlLayout; name: string; description: stri
   { id: "keyboard-only", name: "Keyboard Only", description: "Hides touch controls. Use WASD + IJKL on desktop." }
 ];
 
-const makeControls = (width = 0, height = 0, layout: ControlLayout = "twin-stick") => {
+const defaultStickPositions = (width: number, height: number, layout: ControlLayout) => {
   const bottom = Math.max(96, height - 92);
   if (layout === "southpaw") {
     return {
-      move: makeStick(Math.max(width - 112, width * 0.82), bottom),
-      aim: makeStick(Math.max(86, Math.min(112, width * 0.18)), bottom),
-      layout
+      moveX: Math.max(width - 112, width * 0.82),
+      moveY: bottom,
+      aimX: Math.max(86, Math.min(112, width * 0.18)),
+      aimY: bottom
     };
   }
   return {
-    move: makeStick(Math.max(86, Math.min(112, width * 0.18)), bottom),
-    aim: makeStick(Math.max(width - 112, width * 0.82), bottom),
+    moveX: Math.max(86, Math.min(112, width * 0.18)),
+    moveY: bottom,
+    aimX: Math.max(width - 112, width * 0.82),
+    aimY: bottom
+  };
+};
+
+const DEFAULT_ACTIVE_BUTTON_X = -1; // right anchor
+const DEFAULT_ACTIVE_BUTTON_Y = -1; // bottom anchor
+
+const makeControls = (width = 0, height = 0, layout: ControlLayout = "twin-stick", positions: CustomPositions = null) => {
+  const defaults = defaultStickPositions(width, height, layout);
+  const moveX = positions?.moveX ?? defaults.moveX;
+  const moveY = positions?.moveY ?? defaults.moveY;
+  const aimX = positions?.aimX ?? defaults.aimX;
+  const aimY = positions?.aimY ?? defaults.aimY;
+  return {
+    move: makeStick(moveX, moveY),
+    aim: makeStick(aimX, aimY),
     layout
   };
 };
 
 type ControlsState = ReturnType<typeof makeControls>;
+
+type CustomPositions = {
+  moveX: number; moveY: number;
+  aimX: number; aimY: number;
+  activeX: number; activeY: number;
+} | null;
+
+const POSITIONS_KEY = "midnight-engine-custom-positions";
+
+const loadCustomPositions = (): CustomPositions => {
+  try {
+    const stored = localStorage.getItem(POSITIONS_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (typeof parsed?.moveX === "number" && typeof parsed?.moveY === "number" &&
+        typeof parsed?.aimX === "number" && typeof parsed?.aimY === "number" &&
+        typeof parsed?.activeX === "number" && typeof parsed?.activeY === "number") {
+      return parsed as CustomPositions;
+    }
+  } catch { /* ignore */ }
+  return null;
+};
+
+const saveCustomPositions = (positions: CustomPositions) => {
+  try {
+    if (positions) localStorage.setItem(POSITIONS_KEY, JSON.stringify(positions));
+    else localStorage.removeItem(POSITIONS_KEY);
+  } catch { /* ignore */ }
+};
 
 const CONTROL_LAYOUT_KEY = "midnight-engine-control-layout";
 
@@ -94,7 +141,7 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameRef = useRef<Game>(createGame(loadout));
   const inputRef = useRef<InputState>(makeInput());
-  const controlsRef = useRef<ControlsState>(makeControls(0, 0, loadControlLayout()));
+  const controlsRef = useRef<ControlsState>(makeControls(0, 0, loadControlLayout(), loadCustomPositions()));
   const keysRef = useRef<Set<string>>(new Set());
   const [paused, setPaused] = useState(true);
   const [menu, setMenu] = useState<"main" | "character" | "weapon" | "options" | "run">("main");
@@ -103,6 +150,17 @@ export default function App() {
   const [stats, setStats] = useState(getHudStats(gameRef.current));
   const [progress, setProgress] = useState(initialProgress);
   const savedSummaryKeyRef = useRef("");
+  const [customPositions, setCustomPositions] = useState<CustomPositions>(loadCustomPositions());
+  const activeButtonPosRef = useRef({ x: DEFAULT_ACTIVE_BUTTON_X, y: DEFAULT_ACTIVE_BUTTON_Y });
+  useEffect(() => {
+    if (customPositions) {
+      activeButtonPosRef.current = { x: customPositions.activeX, y: customPositions.activeY };
+    }
+  }, []);
+  const dragTargetRef = useRef<"move" | "aim" | "active" | null>(null);
+  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const isRepositioningRef = useRef(false);
 
   const selectedCharacterOption = characterOptions.find((character) => character.id === selectedCharacter) || characterOptions[0];
   const selectedWeaponOption = weaponOptions.find((weapon) => weapon.id === selectedWeapon) || weaponOptions[0];
@@ -261,7 +319,7 @@ export default function App() {
       gameRef.current.screen.w = rect.width;
       gameRef.current.screen.h = rect.height;
       const previous = controlsRef.current;
-      controlsRef.current = makeControls(rect.width, rect.height, controlLayout);
+      controlsRef.current = makeControls(rect.width, rect.height, controlLayout, customPositions);
       if (previous.move.activeId !== -1) controlsRef.current.move.activeId = previous.move.activeId;
       if (previous.aim.activeId !== -1) controlsRef.current.aim.activeId = previous.aim.activeId;
     };
@@ -317,7 +375,14 @@ export default function App() {
   const handleControlLayoutChange = (layout: ControlLayout) => {
     setControlLayout(layout);
     saveControlLayout(layout);
-    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, layout);
+    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, layout, customPositions);
+  };
+
+  const resetControlPositions = () => {
+    setCustomPositions(null);
+    saveCustomPositions(null);
+    activeButtonPosRef.current = { x: DEFAULT_ACTIVE_BUTTON_X, y: DEFAULT_ACTIVE_BUTTON_Y };
+    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, controlLayout, null);
   };
 
   const skipUpgrade = () => {
@@ -331,7 +396,7 @@ export default function App() {
   const resetInput = () => {
     inputRef.current = makeInput();
     keysRef.current.clear();
-    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, controlLayout);
+    controlsRef.current = makeControls(gameRef.current.screen.w, gameRef.current.screen.h, controlLayout, customPositions);
   };
 
   const startRun = (nextLoadout: LoadoutConfig = loadout) => {
@@ -357,6 +422,11 @@ export default function App() {
     setStats(getHudStats(gameRef.current));
   };
 
+  const stickHitRadius = 48;
+
+  const hitStick = (point: { x: number; y: number }, stick: { x: number; y: number }) =>
+    Math.hypot(point.x - stick.x, point.y - stick.y) < stickHitRadius;
+
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (menu !== "run" || paused || choices.length || stats.gameOver) return;
     const rect = event.currentTarget.getBoundingClientRect();
@@ -364,6 +434,23 @@ export default function App() {
     const controls = controlsRef.current;
     const leftStick = controlLayout === "southpaw" ? controls.aim : controls.move;
     const rightStick = controlLayout === "southpaw" ? controls.move : controls.aim;
+
+    // Check for repositioning (long-press on stick center or ring area)
+    const hitMove = hitStick(point, controls.move);
+    const hitAim = hitStick(point, controls.aim);
+    if ((hitMove || hitAim) && controlLayout !== "keyboard-only") {
+      const target: "move" | "aim" = hitMove ? "move" : "aim";
+      dragStartRef.current = { x: point.x, y: point.y };
+      dragTimerRef.current = setTimeout(() => {
+        const stick = target === "move" ? controls.move : controls.aim;
+        stick.activeId = event.pointerId;
+        dragTargetRef.current = target;
+        isRepositioningRef.current = true;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }, 500);
+      return;
+    }
+
     const stick = point.x < rect.width / 2 ? leftStick : rightStick;
     if (stick.activeId !== -1) return;
 
@@ -373,8 +460,8 @@ export default function App() {
     stick.knobX = stick.x + vec.x * 54;
     stick.knobY = stick.y + vec.y * 54;
 
-    const isMoveStick = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
-    if (isMoveStick) {
+    const isMoveStick2 = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
+    if (isMoveStick2) {
       inputRef.current.moveX = vec.x;
       inputRef.current.moveY = vec.y;
     } else {
@@ -386,17 +473,41 @@ export default function App() {
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const controls = controlsRef.current;
+
+    // Cancel long-press timer if moved
+    if (dragTimerRef.current) {
+      const rect2 = event.currentTarget.getBoundingClientRect();
+      const point2 = { x: event.clientX - rect2.left, y: event.clientY - rect2.top };
+      if (Math.hypot(point2.x - dragStartRef.current.x, point2.y - dragStartRef.current.y) > 8) {
+        clearTimeout(dragTimerRef.current);
+        dragTimerRef.current = null;
+      }
+    }
+
+    // Repositioning mode
+    if (isRepositioningRef.current && dragTargetRef.current) {
+      const rect3 = event.currentTarget.getBoundingClientRect();
+      const point3 = { x: event.clientX - rect3.left, y: event.clientY - rect3.top };
+      const target = dragTargetRef.current;
+      const stick = target === "move" ? controls.move : controls.aim;
+      stick.x = point3.x;
+      stick.y = point3.y;
+      stick.knobX = point3.x;
+      stick.knobY = point3.y;
+      return;
+    }
+
     const stick = controls.move.activeId === event.pointerId ? controls.move : controls.aim.activeId === event.pointerId ? controls.aim : undefined;
     if (!stick) return;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-    const vec = pointerVector(stick, point);
+    const rect4 = event.currentTarget.getBoundingClientRect();
+    const point4 = { x: event.clientX - rect4.left, y: event.clientY - rect4.top };
+    const vec = pointerVector(stick, point4);
     stick.knobX = stick.x + vec.x * 54;
     stick.knobY = stick.y + vec.y * 54;
 
-    const isMoveStick = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
-    if (isMoveStick) {
+    const isMoveStick2 = stick === (controlLayout === "southpaw" ? controls.aim : controls.move);
+    if (isMoveStick2) {
       inputRef.current.moveX = vec.x;
       inputRef.current.moveY = vec.y;
     } else {
@@ -408,6 +519,35 @@ export default function App() {
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     const controls = controlsRef.current;
+
+    // Clear any pending long-press timer
+    if (dragTimerRef.current) {
+      clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = null;
+    }
+
+    // End repositioning and save
+    if (isRepositioningRef.current && dragTargetRef.current) {
+      const stick = dragTargetRef.current === "move" ? controls.move : controls.aim;
+      stick.activeId = -1;
+      const target = dragTargetRef.current;
+      isRepositioningRef.current = false;
+      dragTargetRef.current = null;
+
+      const next: NonNullable<CustomPositions> = {
+        moveX: controls.move.x,
+        moveY: controls.move.y,
+        aimX: controls.aim.x,
+        aimY: controls.aim.y,
+        activeX: activeButtonPosRef.current.x,
+        activeY: activeButtonPosRef.current.y
+      };
+      setCustomPositions(next);
+      saveCustomPositions(next);
+      return;
+    }
+
+    dragTargetRef.current = null;
     const stick = controls.move.activeId === event.pointerId ? controls.move : controls.aim.activeId === event.pointerId ? controls.aim : undefined;
     if (!stick) return;
     stick.activeId = -1;
@@ -479,19 +619,82 @@ export default function App() {
           <button
             type="button"
             className={`active-button${stats.activeReady ? " is-ready" : ""}`}
+            style={customPositions && customPositions.activeX >= 0 ? {
+              right: "auto",
+              bottom: "auto",
+              left: customPositions.activeX - 41,
+              top: customPositions.activeY - 41
+            } : undefined}
             onPointerDown={(event) => {
               event.stopPropagation();
+              const point = { x: event.clientX, y: event.clientY };
+              dragStartRef.current = { x: point.x - activeButtonPosRef.current.x, y: point.y - activeButtonPosRef.current.y };
+              dragTimerRef.current = setTimeout(() => {
+                dragTargetRef.current = "active";
+                event.currentTarget.setPointerCapture(event.pointerId);
+                event.currentTarget.classList.add("is-dragging");
+              }, 500);
               inputRef.current.active = true;
+            }}
+            onPointerMove={(event) => {
+              if (dragTargetRef.current !== "active") {
+                if (dragTimerRef.current) {
+                  if (Math.abs(event.movementX) + Math.abs(event.movementY) > 6) {
+                    clearTimeout(dragTimerRef.current);
+                    dragTimerRef.current = null;
+                  }
+                }
+                return;
+              }
+              event.stopPropagation();
+              const x = event.clientX - dragStartRef.current.x;
+              const y = event.clientY - dragStartRef.current.y;
+              activeButtonPosRef.current = { x, y };
+              const rect = (event.currentTarget as HTMLElement).parentElement!.getBoundingClientRect();
+              const next: NonNullable<CustomPositions> = {
+                moveX: controlsRef.current.move.x,
+                moveY: controlsRef.current.move.y,
+                aimX: controlsRef.current.aim.x,
+                aimY: controlsRef.current.aim.y,
+                activeX: x,
+                activeY: y
+              };
+              setCustomPositions(next);
+              saveCustomPositions(next);
             }}
             onPointerUp={(event) => {
               event.stopPropagation();
+              if (dragTargetRef.current === "active") {
+                dragTargetRef.current = null;
+                event.currentTarget.releasePointerCapture(event.pointerId);
+                event.currentTarget.classList.remove("is-dragging");
+                return;
+              }
+              if (dragTimerRef.current) {
+                clearTimeout(dragTimerRef.current);
+                dragTimerRef.current = null;
+              }
               inputRef.current.active = false;
             }}
             onPointerCancel={(event) => {
               event.stopPropagation();
+              if (dragTargetRef.current === "active") {
+                dragTargetRef.current = null;
+                event.currentTarget.releasePointerCapture(event.pointerId);
+                event.currentTarget.classList.remove("is-dragging");
+              }
+              if (dragTimerRef.current) {
+                clearTimeout(dragTimerRef.current);
+                dragTimerRef.current = null;
+              }
               inputRef.current.active = false;
             }}
-            onPointerLeave={() => {
+            onPointerLeave={(event) => {
+              if (dragTargetRef.current === "active") return;
+              if (dragTimerRef.current) {
+                clearTimeout(dragTimerRef.current);
+                dragTimerRef.current = null;
+              }
               inputRef.current.active = false;
             }}
           >
@@ -563,6 +766,12 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <p className="reposition-hint">Long-press any joystick or the Active button during a run to drag it anywhere.</p>
+            {customPositions ? (
+              <button type="button" className="reset-positions-button" onClick={resetControlPositions}>
+                Reset control positions
+              </button>
+            ) : null}
           </div>
         ) : null}
 

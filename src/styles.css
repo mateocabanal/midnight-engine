@@ -226,6 +226,32 @@ button {
   box-shadow: 0 0 26px rgba(253, 230, 138, 0.18), 0 14px 40px rgba(0, 0, 0, 0.38);
 }
 
+.active-button.is-dragging {
+  border-color: rgba(147, 197, 253, 0.65);
+  background: rgba(30, 64, 175, 0.62);
+  box-shadow: 0 0 20px rgba(147, 197, 253, 0.28), 0 14px 40px rgba(0, 0, 0, 0.38);
+  cursor: grabbing;
+}
+
+.reposition-hint {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.reset-positions-button {
+  width: 100%;
+  min-height: 42px;
+  margin-top: 4px;
+  border: 1px solid rgba(251, 113, 133, 0.28);
+  border-radius: 8px;
+  background: rgba(251, 113, 133, 0.08);
+  color: #fecdd3;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .run-summary-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -84,7 +84,10 @@ type Orbital = {
   damage: number;
   life: number;
   speed: number;
+  kind: SummonKind;
 };
+
+type SummonKind = "wisp" | "hound" | "turret" | "drone" | "mite" | "blade" | "wasp" | "chakram" | "orb";
 
 type Player = {
   x: number;
@@ -730,18 +733,18 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       player.curseDamage *= 1.1;
       break;
     case "wisp_egg":
-      spawnOrbital(game, 10 * player.summonDamage, 18);
+      spawnOrbital(game, 10 * player.summonDamage, 18, "wisp");
       break;
     case "hound_whistle":
-      spawnOrbital(game, 14 * player.summonDamage, 18);
+      spawnOrbital(game, 14 * player.summonDamage, 18, "hound");
       break;
     case "bone_turret":
       player.reloadSpeed *= 1.06;
-      spawnOrbital(game, 8 * player.summonDamage, 14);
+      spawnOrbital(game, 8 * player.summonDamage, 14, "turret");
       break;
     case "mender_drone":
       player.shield = Math.min(70, player.shield + 18);
-      spawnOrbital(game, 5 * player.summonDamage, 24);
+      spawnOrbital(game, 5 * player.summonDamage, 24, "drone");
       break;
     case "broodmother":
     case "familiar_training":
@@ -761,7 +764,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       break;
     case "soul_shepherd":
       player.souls += 1;
-      spawnOrbital(game, 11 * player.summonDamage, 18);
+      spawnOrbital(game, 11 * player.summonDamage, 18, "blade");
       break;
     case "vampiric_shell":
       player.maxHp += 8;
@@ -838,7 +841,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       break;
     case "hive_engine":
       player.summonDamage *= 1.28;
-      spawnOrbital(game, 16 * player.summonDamage, 22);
+      spawnOrbital(game, 16 * player.summonDamage, 22, "wasp");
       break;
   }
 }
@@ -899,7 +902,7 @@ const applyCharacter = (game: Game, characterId: CharacterId) => {
     player.summonDamage *= 1.25;
     player.activeCooldown = 18;
     addUpgrade(game, "hound_whistle");
-    spawnOrbital(game, 12 * player.summonDamage, 18);
+    spawnOrbital(game, 12 * player.summonDamage, 18, "hound");
   }
 };
 
@@ -1134,20 +1137,13 @@ export const drawGame = (
   }
 
   for (const bullet of game.bullets) {
-    ctx.beginPath();
-    ctx.fillStyle = bulletColor(bullet.element);
-    ctx.shadowColor = bulletColor(bullet.element);
-    ctx.shadowBlur = 12;
-    ctx.arc(bullet.x, bullet.y, bullet.r, 0, TAU);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    drawBullet(ctx, bullet, game.player.weaponSpecial, game.time);
   }
 
   for (const orbital of game.player.orbitals) {
     const x = game.player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = game.player.y + Math.sin(orbital.angle) * orbital.distance;
-    ctx.fillStyle = has(game, "conductor") ? "#72f5ff" : "#f8fafc";
-    diamond(ctx, x, y, 8);
+    drawSummon(ctx, orbital, x, y, game.time, has(game, "conductor"));
   }
 
   for (const enemy of game.enemies) {
@@ -1191,9 +1187,7 @@ export const drawGame = (
   const reloading = p.reload > 0;
   ctx.save();
   ctx.translate(p.x, p.y);
-  ctx.rotate(game.time * (reloading ? 9 : 3));
-  ctx.fillStyle = reloading ? "#fde68a" : p.invuln > 0 ? "#72f5ff" : "#f8fafc";
-  diamond(ctx, 0, 0, p.r + 4 + (reloading ? Math.sin(game.time * 18) * 2 : 0));
+  drawCharacter(ctx, p, game.time, reloading);
   if (reloading) {
     ctx.beginPath();
     ctx.strokeStyle = "rgba(250, 204, 21, 0.86)";
@@ -1278,9 +1272,9 @@ const shoot = (game: Game) => {
     burst(game, player.x, player.y, "#c084fc", 7);
   }
 
-  if (player.weaponSpecial === "hive_staff" && game.shotCounter % 3 === 0) spawnOrbital(game, 8 * player.summonDamage, 5);
+  if (player.weaponSpecial === "hive_staff" && game.shotCounter % 3 === 0) spawnOrbital(game, 8 * player.summonDamage, 5, "wasp");
   if (player.weaponSpecial === "arc_rifle" && game.shotCounter % 3 === 0) chainLightning(game, player.x, player.y, 110, 5 * player.lightningDamage);
-  if (player.weaponSpecial === "chakram" && game.shotCounter % 3 === 0) spawnOrbital(game, player.damage * 0.4, 2.5);
+  if (player.weaponSpecial === "chakram" && game.shotCounter % 3 === 0) spawnOrbital(game, player.damage * 0.4, 2.5, "chakram");
   if (has(game, "empty_chamber") && player.shots >= player.magazine) explode(game, player.x, player.y, 72, 10, "#f8fafc");
 };
 
@@ -1371,7 +1365,8 @@ const updateBullets = (game: Game, dt: number) => {
           distance: rand(44, 72),
           damage: Math.max(5, bullet.damage * 0.42),
           life: 12,
-          speed: rand(2.2, 4.2)
+          speed: rand(2.2, 4.2),
+          kind: "orb"
         });
       }
       game.bullets.splice(i, 1);
@@ -1514,9 +1509,9 @@ const onReload = (game: Game) => {
     chainLightning(game, player.x, player.y, has(game, "thunder_magazine") ? 160 : 108, (has(game, "thunder_magazine") ? 20 : 10) * player.lightningDamage);
   }
 
-  if (has(game, "bone_turret")) spawnOrbital(game, 9 * player.summonDamage, 6);
+  if (has(game, "bone_turret")) spawnOrbital(game, 9 * player.summonDamage, 6, "turret");
   if (has(game, "hive_engine")) {
-    spawnOrbital(game, 12 * player.summonDamage, 8);
+    spawnOrbital(game, 12 * player.summonDamage, 8, "wasp");
     fireBullet(game, player.x, player.y, rand(0, TAU), player.damage * 0.35, selectShotElement(game), { pierce: 1, crit: player.crit });
   }
 
@@ -1604,7 +1599,7 @@ const killEnemy = (game: Game, enemy: Enemy) => {
     game.player.souls += 1 + (has(game, "soul_furnace") && Math.random() < 0.35 ? 1 : 0);
     if (game.player.souls >= 3) {
       game.player.souls -= 3;
-      game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(46, 78), damage: 10, life: 16, speed: rand(3, 5) });
+      game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(46, 78), damage: 10, life: 16, speed: rand(3, 5), kind: "blade" });
       text(game, enemy.x, enemy.y - 20, "soul blade", "#c4b5fd");
     }
   }
@@ -1714,7 +1709,7 @@ const chainLightning = (game: Game, x: number, y: number, radius: number, damage
   }
 };
 
-const spawnOrbital = (game: Game, damage: number, life: number) => {
+const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind = "orb") => {
   const player = game.player;
   const existing = player.orbitals.length;
   const cap = has(game, "hive_engine") ? 12 : has(game, "twin_spawn") ? 10 : 8;
@@ -1724,7 +1719,8 @@ const spawnOrbital = (game: Game, damage: number, life: number) => {
     distance: rand(46, has(game, "leash_breaker") ? 96 : 78),
     damage,
     life,
-    speed: rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1)
+    speed: rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1),
+    kind
   });
   if (has(game, "twin_spawn") && player.orbitals.length < cap && Math.random() < 0.5) {
     player.orbitals.push({
@@ -1732,7 +1728,8 @@ const spawnOrbital = (game: Game, damage: number, life: number) => {
       distance: rand(46, has(game, "leash_breaker") ? 96 : 78),
       damage: damage * 0.75,
       life,
-      speed: rand(2.8, 5.2)
+      speed: rand(2.8, 5.2),
+      kind
     });
   }
 };
@@ -1854,6 +1851,387 @@ const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number)
   ctx.lineTo(x - r, y);
   ctx.closePath();
   ctx.fill();
+};
+
+const characterVisuals: Record<string, { primary: string; secondary: string; glyph: string }> = {
+  saint: { primary: "#f8fafc", secondary: "#fde68a", glyph: "S" },
+  ilya: { primary: "#72f5ff", secondary: "#2563eb", glyph: "I" },
+  nox: { primary: "#86efac", secondary: "#16a34a", glyph: "N" },
+  mira: { primary: "#e9d5ff", secondary: "#a78bfa", glyph: "M" },
+  scarlett: { primary: "#fb923c", secondary: "#dc2626", glyph: "R" },
+  corvus: { primary: "#c4b5fd", secondary: "#1f123d", glyph: "C" },
+  kaden: { primary: "#fed7aa", secondary: "#92400e", glyph: "K" },
+  lyra: { primary: "#f0abfc", secondary: "#7c3aed", glyph: "L" }
+};
+
+const drawPolygon = (ctx: CanvasRenderingContext2D, points: Vec[]) => {
+  if (!points.length) return;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (const point of points.slice(1)) ctx.lineTo(point.x, point.y);
+  ctx.closePath();
+};
+
+const drawCapsule = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, radius = h / 2) => {
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - h / 2, w, h, radius);
+};
+
+const drawCharacter = (ctx: CanvasRenderingContext2D, player: Player, time: number, reloading: boolean) => {
+  const visual = characterVisuals[player.characterId] || characterVisuals.saint;
+  const pulse = reloading ? Math.sin(time * 18) * 2 : Math.sin(time * 6) * 0.9;
+
+  ctx.save();
+  ctx.shadowColor = reloading ? "#fde68a" : visual.primary;
+  ctx.shadowBlur = reloading ? 18 : 11;
+  ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
+  ctx.strokeStyle = visual.secondary;
+  ctx.lineWidth = 2.5;
+
+  if (player.characterId === "kaden") {
+    drawPolygon(ctx, [
+      { x: 0, y: -player.r - 7 - pulse },
+      { x: player.r + 9, y: -3 },
+      { x: player.r + 5, y: player.r + 5 },
+      { x: 0, y: player.r + 11 + pulse },
+      { x: -player.r - 5, y: player.r + 5 },
+      { x: -player.r - 9, y: -3 }
+    ]);
+  } else if (player.characterId === "corvus") {
+    drawPolygon(ctx, [
+      { x: 0, y: -player.r - 8 - pulse },
+      { x: player.r + 14, y: player.r + 3 },
+      { x: player.r * 0.32, y: player.r + 1 },
+      { x: 0, y: player.r + 12 },
+      { x: -player.r * 0.32, y: player.r + 1 },
+      { x: -player.r - 14, y: player.r + 3 }
+    ]);
+  } else if (player.characterId === "scarlett") {
+    drawPolygon(ctx, [
+      { x: 0, y: -player.r - 11 - pulse },
+      { x: player.r + 8, y: -2 },
+      { x: player.r + 2, y: player.r + 10 },
+      { x: 0, y: player.r + 5 },
+      { x: -player.r - 2, y: player.r + 10 },
+      { x: -player.r - 8, y: -2 }
+    ]);
+  } else if (player.characterId === "mira") {
+    ctx.globalAlpha = 0.36;
+    ctx.fillStyle = visual.secondary;
+    diamond(ctx, -8, 2, player.r + 2);
+    diamond(ctx, 8, 2, player.r + 2);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
+    diamond(ctx, 0, 0, player.r + 6 + pulse);
+  } else if (player.characterId === "ilya") {
+    drawPolygon(ctx, [
+      { x: -player.r - 3, y: -player.r - 4 },
+      { x: 2, y: -player.r - 4 - pulse },
+      { x: -3, y: -1 },
+      { x: player.r + 6, y: -1 },
+      { x: -2, y: player.r + 9 + pulse },
+      { x: 2, y: 4 },
+      { x: -player.r - 6, y: 4 }
+    ]);
+  } else if (player.characterId === "lyra") {
+    ctx.beginPath();
+    ctx.arc(0, 0, player.r + 7 + pulse, 0.2 * Math.PI, 1.8 * Math.PI);
+    ctx.closePath();
+  } else if (player.characterId === "nox") {
+    drawPolygon(ctx, [
+      { x: 0, y: -player.r - 8 - pulse },
+      { x: player.r + 6, y: -player.r * 0.35 },
+      { x: player.r + 8, y: player.r * 0.55 },
+      { x: player.r * 0.3, y: player.r + 11 },
+      { x: -player.r * 0.3, y: player.r + 11 },
+      { x: -player.r - 8, y: player.r * 0.55 },
+      { x: -player.r - 6, y: -player.r * 0.35 }
+    ]);
+  } else {
+    diamond(ctx, 0, 0, player.r + 6 + pulse);
+  }
+
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = visual.primary;
+  ctx.strokeStyle = "rgba(3, 7, 18, 0.74)";
+  ctx.lineWidth = 3;
+  ctx.font = "700 12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.strokeText(visual.glyph, 0, 1);
+  ctx.fillText(visual.glyph, 0, 1);
+
+  drawWeaponBadge(ctx, player.weaponSpecial, visual.primary);
+  ctx.restore();
+};
+
+const drawWeaponBadge = (ctx: CanvasRenderingContext2D, weaponId: WeaponId, color: string) => {
+  ctx.save();
+  ctx.translate(18, -13);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = "rgba(3, 7, 18, 0.82)";
+  ctx.lineWidth = 2.2;
+
+  if (weaponId === "shotgun") {
+    drawCapsule(ctx, 0, -3, 24, 5);
+    ctx.stroke();
+    drawCapsule(ctx, 0, 4, 24, 5);
+    ctx.stroke();
+  } else if (weaponId === "needle_smg") {
+    drawCapsule(ctx, 0, 0, 25, 6);
+    ctx.stroke();
+    ctx.fillRect(-5, 4, 7, 8);
+  } else if (weaponId === "crossbow") {
+    ctx.beginPath();
+    ctx.moveTo(-11, 0);
+    ctx.lineTo(12, 0);
+    ctx.moveTo(-6, -9);
+    ctx.quadraticCurveTo(-12, 0, -6, 9);
+    ctx.moveTo(2, -9);
+    ctx.quadraticCurveTo(10, 0, 2, 9);
+    ctx.stroke();
+  } else if (weaponId === "flame_cannon") {
+    drawCapsule(ctx, -2, 0, 21, 8);
+    ctx.stroke();
+    ctx.fillStyle = "#fb923c";
+    diamond(ctx, 12, 0, 5);
+  } else if (weaponId === "arc_rifle") {
+    drawCapsule(ctx, -2, 0, 23, 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(11, -7);
+    ctx.lineTo(17, 0);
+    ctx.lineTo(11, 7);
+    ctx.stroke();
+  } else if (weaponId === "shard_launcher") {
+    drawPolygon(ctx, [
+      { x: -11, y: -7 },
+      { x: 12, y: -4 },
+      { x: 15, y: 3 },
+      { x: -8, y: 8 }
+    ]);
+    ctx.stroke();
+  } else if (weaponId === "rail_lance") {
+    ctx.beginPath();
+    ctx.moveTo(-12, 0);
+    ctx.lineTo(18, 0);
+    ctx.moveTo(10, -5);
+    ctx.lineTo(18, 0);
+    ctx.lineTo(10, 5);
+    ctx.stroke();
+  } else if (weaponId === "chakram") {
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, TAU);
+    ctx.arc(0, 0, 4, 0, TAU);
+    ctx.stroke();
+  } else if (weaponId === "hive_staff") {
+    ctx.beginPath();
+    ctx.moveTo(-10, 8);
+    ctx.lineTo(8, -8);
+    ctx.arc(10, -9, 5, 0, TAU);
+    ctx.stroke();
+  } else if (weaponId === "prism_launcher") {
+    drawPolygon(ctx, [
+      { x: -9, y: 7 },
+      { x: 0, y: -10 },
+      { x: 11, y: 7 }
+    ]);
+    ctx.stroke();
+  } else if (weaponId === "aether_spear") {
+    ctx.beginPath();
+    ctx.moveTo(-11, 8);
+    ctx.lineTo(14, -9);
+    ctx.moveTo(14, -9);
+    ctx.lineTo(10, 1);
+    ctx.stroke();
+  } else {
+    drawCapsule(ctx, 0, 0, 22, 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-9, 6, 4, 0, TAU);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+};
+
+const drawBullet = (ctx: CanvasRenderingContext2D, bullet: Bullet, weaponId: WeaponId, time: number) => {
+  const color = bulletColor(bullet.element);
+  const angle = Math.atan2(bullet.vy, bullet.vx);
+  const speed = Math.hypot(bullet.vx, bullet.vy);
+
+  ctx.save();
+  ctx.translate(bullet.x, bullet.y);
+  ctx.rotate(angle);
+  ctx.shadowColor = color;
+  ctx.shadowBlur = bullet.element === "kinetic" ? 8 : 14;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+
+  if (weaponId === "rail_lance" || speed > 780) {
+    drawCapsule(ctx, 0, 0, bullet.r * 5.6, Math.max(3, bullet.r * 0.85));
+    ctx.fill();
+  } else if (weaponId === "crossbow" || weaponId === "aether_spear") {
+    drawPolygon(ctx, [
+      { x: bullet.r * 2.8, y: 0 },
+      { x: -bullet.r, y: -bullet.r * 0.85 },
+      { x: -bullet.r * 0.2, y: 0 },
+      { x: -bullet.r, y: bullet.r * 0.85 }
+    ]);
+    ctx.fill();
+  } else if (weaponId === "shotgun" || weaponId === "needle_smg" || weaponId === "revolver") {
+    drawCapsule(ctx, 0, 0, bullet.r * 2.2, bullet.r * 1.2);
+    ctx.fill();
+  } else if (weaponId === "flame_cannon") {
+    drawPolygon(ctx, [
+      { x: bullet.r * 2.2, y: 0 },
+      { x: -bullet.r * 0.4, y: -bullet.r * 1.4 },
+      { x: -bullet.r * 1.3, y: 0 },
+      { x: -bullet.r * 0.4, y: bullet.r * 1.4 }
+    ]);
+    ctx.globalAlpha = 0.86 + Math.sin(time * 20) * 0.08;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (weaponId === "arc_rifle") {
+    ctx.beginPath();
+    ctx.moveTo(-bullet.r * 2, -bullet.r * 0.8);
+    ctx.lineTo(-bullet.r * 0.3, bullet.r * 0.2);
+    ctx.lineTo(bullet.r * 0.5, -bullet.r * 0.3);
+    ctx.lineTo(bullet.r * 2, bullet.r * 0.8);
+    ctx.stroke();
+  } else if (weaponId === "shard_launcher") {
+    drawPolygon(ctx, [
+      { x: bullet.r * 1.6, y: -bullet.r * 0.5 },
+      { x: bullet.r * 0.35, y: bullet.r * 1.25 },
+      { x: -bullet.r * 1.5, y: bullet.r * 0.6 },
+      { x: -bullet.r * 1.1, y: -bullet.r * 1.25 }
+    ]);
+    ctx.fill();
+  } else if (weaponId === "chakram") {
+    ctx.beginPath();
+    ctx.arc(0, 0, bullet.r * 1.55, 0, TAU);
+    ctx.arc(0, 0, bullet.r * 0.62, 0, TAU);
+    ctx.stroke();
+  } else if (weaponId === "prism_launcher") {
+    drawPolygon(ctx, [
+      { x: bullet.r * 1.6, y: 0 },
+      { x: -bullet.r * 0.8, y: -bullet.r * 1.15 },
+      { x: -bullet.r * 0.8, y: bullet.r * 1.15 }
+    ]);
+    ctx.fill();
+  } else if (weaponId === "hive_staff") {
+    drawPolygon(ctx, [
+      { x: bullet.r * 1.4, y: 0 },
+      { x: 0, y: -bullet.r },
+      { x: -bullet.r * 1.2, y: -bullet.r * 0.45 },
+      { x: -bullet.r * 1.2, y: bullet.r * 0.45 },
+      { x: 0, y: bullet.r }
+    ]);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(0, 0, bullet.r, 0, TAU);
+    ctx.fill();
+  }
+
+  ctx.restore();
+};
+
+const drawSummon = (ctx: CanvasRenderingContext2D, orbital: Orbital, x: number, y: number, time: number, charged: boolean) => {
+  const color = charged ? "#72f5ff" : summonColor(orbital.kind);
+  const bob = Math.sin(time * 8 + orbital.angle) * 1.5;
+
+  ctx.save();
+  ctx.translate(x, y + bob);
+  ctx.rotate(orbital.angle + time * (orbital.kind === "chakram" ? 5 : 1.2));
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 11;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+
+  if (orbital.kind === "hound") {
+    drawCapsule(ctx, 0, 1, 18, 9);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(9, -4, 5, 0, TAU);
+    ctx.fill();
+    ctx.fillRect(-7, 5, 4, 6);
+    ctx.fillRect(4, 5, 4, 6);
+  } else if (orbital.kind === "turret") {
+    ctx.fillStyle = "rgba(3, 7, 18, 0.76)";
+    ctx.fillRect(-7, -7, 14, 14);
+    ctx.strokeRect(-7, -7, 14, 14);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(15, 0);
+    ctx.stroke();
+  } else if (orbital.kind === "drone") {
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, TAU);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, TAU);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-13, 0);
+    ctx.lineTo(-6, 0);
+    ctx.moveTo(6, 0);
+    ctx.lineTo(13, 0);
+    ctx.stroke();
+  } else if (orbital.kind === "mite" || orbital.kind === "wasp") {
+    drawPolygon(ctx, [
+      { x: 10, y: 0 },
+      { x: 0, y: -7 },
+      { x: -9, y: -4 },
+      { x: -5, y: 0 },
+      { x: -9, y: 4 },
+      { x: 0, y: 7 }
+    ]);
+    ctx.fill();
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.ellipse(-1, -7, 6, 3, -0.5, 0, TAU);
+    ctx.ellipse(-1, 7, 6, 3, 0.5, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (orbital.kind === "blade" || orbital.kind === "chakram") {
+    ctx.beginPath();
+    ctx.arc(0, 0, orbital.kind === "chakram" ? 10 : 8, 0, TAU);
+    ctx.arc(0, 0, orbital.kind === "chakram" ? 4 : 2, 0, TAU);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-11, 0);
+    ctx.lineTo(11, 0);
+    ctx.stroke();
+  } else if (orbital.kind === "wisp") {
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, TAU);
+    ctx.fill();
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 13, 0, TAU);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  } else {
+    diamond(ctx, 0, 0, 8);
+  }
+
+  ctx.restore();
+};
+
+const summonColor = (kind: SummonKind) => {
+  if (kind === "hound") return "#fbbf24";
+  if (kind === "turret") return "#cbd5e1";
+  if (kind === "drone") return "#67e8f9";
+  if (kind === "mite" || kind === "wasp") return "#86efac";
+  if (kind === "blade" || kind === "chakram") return "#c4b5fd";
+  if (kind === "wisp") return "#f0abfc";
+  return "#f8fafc";
 };
 
 const drawReloadBar = (ctx: CanvasRenderingContext2D, x: number, y: number, progress: number) => {

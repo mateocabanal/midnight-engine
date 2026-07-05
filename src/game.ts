@@ -1996,6 +1996,13 @@ const shoot = (game: Game, input: InputState) => {
   if (consumeAmmo) player.shots += 1;
   player.cooldown = Math.max(0.07, 0.32 / player.fireRate);
 
+  // Muzzle flash
+  const muzzleX = player.x + Math.cos(angle) * (player.r + 8);
+  const muzzleY = player.y + Math.sin(angle) * (player.r + 8);
+  const flashColor = element === "fire" ? "#fb923c" : element === "lightning" ? "#72f5ff" : element === "ice" ? "#7dd3fc" : element === "void" ? "#c084fc" : element === "blood" ? "#86efac" : "#fef08a";
+  burst(game, muzzleX, muzzleY, flashColor, 4, 2.5);
+  game.particles.push({ x: muzzleX, y: muzzleY, vx: Math.cos(angle) * 40, vy: Math.sin(angle) * 40, life: 0.08, color: flashColor, size: 6 });
+
   if ((player.characterId === "mira" || has(game, "law_of_echoes")) && game.shotCounter % 6 === 0) {
     const copies = has(game, "recursive_gun") ? 4 : 2;
     for (let i = 0; i < copies; i += 1) {
@@ -2060,6 +2067,10 @@ const fireBullet = (
 const updateBullets = (game: Game, dt: number) => {
   for (let i = game.bullets.length - 1; i >= 0; i -= 1) {
     const bullet = game.bullets[i];
+    // Bullet trail particle
+    if (Math.random() < 0.5) {
+      game.particles.push({ x: bullet.x, y: bullet.y, vx: 0, vy: 0, life: 0.15, color: bulletColor(bullet.element), size: Math.max(1.5, bullet.r * 0.5) });
+    }
     bullet.x += bullet.vx * dt;
     bullet.y += bullet.vy * dt;
     bullet.life -= dt;
@@ -2198,16 +2209,30 @@ const updateEnemies = (game: Game, dt: number) => {
         enemy.chargeTimer = Math.max(1.0, 2.6 - game.director.threat * 0.16);
         enemy.attackTimer = 0.38;
         text(game, enemy.x, enemy.y - enemy.r - 14, "!", "#fef2f2");
+        burst(game, enemy.x, enemy.y, "#fca5a5", 8, 3);
+      }
+      // Telegraph ring while charging
+      if (enemy.attackTimer > 0 && enemy.kind === "charger") {
+        game.particles.push({ x: enemy.x, y: enemy.y, vx: 0, vy: 0, life: 0.05, color: "#fca5a5", size: enemy.r + 4 + Math.sin(game.time * 30) * 3 });
       }
       speedMultiplier = enemy.attackTimer > 0 ? 3.2 : 0.95;
     } else if (enemy.kind === "boss") {
-      speedMultiplier = d > 260 ? 1 : 0.22;
+      const enrage = enemy.hp / enemy.maxHp < 0.3;
+      speedMultiplier = enrage ? (d > 200 ? 1.4 : 0.4) : (d > 260 ? 1 : 0.22);
       if (enemy.attackTimer <= 0) {
-        const spokes = 8 + Math.min(8, game.director.spawnedBosses.length * 2);
+        const spokes = (enrage ? 12 : 8) + Math.min(8, game.director.spawnedBosses.length * 2);
         for (let shot = 0; shot < spokes; shot += 1) {
-          fireEnemyProjectile(game, enemy, shot * (TAU / spokes) + game.time * 0.2, 145 + game.director.threat * 15, enemy.damage * 0.38, "#c084fc");
+          fireEnemyProjectile(game, enemy, shot * (TAU / spokes) + game.time * 0.2, (enrage ? 185 : 145) + game.director.threat * 15, enemy.damage * 0.38, enrage ? "#fca5a5" : "#c084fc");
         }
-        enemy.attackTimer = Math.max(1.45, 3 - game.director.threat * 0.2);
+        enemy.attackTimer = Math.max(enrage ? 0.9 : 1.45, 3 - game.director.threat * 0.2);
+        if (enrage) {
+          burst(game, enemy.x, enemy.y, "#fca5a5", 8, 4);
+          addShake(game, 2);
+        }
+      }
+      // Enrage aura
+      if (enrage && Math.random() < 0.3) {
+        game.particles.push({ x: enemy.x + rand(-enemy.r, enemy.r), y: enemy.y + rand(-enemy.r, enemy.r), vx: 0, vy: -20, life: 0.3, color: "#fca5a5", size: 3 });
       }
     } else if (enemy.kind === "runner") {
       speedMultiplier = 1.2;
@@ -2261,6 +2286,8 @@ const updateGems = (game: Game, dt: number) => {
     }
     if (d < player.r + 10) {
       game.xp += gem.value;
+      burst(game, gem.x, gem.y, "#93c5fd", 4, 2);
+      game.particles.push({ x: player.x, y: player.y - player.r - 8, vx: 0, vy: -30, life: 0.4, color: "#93c5fd", text: `+${gem.value}`, size: 11 });
       if (has(game, "gem_singularity")) {
         explode(game, gem.x, gem.y, 76 + count(game, "gem_singularity") * 14, 16 + gem.value * 2, "#a78bfa");
         pullEnemies(game, gem.x, gem.y, 108, 26);
@@ -2480,6 +2507,9 @@ const spawnEnemy = (game: Game, anywhere = false, forcedKind?: EnemyKind) => {
   };
   const stats = profile[kind];
   const hp = stats.hp;
+  // Spawn warning flash
+  burst(game, x, y, kind === "boss" ? "#fde68a" : kind === "elite" ? "#fb923c" : "#f87171", kind === "boss" ? 12 : 6, 3);
+
   game.enemies.push({
     id: game.idCounter,
     kind,

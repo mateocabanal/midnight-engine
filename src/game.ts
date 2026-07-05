@@ -763,88 +763,88 @@ const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
   ["rifled_jacket", "Rifled Jacket", "ballistics", "uncommon", "+1 pierce; each pierce after the first reduces remaining damage."],
   ["buckshot", "Buckshot", "ballistics", "uncommon", "Multi-pellet weapons gain +2 pellets; single-projectile weapons gain angled side shots; -12% range."],
   ["soft_lead", "Soft Lead", "ballistics", "common", "+35% knockback, +14% projectile size, -12% projectile speed."],
-  ["collateral", "Collateral", "ballistics", "rare", "Overkill deals 40% excess damage in a splash."],
-  ["twin_feed", "Twin Feed", "ballistics", "rare", "+1 projectile, -18% projectile damage."],
+  ["collateral", "Collateral", "ballistics", "rare", "Overkill deals 40% excess damage in a splash.", ["heavy_caliber"]],
+  ["twin_feed", "Twin Feed", "ballistics", "rare", "+1 projectile, -18% projectile damage.", ["buckshot"]],
   ["giant_killer", "Giant Killer", "ballistics", "uncommon", "+30% damage to elites, bosses, and healthy enemies."],
   ["pinpoint", "Pinpoint", "ballistics", "common", "-20% spread; distant targets take extra crit chance."],
   ["serrated_rounds", "Serrated Rounds", "ballistics", "uncommon", "Crits and pierces apply Bleed; +10% direct hit damage."],
   ["rebound", "Rebound", "ballistics", "rare", "+1 bounce; bounced projectiles deal reduced damage."],
-  ["shadow_round", "Shadow Round", "ballistics", "epic", "Every fourth shot becomes ethereal, faster, and piercing."],
+  ["shadow_round", "Shadow Round", "ballistics", "epic", "Every fourth shot becomes ethereal, faster, and piercing.", ["pinpoint"]],
   ["bracer_core", "Bracer Core", "ballistics", "common", "+18% projectile size and hit radius; +10% splash radius."],
   ["momentum_shot", "Momentum Shot", "ballistics", "uncommon", "Projectile damage increases with distance travelled."],
   ["fin_stabilizer", "Fin Stabilizer", "ballistics", "common", "+14% projectile speed, +10% fire rate, -15% spread bloom."],
-  ["armour_breaker", "Armour Breaker", "ballistics", "rare", "Ignore armour and deal bonus damage to plated enemies."],
+  ["armour_breaker", "Armour Breaker", "ballistics", "rare", "Ignore armour and deal bonus damage to plated enemies.", ["rifled_jacket"]],
   ["fast_hands", "Fast Hands", "reload", "common", "-18% reload time."],
   ["extended_magazine", "Extended Magazine", "magazine", "common", "+35% ammo capacity, -10% reload speed."],
   ["fresh_clip", "Fresh Clip", "reload", "uncommon", "First shot after reload deals +35% damage and gains size."],
   ["last_straw", "Last Straw", "magazine", "uncommon", "Final 20% of the magazine gains damage and crit chance."],
-  ["bottomless_habit", "Bottomless Habit", "magazine", "rare", "18% chance to not consume ammo."],
+  ["bottomless_habit", "Bottomless Habit", "magazine", "rare", "18% chance to not consume ammo.", ["extended_magazine"]],
   ["quick_rack", "Quick Rack", "reload", "common", "Move faster while reloading; moving reloads faster."],
-  ["chamber_trick", "Chamber Trick", "reload", "rare", "Perfect empty reload grants a phantom high-damage round."],
-  ["tactical_reload", "Tactical Reload", "reload", "uncommon", "Reloading before empty makes the next reload faster and grants speed."],
+  ["chamber_trick", "Chamber Trick", "reload", "rare", "Perfect empty reload grants a phantom high-damage round.", ["tactical_reload"]],
+  ["tactical_reload", "Tactical Reload", "reload", "uncommon", "Reloading before empty makes the next reload faster and grants speed.", ["fast_hands"]],
   ["backpressure", "Backpressure", "magazine", "uncommon", "Below 30% magazine, fire rate rises."],
   ["empty_chamber", "Empty Chamber", "reload", "uncommon", "Hitting 0 ammo fires a shrapnel ring."],
-  ["ammo_printer", "Ammo Printer", "magazine", "rare", "Every 8 kills refund 1 ammo."],
+  ["ammo_printer", "Ammo Printer", "magazine", "rare", "Every 8 kills refund 1 ammo.", ["extended_magazine"]],
   ["hair_trigger", "Hair Trigger", "fire_rate", "common", "+18% fire rate, +8% spread."],
   ["deadeye", "Deadeye", "critical", "common", "+10% critical chance, +8% projectile speed."],
-  ["glass_eye", "Glass Eye", "critical", "rare", "+30% critical damage, -12% maximum health."],
-  ["hollow_point", "Hollow Point", "critical", "uncommon", "Critical hits ignore armour and apply Bleed."],
-  ["headhunter", "Headhunter", "critical", "epic", "Critting elites or bosses grants crit chance; overkill crits spawn shards."],
+  ["glass_eye", "Glass Eye", "critical", "rare", "+30% critical damage, -12% maximum health.", ["deadeye"]],
+  ["hollow_point", "Hollow Point", "critical", "uncommon", "Critical hits ignore armour and apply Bleed.", ["deadeye"]],
+  ["headhunter", "Headhunter", "critical", "epic", "Critting elites or bosses grants crit chance; overkill crits spawn shards.", ["hollow_point", "glass_eye"]],
   ["ember_touch", "Ember Touch", "fire", "common", "+2 flat fire damage on hit; chance to apply Burn."],
-  ["firestarter", "Firestarter", "fire", "uncommon", "Hits have a stronger chance to apply Burn."],
-  ["lingering_flame", "Lingering Flame", "fire", "uncommon", "Kills leave flame pools."],
-  ["napalm", "Napalm", "fire", "rare", "Flame pools and explosions gain radius and Burn stacks."],
-  ["pyromaniac", "Pyromaniac", "fire", "uncommon", "+25% damage to burning enemies."],
-  ["thermal_lance", "Thermal Lance", "fire", "rare", "Burned enemies lose armour; projectiles gain damage after passing through fire."],
-  ["ash_wake", "Ash Wake", "fire", "rare", "Burning enemy deaths explode and spread Burn."],
-  ["cauterize", "Cauterize", "fire", "epic", "Burn kills heal or shield you."],
+  ["firestarter", "Firestarter", "fire", "uncommon", "Hits have a stronger chance to apply Burn.", ["ember_touch"]],
+  ["lingering_flame", "Lingering Flame", "fire", "uncommon", "Kills leave flame pools.", ["firestarter"]],
+  ["napalm", "Napalm", "fire", "rare", "Flame pools and explosions gain radius and Burn stacks.", ["lingering_flame"]],
+  ["pyromaniac", "Pyromaniac", "fire", "uncommon", "+25% damage to burning enemies.", ["firestarter"]],
+  ["thermal_lance", "Thermal Lance", "fire", "rare", "Burned enemies lose armour; projectiles gain damage after passing through fire.", ["napalm"]],
+  ["ash_wake", "Ash Wake", "fire", "rare", "Burning enemy deaths explode and spread Burn.", ["napalm"]],
+  ["cauterize", "Cauterize", "fire", "epic", "Burn kills heal or shield you.", ["napalm", "pyromaniac"]],
   ["cold_touch", "Cold Touch", "frost", "common", "Hits apply Chill; enough Chill freezes."],
-  ["deep_freeze", "Deep Freeze", "frost", "uncommon", "Freeze duration increases."],
-  ["permafrost", "Permafrost", "frost", "rare", "Frozen enemies take more damage after thaw."],
-  ["brittle", "Brittle", "frost", "rare", "Frozen enemies take much higher critical damage."],
-  ["ice_bloom", "Ice Bloom", "frost", "uncommon", "Frozen enemy deaths release ice shards."],
-  ["cold_snap", "Cold Snap", "frost", "rare", "Every fifth Chill application instantly freezes."],
-  ["rime_ward", "Rime Ward", "frost", "epic", "Freezing an enemy grants shield."],
+  ["deep_freeze", "Deep Freeze", "frost", "uncommon", "Freeze duration increases.", ["cold_touch"]],
+  ["permafrost", "Permafrost", "frost", "rare", "Frozen enemies take more damage after thaw.", ["deep_freeze"]],
+  ["brittle", "Brittle", "frost", "rare", "Frozen enemies take much higher critical damage.", ["deep_freeze"]],
+  ["ice_bloom", "Ice Bloom", "frost", "uncommon", "Frozen enemy deaths release ice shards.", ["deep_freeze"]],
+  ["cold_snap", "Cold Snap", "frost", "rare", "Every fifth Chill application instantly freezes.", ["deep_freeze"]],
+  ["rime_ward", "Rime Ward", "frost", "epic", "Freezing an enemy grants shield.", ["permafrost", "ice_bloom"]],
   ["snowdrift", "Snowdrift", "frost", "uncommon", "Standing still emits Chill pulses."],
   ["static_touch", "Static Touch", "shock", "common", "Hits have a chance to apply Shock."],
   ["chain_spark", "Chain Spark", "shock", "uncommon", "Shock chains to +1 target and gains range.", ["static_touch"]],
-  ["overcharge", "Overcharge", "shock", "rare", "Hitting shocked enemies deals bonus damage and consumes Shock."],
-  ["capacitor", "Capacitor", "shock", "rare", "Reloading zaps the nearest shocked enemies."],
+  ["overcharge", "Overcharge", "shock", "rare", "Hitting shocked enemies deals bonus damage and consumes Shock.", ["chain_spark"]],
+  ["capacitor", "Capacitor", "shock", "rare", "Reloading zaps the nearest shocked enemies.", ["chain_spark"]],
   ["ionized", "Ionized", "shock", "uncommon", "Projectile speed also grants shock chance and shock damage."],
-  ["thunderhead", "Thunderhead", "shock", "epic", "Shocked, frozen, or stunned deaths fire lightning jumps."],
-  ["conductor", "Conductor", "shock", "rare", "Orbiting, returning, and split projectiles shock and chain harder."],
-  ["stormcall", "Stormcall", "shock", "epic", "Every 18 Shock applications calls a lightning strike."],
+  ["thunderhead", "Thunderhead", "shock", "epic", "Shocked, frozen, or stunned deaths fire lightning jumps.", ["overcharge"]],
+  ["conductor", "Conductor", "shock", "rare", "Orbiting, returning, and split projectiles shock and chain harder.", ["ionized"]],
+  ["stormcall", "Stormcall", "shock", "epic", "Every 18 Shock applications calls a lightning strike.", ["thunderhead", "capacitor"]],
   ["venom_tip", "Venom Tip", "poison", "common", "Hits can Poison."],
-  ["neurotoxin", "Neurotoxin", "poison", "uncommon", "Poison slows enemies and can crit."],
-  ["rotheart", "Rotheart", "poison", "rare", "Poisoned low-health enemies take much more damage."],
+  ["neurotoxin", "Neurotoxin", "poison", "uncommon", "Poison slows enemies and can crit.", ["venom_tip"]],
+  ["rotheart", "Rotheart", "poison", "rare", "Poisoned low-health enemies take much more damage.", ["neurotoxin"]],
   ["hemorrhage", "Hemorrhage", "bleed", "uncommon", "Critical hits can apply Bleed."],
-  ["blood_scent", "Blood Scent", "bleed", "uncommon", "Move faster and hit harder near bleeding enemies."],
+  ["blood_scent", "Blood Scent", "bleed", "uncommon", "Move faster and hit harder near bleeding enemies.", ["hemorrhage"]],
   ["hex_mark", "Hex Mark", "curse", "common", "Every fifth hit on the same target applies Curse."],
-  ["malediction", "Malediction", "curse", "rare", "Curse cap and damage taken increase."],
-  ["corrosion", "Corrosion", "poison", "rare", "Poison reduces armour over time."],
+  ["malediction", "Malediction", "curse", "rare", "Curse cap and damage taken increase.", ["hex_mark"]],
+  ["corrosion", "Corrosion", "poison", "rare", "Poison reduces armour over time.", ["neurotoxin"]],
   ["wisp_egg", "Wisp Egg", "summon", "common", "Summon 1 Wisp that fires bolts."],
   ["hound_whistle", "Hound Whistle", "summon", "common", "Summon 1 Hound that bites nearby enemies."],
   ["bone_turret", "Bone Turret", "summon", "uncommon", "On reload, deploy a temporary turret."],
   ["mender_drone", "Mender Drone", "summon", "rare", "Orbiting drone restores health or shield."],
   ["broodmother", "Broodmother", "summon", "uncommon", "Kills can spawn explosive Mites."],
   ["familiar_training", "Familiar Training", "summon", "common", "Summons gain damage and move speed."],
-  ["soul_shepherd", "Soul Shepherd", "summon", "rare", "Elite and cursed kills drop Souls; Souls spawn Wisps."],
-  ["pack_tactics", "Pack Tactics", "summon", "rare", "Player gains damage per active summon."],
-  ["sacrificial_rite", "Sacrificial Rite", "summon", "epic", "Summon death explodes and applies your best status."],
-  ["twin_spawn", "Twin Spawn", "summon", "rare", "The first summon created by a source duplicates."],
+  ["soul_shepherd", "Soul Shepherd", "summon", "rare", "Elite and cursed kills drop Souls; Souls spawn Wisps.", ["wisp_egg", "familiar_training"]],
+  ["pack_tactics", "Pack Tactics", "summon", "rare", "Player gains damage per active summon.", ["familiar_training"]],
+  ["sacrificial_rite", "Sacrificial Rite", "summon", "epic", "Summon death explodes and applies your best status.", ["pack_tactics", "broodmother"]],
+  ["twin_spawn", "Twin Spawn", "summon", "rare", "The first summon created by a source duplicates.", ["familiar_training"]],
   ["leash_breaker", "Leash Breaker", "summon", "uncommon", "Summons roam farther and retarget faster."],
-  ["rally_signal", "Rally Signal", "summon", "rare", "Active ability commands summons to dash and enrage."],
+  ["rally_signal", "Rally Signal", "summon", "rare", "Active ability commands summons to dash and enrage.", ["leash_breaker"]],
   ["vampiric_shell", "Vampiric Shell", "sustain", "rare", "Lifesteal direct and status damage."],
   ["bulwark", "Bulwark", "defence", "common", "+2 armour, -8% move speed."],
   ["phase_boots", "Phase Boots", "utility", "uncommon", "Dash cooldown and invulnerability improve."],
   ["greed", "Greed", "economy", "common", "Experience gems and elite Soul value increase."],
   ["magnetism", "Magnetism", "utility", "common", "Pickup radius and pull strength increase."],
   ["scholars_habit", "Scholar's Habit", "utility", "uncommon", "Gain rerolls and improve high-synergy drafting."],
-  ["scavenger", "Scavenger", "economy", "rare", "Every 10 destroyed enemies drop ammo or shield."],
-  ["grit", "Grit", "defence", "epic", "Survive one lethal hit per run."],
-  ["afterimage", "Afterimage", "defence", "rare", "Dashing leaves a taunting clone that explodes."],
+  ["scavenger", "Scavenger", "economy", "rare", "Every 10 destroyed enemies drop ammo or shield.", ["greed"]],
+  ["grit", "Grit", "defence", "epic", "Survive one lethal hit per run.", ["bulwark", "ward_seal"]],
+  ["afterimage", "Afterimage", "defence", "rare", "Dashing leaves a taunting clone that explodes.", ["phase_boots"]],
   ["battle_meditation", "Battle Meditation", "utility", "uncommon", "Standing still grants reload speed and accuracy."],
-  ["soul_furnace", "Soul Furnace", "economy", "rare", "Souls grant temporary all-damage stacks."],
+  ["soul_furnace", "Soul Furnace", "economy", "rare", "Souls grant temporary all-damage stacks.", ["scavenger", "magnetism"]],
   ["ward_seal", "Ward Seal", "defence", "uncommon", "Periodically gain shield."],
   ["law_of_echoes", "Law of Echoes", "law", "law", "Every sixth projectile creates an Echo at 40% damage."],
   ["law_of_orbit", "Law of Orbit", "law", "law", "Projectiles expiring near the player orbit briefly."],
@@ -868,6 +868,86 @@ const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
   fusion: rarity === "fusion",
   law: rarity === "law"
 }));
+
+export type SkillTreeNode = {
+  id: UpgradeId;
+  name: string;
+  category: string;
+  rarity: NonNullable<UpgradeDef["rarity"]>;
+  description: string;
+  requires: UpgradeId[];
+  fusion: boolean;
+  law: boolean;
+};
+
+export type SkillTreeCategory = {
+  name: string;
+  nodes: SkillTreeNode[];
+};
+
+export const getSkillTree = (): SkillTreeCategory[] => {
+  const categories = new Map<string, SkillTreeNode[]>();
+  for (const def of rawUpgradeDefs) {
+    const cat = def.category!;
+    if (!categories.has(cat)) categories.set(cat, []);
+    categories.get(cat)!.push({
+      id: def.id,
+      name: def.name,
+      category: cat,
+      rarity: def.rarity!,
+      description: def.description,
+      requires: def.requires ?? [],
+      fusion: !!def.fusion,
+      law: !!def.law
+    });
+  }
+  const order = [
+    "ballistics", "critical", "fire", "frost", "shock",
+    "poison", "bleed", "curse", "summon", "reload",
+    "magazine", "fire_rate", "defence", "sustain", "utility",
+    "economy", "law", "fusion"
+  ];
+  const sorted = [...categories.entries()].sort((a, b) => {
+    const ai = order.indexOf(a[0]);
+    const bi = order.indexOf(b[0]);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+  });
+  return sorted.map(([name, nodes]) => ({ name, nodes }));
+};
+
+export const isUpgradeUnlocked = (game: Game, upgrade: { requires: UpgradeId[] }): boolean => {
+  return upgrade.requires.length === 0 || upgrade.requires.every((id) => has(game, id));
+};
+
+export type AcquiredUpgrade = {
+  id: UpgradeId;
+  name: string;
+  category: string;
+  rarity: NonNullable<UpgradeDef["rarity"]>;
+  description: string;
+  requires: UpgradeId[];
+  fusion: boolean;
+  law: boolean;
+};
+
+export const getAcquiredUpgrades = (game: Game): AcquiredUpgrade[] => {
+  const result: AcquiredUpgrade[] = [];
+  for (const def of rawUpgradeDefs) {
+    if (has(game, def.id)) {
+      result.push({
+        id: def.id,
+        name: def.name,
+        category: def.category!,
+        rarity: def.rarity!,
+        description: def.description,
+        requires: def.requires ?? [],
+        fusion: !!def.fusion,
+        law: !!def.law
+      });
+    }
+  }
+  return result;
+};
 
 const upgradeDefs: UpgradeDef[] = rawUpgradeDefs.map((upgrade) => ({
   ...upgrade,

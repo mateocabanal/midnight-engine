@@ -4,6 +4,9 @@ import {
   characterOptions,
   createGame,
   drawGame,
+  getSkillTree,
+  getAcquiredUpgrades,
+  isUpgradeUnlocked,
   getUpgradeChoices,
   loadProgress,
   recordRunSummary,
@@ -16,6 +19,7 @@ import {
   type Game,
   type InputState,
   type LoadoutConfig,
+  type SkillTreeCategory,
   type WeaponId
 } from "./game";
 
@@ -160,6 +164,9 @@ export default function App() {
     return { ...defaults, activeX: -1, activeY: -1 };
   });
   const editDragRef = useRef<"move" | "aim" | "active" | null>(null);
+  const [showPause, setShowPause] = useState(false);
+  const [skillTreeTab, setSkillTreeTab] = useState(0);
+  const skillTreeData = useRef(getSkillTree());
 
   const selectedCharacterOption = characterOptions.find((character) => character.id === selectedCharacter) || characterOptions[0];
   const selectedWeaponOption = weaponOptions.find((weapon) => weapon.id === selectedWeapon) || weaponOptions[0];
@@ -238,7 +245,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const gameplayEnabled = menu === "run" && !paused && !choices.length && !stats.gameOver;
+    const gameplayEnabled = menu === "run" && !paused && !choices.length && !stats.gameOver && !showPause;
 
     const updateFromKeys = () => {
       const keys = keysRef.current;
@@ -353,7 +360,7 @@ export default function App() {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [paused, choices.length]);
+  }, [paused, choices.length, showPause]);
 
   const chooseUpgrade = (choice: Choice) => {
     choice.apply(gameRef.current);
@@ -451,11 +458,17 @@ export default function App() {
     setChoices([]);
     setPaused(true);
     setMenu("main");
+    setShowPause(false);
     setStats(getHudStats(gameRef.current));
   };
 
+  const togglePause = () => {
+    if (menu !== "run" || stats.gameOver || choices.length) return;
+    setShowPause((prev) => !prev);
+  };
+
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (menu !== "run" || paused || choices.length || stats.gameOver) return;
+    if (menu !== "run" || paused || choices.length || stats.gameOver || showPause) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     const controls = controlsRef.current;
@@ -603,6 +616,88 @@ export default function App() {
             <strong>Active</strong>
           </button>
         ) : null}
+
+        {menu === "run" && !stats.gameOver && !choices.length ? (
+          <button
+            type="button"
+            className="pause-button"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              togglePause();
+            }}
+            aria-label="Pause"
+          >
+            <span>{showPause ? "▶" : "❚❚"}</span>
+          </button>
+        ) : null}
+
+        {showPause && menu === "run" ? (() => {
+          const acquired = getAcquiredUpgrades(gameRef.current);
+          const acquiredIds = new Set(acquired.map((a) => a.id));
+          const tree = skillTreeData.current;
+          const tab = Math.min(skillTreeTab, tree.length - 1);
+          const category = tree[tab];
+          return (
+            <div className="modal pause-modal" onPointerDown={(event) => event.stopPropagation()}>
+              <div className="pause-header">
+                <div>
+                  <p className="eyebrow">Paused</p>
+                  <h2>Skill Tree</h2>
+                </div>
+                <button type="button" onClick={togglePause}>Resume</button>
+              </div>
+              <div className="skill-tree-tabs">
+                {tree.map((cat, i) => {
+                  const acquiredInCat = cat.nodes.filter((n) => acquiredIds.has(n.id)).length;
+                  return (
+                    <button
+                      key={cat.name}
+                      className={i === tab ? "selected" : ""}
+                      type="button"
+                      onClick={() => setSkillTreeTab(i)}
+                    >
+                      <strong>{cat.name}</strong>
+                      <span>{acquiredInCat}/{cat.nodes.length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="skill-tree-nodes">
+                {category.nodes.map((node) => {
+                  const acquired = acquiredIds.has(node.id);
+                  const unlocked = isUpgradeUnlocked(gameRef.current, node);
+                  const missingReqs = node.requires.filter((r) => !acquiredIds.has(r));
+                  return (
+                    <div
+                      key={node.id}
+                      className={`skill-node rarity-${node.rarity}${acquired ? " acquired" : ""}${!acquired && !unlocked ? " locked" : ""}`}
+                    >
+                      <div className="skill-node-header">
+                        <strong>{node.name}</strong>
+                        <i>{node.rarity}</i>
+                      </div>
+                      <p>{node.description}</p>
+                      {missingReqs.length > 0 ? (
+                        <div className="skill-reqs">
+                          <span>Requires:</span>
+                          {missingReqs.map((req) => {
+                            const reqDef = tree.flatMap((c) => c.nodes).find((n) => n.id === req);
+                            return <em key={req}>{reqDef?.name ?? req}</em>;
+                          })}
+                        </div>
+                      ) : null}
+                      {acquired ? <em className="skill-acquired-tag">Acquired</em> : null}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="pause-actions">
+                <button type="button" onClick={togglePause}>Resume</button>
+                <button type="button" onClick={backToMenu}>Quit Run</button>
+              </div>
+            </div>
+          );
+        })() : null}
 
         {menu === "main" && !stats.gameOver ? (
           <div className="modal menu-modal" onPointerDown={(event) => event.stopPropagation()}>

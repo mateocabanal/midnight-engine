@@ -178,6 +178,8 @@ export type Game = {
   draft: DraftState;
   summary: RunSummary;
   activeLatch: boolean;
+  screenShake: number;
+  combo: { count: number; timer: number; best: number };
   ui: {
     time: string;
     level: string;
@@ -192,6 +194,7 @@ export type Game = {
     threat: number;
     rerolls: number;
     banishes: number;
+    combo: number;
     runState: RunState;
     gameOver: boolean;
   };
@@ -1046,6 +1049,8 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       weaponId: loadout.weaponId
     },
     activeLatch: false,
+    screenShake: 0,
+    combo: { count: 0, timer: 0, best: 0 },
     ui: {
       time: "00:00",
       level: "1",
@@ -1060,6 +1065,7 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       threat: directorPhases[0].threat,
       rerolls: 1,
       banishes: 1,
+      combo: 0,
       runState: "playing",
       gameOver: false
     }
@@ -1663,6 +1669,7 @@ const updateDirector = (game: Game, dt: number): DirectorPhase => {
       spawnEnemy(game, true, "boss");
       text(game, game.player.x, game.player.y - 66, mark >= game.objective.duration - game.objective.finalWaveDuration ? "The Dawn Bell" : "mini-boss", "#fde68a");
       burst(game, game.player.x, game.player.y, "#fde68a", 32, 5);
+      addShake(game, 8);
     }
   }
 
@@ -1692,6 +1699,11 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
   }
 
   game.time += dt;
+  game.screenShake = Math.max(0, game.screenShake - dt * 30);
+  if (game.combo.timer > 0) {
+    game.combo.timer -= dt;
+    if (game.combo.timer <= 0) game.combo.count = 0;
+  }
   player.cooldown -= dt;
   player.reload = Math.max(0, player.reload - dt);
   if (player.reload <= 0) player.reloadDuration = 0;
@@ -1843,9 +1855,11 @@ export const drawGame = (
   }
 ) => {
   const { w, h } = game.screen;
+  const shakeX = game.screenShake > 0 ? (Math.random() - 0.5) * game.screenShake : 0;
+  const shakeY = game.screenShake > 0 ? (Math.random() - 0.5) * game.screenShake : 0;
   const camera = {
-    x: w / 2 - game.player.x,
-    y: h / 2 - game.player.y
+    x: w / 2 - game.player.x + shakeX,
+    y: h / 2 - game.player.y + shakeY
   };
   ctx.clearRect(0, 0, w, h);
 
@@ -2060,7 +2074,7 @@ const updateBullets = (game: Game, dt: number) => {
 
       const crit = Math.random() < bullet.crit;
       const damage = bullet.damage * (crit ? game.player.critDamage : 1);
-      hurtEnemy(game, enemy, damage, bullet.element);
+      hurtEnemy(game, enemy, damage, bullet.element, true, crit);
       burst(game, bullet.x, bullet.y, crit ? "#fef08a" : bulletColor(bullet.element), crit ? 8 : 4);
 
       if (bullet.split > 0) splitBullet(game, bullet);
@@ -2307,7 +2321,7 @@ const onReload = (game: Game) => {
   }
 };
 
-const hurtEnemy = (game: Game, enemy: Enemy, amount: number, element: Bullet["element"], flash = true) => {
+const hurtEnemy = (game: Game, enemy: Enemy, amount: number, element: Bullet["element"], flash = true, crit = false) => {
   const curseMult = enemy.curse > 0 ? 1 + (has(game, "malediction") ? 0.14 : 0.06) * Math.min(5, count(game, "hex_mark") + 1) : 1;
   const statusMult =
     (element === "fire" ? game.player.fireDamage : 1) *
@@ -2318,11 +2332,11 @@ const hurtEnemy = (game: Game, enemy: Enemy, amount: number, element: Bullet["el
   const damage = amount * curseMult * statusMult;
   enemy.hp -= damage;
   if (flash) {
-    enemy.hitFlash = 0.08;
-    if (enemy.damageNoticeCooldown <= 0) {
-      damageText(game, enemy, damage, bulletColor(element));
-      enemy.damageNoticeCooldown = 0.12;
-    }
+  enemy.hitFlash = 0.08;
+  if (enemy.damageNoticeCooldown <= 0) {
+    damageText(game, enemy, damage, bulletColor(element), crit);
+    enemy.damageNoticeCooldown = 0.12;
+  }
   }
 
   if (element === "fire") enemy.burn = Math.max(enemy.burn, has(game, "napalm") ? 3.2 : 2.3);
@@ -2362,12 +2376,22 @@ const hurtPlayer = (game: Game, amount: number, selfInflicted = false) => {
     damage -= blocked;
   }
   player.hp -= Math.max(0.1, damage - player.armour * 0.25);
+  if (!selfInflicted) addShake(game, 4);
 };
 
 const killEnemy = (game: Game, enemy: Enemy) => {
   game.kills += 1;
-  game.gems.push({ x: enemy.x, y: enemy.y, value: (enemy.maxHp > 50 ? 4 : 2) * (has(game, "greed") ? 1.15 : 1), magnet: rand(0, 16) });
+  game.combo.count += 1;
+  game.combo.timer = 2.5;
+  game.combo.best = Math.max(game.combo.best, game.combo.count);
+  const comboBonus = Math.min(0.5, game.combo.count * 0.02);
+  game.gems.push({ x: enemy.x, y: enemy.y, value: Math.round((enemy.maxHp > 50 ? 4 : 2) * (has(game, "greed") ? 1.15 : 1) * (1 + comboBonus)), magnet: rand(0, 16) });
   burst(game, enemy.x, enemy.y, "#fb7185", 9);
+  if (enemy.kind === "boss" || enemy.kind === "elite") addShake(game, 6);
+  if (game.combo.count >= 10 && game.combo.count % 10 === 0) {
+    text(game, game.player.x, game.player.y - 48, `${game.combo.count}x COMBO!`, "#fde68a");
+    addShake(game, 2);
+  }
 
   if ((has(game, "vampiric_shell") || has(game, "cauterize")) && (has(game, "vampiric_shell") || enemy.burn > 0)) {
     const heal = has(game, "blood_economy") ? 3.2 : 1.6;
@@ -2588,17 +2612,21 @@ const text = (game: Game, x: number, y: number, value: string, color: string) =>
   game.particles.push({ x, y, vx: 0, vy: -22, life: 0.8, color, text: value, size: 13 });
 };
 
-const damageText = (game: Game, enemy: Enemy, amount: number, color: string) => {
+const addShake = (game: Game, amount: number) => {
+  game.screenShake = Math.min(18, game.screenShake + amount);
+};
+
+const damageText = (game: Game, enemy: Enemy, amount: number, color: string, crit = false) => {
   const value = amount < 2 ? amount.toFixed(1) : String(Math.round(amount));
   game.particles.push({
     x: enemy.x + rand(-enemy.r * 0.45, enemy.r * 0.45),
     y: enemy.y - enemy.r - 6,
     vx: rand(-14, 14),
     vy: rand(-46, -28),
-    life: 0.62,
-    color,
-    text: value,
-    size: amount > 28 ? 18 : amount > 12 ? 15 : 13
+    life: crit ? 0.8 : 0.62,
+    color: crit ? "#fef08a" : color,
+    text: crit ? `${value}!` : value,
+    size: crit ? 20 : amount > 28 ? 18 : amount > 12 ? 15 : 13
   });
 };
 
@@ -2619,6 +2647,7 @@ const updateUi = (game: Game) => {
     threat: Number(game.director.threat.toFixed(1)),
     rerolls: game.draft.rerolls,
     banishes: game.draft.banishes,
+    combo: game.combo.count,
     runState: game.runState,
     gameOver: game.gameOver
   };
@@ -2833,9 +2862,9 @@ const drawEnemy = (ctx: CanvasRenderingContext2D, enemy: Enemy, time: number) =>
   }
   ctx.restore();
 
-  ctx.fillStyle = "#320715";
-  ctx.fillRect(enemy.x - enemy.r, enemy.y - enemy.r - 9, enemy.r * 2, 3.5);
-  ctx.fillStyle = enemy.kind === "boss" ? "#fde68a" : "#fda4af";
+  ctx.fillStyle = "rgba(3, 7, 18, 0.72)";
+  ctx.fillRect(enemy.x - enemy.r - 1, enemy.y - enemy.r - 10, enemy.r * 2 + 2, 5.5);
+  ctx.fillStyle = enemy.kind === "boss" ? "#fde68a" : enemy.kind === "elite" ? "#fb923c" : "#fda4af";
   ctx.fillRect(enemy.x - enemy.r, enemy.y - enemy.r - 9, enemy.r * 2 * hpPct, 3.5);
 };
 

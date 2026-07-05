@@ -585,6 +585,17 @@ export default function App() {
           </header>
         ) : null}
 
+        {menu === "run" && stats.combo >= 3 ? (
+          <div className="combo-display" aria-label={`Kill combo ${stats.combo}`}>
+            <strong>{stats.combo}</strong>
+            <span>combo</span>
+          </div>
+        ) : null}
+
+        {menu === "run" && stats.hpPct <= 30 && !stats.gameOver ? (
+          <div className="hp-vignette" aria-hidden="true" />
+        ) : null}
+
         {menu === "run" && !stats.gameOver ? (
           <button
             type="button"

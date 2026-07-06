@@ -511,110 +511,259 @@ const playerSprite = (id: string, label: string, primary: string, secondary: str
 export const spriteCatalog: SpriteCatalog = {
   players: {
     saint: playerSprite("saint", "Saint", "#f8fafc", "#fde68a", "S", [
+      { shape: "ring", r: 16, stroke: "#fde68a", lineWidth: 1, alpha: 0.28 },
       { shape: "diamond", r: 19, fill: "rgba(3, 7, 18, 0.84)", stroke: "#fde68a", lineWidth: 2.5, pulse: 1.1 },
-      { shape: "ring", r: 10, stroke: "#f8fafc", lineWidth: 1.3, alpha: 0.7 }
+      { shape: "ring", r: 10, stroke: "#f8fafc", lineWidth: 1.3, alpha: 0.7 },
+      { shape: "circle", r: 3, x: 0, y: -8, fill: "#fde68a", alpha: 0.85 },
+      { shape: "line", x: -7, y: 6, w: 14, h: 0, stroke: "#fde68a", lineWidth: 1, alpha: 0.4 }
     ]),
     ilya: playerSprite("ilya", "Ilya", "#72f5ff", "#2563eb", "I", [
+      { shape: "ring", r: 16, stroke: "#72f5ff", lineWidth: 1, alpha: 0.2 },
       { shape: "polygon", fill: "rgba(3, 7, 18, 0.84)", stroke: "#72f5ff", lineWidth: 2.5, points: [
         { x: -16, y: -16 }, { x: 3, y: -16 }, { x: -3, y: -1 }, { x: 18, y: -1 }, { x: -2, y: 20 }, { x: 2, y: 5 }, { x: -18, y: 5 }
-      ], pulse: 0.9 },
-      { shape: "line", x: -12, y: -7, w: 22, h: 20, stroke: "#bfdbfe", lineWidth: 1.6, alpha: 0.82 }
+      ], pulse: 1.2 },
+      { shape: "line", x: -14, y: 0, w: 22, h: 0, stroke: "#bfdbfe", lineWidth: 1.4, alpha: 0.6 },
+      { shape: "circle", r: 2.5, x: -6, y: -8, fill: "#72f5ff" },
+      { shape: "circle", r: 2.5, x: 8, y: 2, fill: "#72f5ff" }
     ]),
     nox: playerSprite("nox", "Nox", "#86efac", "#16a34a", "N", [
+      { shape: "ring", r: 17, stroke: "#16a34a", lineWidth: 1, alpha: 0.22 },
       { shape: "polygon", fill: "rgba(3, 7, 18, 0.84)", stroke: "#86efac", lineWidth: 2.5, points: [
         { x: 0, y: -21 }, { x: 18, y: -6 }, { x: 20, y: 8 }, { x: 7, y: 22 }, { x: -7, y: 22 }, { x: -20, y: 8 }, { x: -18, y: -6 }
       ], pulse: 0.8 },
       { shape: "circle", r: 4, x: -8, y: -3, fill: "#bbf7d0" },
-      { shape: "circle", r: 4, x: 8, y: -3, fill: "#bbf7d0" }
+      { shape: "circle", r: 4, x: 8, y: -3, fill: "#bbf7d0" },
+      { shape: "circle", r: 1.8, x: -8, y: -3, fill: "#16a34a" },
+      { shape: "circle", r: 1.8, x: 8, y: -3, fill: "#16a34a" },
+      { shape: "line", x: -6, y: 10, w: 12, h: 0, stroke: "#16a34a", lineWidth: 1, alpha: 0.5 }
     ]),
     mira: playerSprite("mira", "Mira", "#e9d5ff", "#a78bfa", "M", [
-      { shape: "diamond", x: -8, y: 2, r: 16, fill: "#a78bfa", alpha: 0.32 },
-      { shape: "diamond", x: 8, y: 2, r: 16, fill: "#a78bfa", alpha: 0.32 },
-      { shape: "diamond", r: 19, fill: "rgba(3, 7, 18, 0.84)", stroke: "#e9d5ff", lineWidth: 2.5, pulse: 1 }
+      { shape: "diamond", x: -8, y: 2, r: 16, fill: "#a78bfa", alpha: 0.18 },
+      { shape: "diamond", x: 8, y: 2, r: 16, fill: "#a78bfa", alpha: 0.18 },
+      { shape: "diamond", r: 19, fill: "rgba(3, 7, 18, 0.84)", stroke: "#e9d5ff", lineWidth: 2.5, pulse: 1 },
+      { shape: "diamond", r: 8, fill: "#a78bfa", alpha: 0.3 },
+      { shape: "circle", r: 2, x: 0, y: 0, fill: "#f5d0fe" }
     ]),
     scarlett: playerSprite("scarlett", "Scarlett", "#fb923c", "#dc2626", "R", [
       { shape: "polygon", fill: "rgba(3, 7, 18, 0.84)", stroke: "#fb923c", lineWidth: 2.5, points: [
         { x: 0, y: -24 }, { x: 19, y: -2 }, { x: 8, y: 23 }, { x: 0, y: 16 }, { x: -8, y: 23 }, { x: -19, y: -2 }
       ], pulse: 1.2 },
-      { shape: "diamond", r: 7, y: -5, fill: "#fed7aa", alpha: 0.85 }
+      { shape: "diamond", r: 7, y: -5, fill: "#fed7aa", alpha: 0.85 },
+      { shape: "circle", r: 2, y: -8, fill: "#dc2626" },
+      { shape: "line", x: -8, y: 8, w: 16, h: 0, stroke: "#dc2626", lineWidth: 1, alpha: 0.45 }
     ]),
     corvus: playerSprite("corvus", "Corvus", "#c4b5fd", "#1f123d", "C", [
+      { shape: "ring", r: 18, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.2 },
       { shape: "polygon", fill: "rgba(3, 7, 18, 0.9)", stroke: "#c4b5fd", lineWidth: 2.5, points: [
         { x: 0, y: -22 }, { x: 27, y: 16 }, { x: 7, y: 12 }, { x: 0, y: 24 }, { x: -7, y: 12 }, { x: -27, y: 16 }
-      ], pulse: 0.9 }
+      ], pulse: 0.9 },
+      { shape: "circle", r: 3, x: 0, y: -6, fill: "#c4b5fd", alpha: 0.8 },
+      { shape: "line", x: -18, y: 10, w: 36, h: 0, stroke: "#1f123d", lineWidth: 1, alpha: 0.5 }
     ]),
     kaden: playerSprite("kaden", "Kaden", "#fed7aa", "#92400e", "K", [
+      { shape: "ring", r: 19, stroke: "#92400e", lineWidth: 1, alpha: 0.2 },
       { shape: "polygon", fill: "rgba(3, 7, 18, 0.86)", stroke: "#fed7aa", lineWidth: 3, points: [
         { x: 0, y: -22 }, { x: 22, y: -3 }, { x: 16, y: 17 }, { x: 0, y: 24 }, { x: -16, y: 17 }, { x: -22, y: -3 }
       ], pulse: 0.65 },
-      { shape: "rect", w: 24, h: 8, y: 8, fill: "rgba(146, 64, 14, 0.72)", stroke: "#fed7aa", lineWidth: 1 }
+      { shape: "rect", w: 24, h: 8, y: 8, fill: "rgba(146, 64, 14, 0.72)", stroke: "#fed7aa", lineWidth: 1 },
+      { shape: "circle", r: 2.5, x: 0, y: -8, fill: "#fed7aa" },
+      { shape: "line", x: -10, y: -2, w: 20, h: 0, stroke: "#92400e", lineWidth: 1, alpha: 0.4 }
     ]),
     lyra: playerSprite("lyra", "Lyra", "#f0abfc", "#7c3aed", "L", [
       { shape: "ring", r: 20, stroke: "#f0abfc", lineWidth: 3, pulse: 1.1 },
+      { shape: "ring", r: 16, stroke: "#7c3aed", lineWidth: 1.5, alpha: 0.4 },
       { shape: "circle", r: 12, fill: "rgba(3, 7, 18, 0.84)", stroke: "#f0abfc", lineWidth: 2 },
+      { shape: "circle", r: 4, fill: "#f5d0fe", alpha: 0.6 },
       { shape: "line", x: -14, y: 0, w: 28, h: 0, stroke: "#f5d0fe", lineWidth: 1.4, alpha: 0.72 }
     ])
   },
   enemies: {
     grunt: { id: "grunt", label: "Husk", palette: { primary: "#e11d48", secondary: "#fb7185", shadow: "#e11d48" }, layers: [
-      { shape: "circle", r: 12, fill: "#e11d48", stroke: "#fb7185", lineWidth: 1.5 },
-      { shape: "circle", x: -4, y: -3, r: 2.2, fill: "#fecdd3" },
-      { shape: "circle", x: 4, y: -3, r: 2.2, fill: "#fecdd3" }
+      { shape: "ring", r: 14, stroke: "#e11d48", lineWidth: 1, alpha: 0.18 },
+      { shape: "circle", r: 12, fill: "#9f1239", stroke: "#fb7185", lineWidth: 1.5 },
+      { shape: "circle", r: 9, fill: "#e11d48", alpha: 0.5 },
+      { shape: "circle", r: 2.5, x: -4, y: -3, fill: "#fecdd3" },
+      { shape: "circle", r: 2.5, x: 4, y: -3, fill: "#fecdd3" },
+      { shape: "circle", r: 1, x: -4, y: -3, fill: "#450a0a" },
+      { shape: "circle", r: 1, x: 4, y: -3, fill: "#450a0a" },
+      { shape: "line", x: -4, y: 5, w: 8, h: 0, stroke: "#450a0a", lineWidth: 1.5, alpha: 0.7 }
     ]},
     runner: { id: "runner", label: "Skitter", palette: { primary: "#fb7185", secondary: "#fecdd3", shadow: "#fb7185" }, layers: [
-      { shape: "polygon", fill: "#be123c", stroke: "#fb7185", lineWidth: 1.5, points: [{x:14,y:0},{x:0,y:-9},{x:-12,y:-5},{x:-6,y:0},{x:-12,y:5},{x:0,y:9}], pulse: 1.2 },
+      { shape: "polygon", fill: "#881337", stroke: "#fb7185", lineWidth: 1.5, points: [{x:14,y:0},{x:0,y:-9},{x:-12,y:-5},{x:-6,y:0},{x:-12,y:5},{x:0,y:9}], pulse: 1.2 },
+      { shape: "polygon", fill: "#be123c", alpha: 0.55, points: [{x:10,y:0},{x:0,y:-6},{x:-8,y:-3},{x:-4,y:0},{x:-8,y:3},{x:0,y:6}] },
       { shape: "line", x: -4, y: -9, w: 10, h: -8, stroke: "#fecdd3", lineWidth: 1.2 },
-      { shape: "line", x: -4, y: 9, w: 10, h: 8, stroke: "#fecdd3", lineWidth: 1.2 }
+      { shape: "line", x: -4, y: 9, w: 10, h: 8, stroke: "#fecdd3", lineWidth: 1.2 },
+      { shape: "circle", r: 1.8, x: 3, y: -2, fill: "#fef2f2" },
+      { shape: "circle", r: 1.8, x: 3, y: 2, fill: "#fef2f2" }
     ]},
     brute: { id: "brute", label: "Grave Brute", palette: { primary: "#dc2626", secondary: "#fed7aa", shadow: "#991b1b" }, layers: [
-      { shape: "ring", r: 18, stroke: "#7f1d1d", lineWidth: 5, alpha: 0.5 },
-      { shape: "circle", r: 17, fill: "#7f1d1d", stroke: "#fed7aa", lineWidth: 2.2 },
-      { shape: "rect", w: 23, h: 7, y: 7, fill: "#dc2626", stroke: "#fed7aa", lineWidth: 1.1 }
+      { shape: "ring", r: 20, stroke: "#7f1d1d", lineWidth: 3, alpha: 0.3 },
+      { shape: "circle", r: 17, fill: "#450a0a", stroke: "#7f1d1d", lineWidth: 2.2 },
+      { shape: "circle", r: 14, fill: "#7f1d1d", alpha: 0.7 },
+      { shape: "rect", w: 23, h: 7, y: 7, fill: "#dc2626", stroke: "#fed7aa", lineWidth: 1.1 },
+      { shape: "circle", r: 3, x: -6, y: -4, fill: "#fbbf24", alpha: 0.8 },
+      { shape: "circle", r: 3, x: 6, y: -4, fill: "#fbbf24", alpha: 0.8 },
+      { shape: "circle", r: 1.2, x: -6, y: -4, fill: "#450a0a" },
+      { shape: "circle", r: 1.2, x: 6, y: -4, fill: "#450a0a" }
     ]},
     spitter: { id: "spitter", label: "Venom Choir", palette: { primary: "#86efac", secondary: "#bbf7d0", shadow: "#16a34a" }, layers: [
-      { shape: "diamond", r: 15, fill: "#14532d", stroke: "#86efac", lineWidth: 2, pulse: 1.1 },
+      { shape: "ring", r: 17, stroke: "#14532d", lineWidth: 1, alpha: 0.2 },
+      { shape: "diamond", r: 15, fill: "#052e16", stroke: "#86efac", lineWidth: 2, pulse: 1.1 },
+      { shape: "diamond", r: 11, fill: "#14532d", alpha: 0.6 },
       { shape: "circle", r: 6, fill: "#86efac", alpha: 0.75 },
-      { shape: "line", x: -12, y: 12, w: 24, h: -24, stroke: "#bbf7d0", lineWidth: 1.4 }
+      { shape: "circle", r: 3, fill: "#bbf7d0" },
+      { shape: "line", x: -12, y: 12, w: 24, h: -24, stroke: "#bbf7d0", lineWidth: 1.4, alpha: 0.5 },
+      { shape: "circle", r: 2, x: -10, y: 10, fill: "#86efac", alpha: 0.6 },
+      { shape: "circle", r: 2, x: 10, y: -10, fill: "#86efac", alpha: 0.6 }
     ]},
     charger: { id: "charger", label: "Gore Charger", palette: { primary: "#f43f5e", secondary: "#fef2f2", shadow: "#be123c" }, layers: [
-      { shape: "polygon", fill: "#881337", stroke: "#f43f5e", lineWidth: 2, points: [{x:22,y:0},{x:3,y:-15},{x:-15,y:-9},{x:-8,y:0},{x:-15,y:9},{x:3,y:15}], pulse: 0.9 },
+      { shape: "ring", r: 18, stroke: "#be123c", lineWidth: 1, alpha: 0.15 },
+      { shape: "polygon", fill: "#4c0519", stroke: "#f43f5e", lineWidth: 2, points: [{x:22,y:0},{x:3,y:-15},{x:-15,y:-9},{x:-8,y:0},{x:-15,y:9},{x:3,y:15}], pulse: 0.9 },
+      { shape: "polygon", fill: "#881337", alpha: 0.55, points: [{x:16,y:0},{x:2,y:-11},{x:-11,y:-6},{x:-5,y:0},{x:-11,y:6},{x:2,y:11}] },
       { shape: "line", x: 2, y: -10, w: 17, h: 10, stroke: "#fef2f2", lineWidth: 1.5 },
-      { shape: "line", x: 2, y: 10, w: 17, h: -10, stroke: "#fef2f2", lineWidth: 1.5 }
+      { shape: "line", x: 2, y: 10, w: 17, h: -10, stroke: "#fef2f2", lineWidth: 1.5 },
+      { shape: "circle", r: 2, x: 6, y: -3, fill: "#fef2f2" },
+      { shape: "circle", r: 2, x: 6, y: 3, fill: "#fef2f2" }
     ]},
     elite: { id: "elite", label: "Bellguard", palette: { primary: "#f97316", secondary: "#fde68a", shadow: "#fb923c" }, layers: [
-      { shape: "ring", r: 20, stroke: "#fde68a", lineWidth: 2.4, alpha: 0.72, pulse: 1 },
-      { shape: "diamond", r: 17, fill: "#9f1239", stroke: "#fb923c", lineWidth: 2.2 },
-      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#ffedd5", lineWidth: 1.8 }
+      { shape: "ring", r: 22, stroke: "#fde68a", lineWidth: 1, alpha: 0.2, pulse: 1 },
+      { shape: "ring", r: 20, stroke: "#fde68a", lineWidth: 2.4, alpha: 0.5 },
+      { shape: "diamond", r: 17, fill: "#7c2d12", stroke: "#fb923c", lineWidth: 2.2 },
+      { shape: "diamond", r: 13, fill: "#9a3412", alpha: 0.5 },
+      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#ffedd5", lineWidth: 1.8 },
+      { shape: "circle", r: 3, x: 0, y: -6, fill: "#fde68a", alpha: 0.8 },
+      { shape: "circle", r: 1.2, x: 0, y: -6, fill: "#7c2d12" },
+      { shape: "circle", r: 2, x: -7, y: 5, fill: "#fde68a", alpha: 0.5 },
+      { shape: "circle", r: 2, x: 7, y: 5, fill: "#fde68a", alpha: 0.5 }
     ]},
     boss: { id: "boss", label: "Cathedral Bell", palette: { primary: "#a855f7", secondary: "#fde68a", shadow: "#a855f7" }, layers: [
-      { shape: "ring", r: 33, stroke: "#fde68a", lineWidth: 3, alpha: 0.78, pulse: 2 },
-      { shape: "polygon", fill: "#2e1065", stroke: "#c4b5fd", lineWidth: 3, points: [
+      { shape: "ring", r: 38, stroke: "#fde68a", lineWidth: 1, alpha: 0.12, pulse: 2 },
+      { shape: "ring", r: 33, stroke: "#fde68a", lineWidth: 3, alpha: 0.55, pulse: 2 },
+      { shape: "polygon", fill: "#1e1b4b", stroke: "#c4b5fd", lineWidth: 3, points: [
         { x: 0, y: -34 }, { x: 27, y: -9 }, { x: 22, y: 23 }, { x: 0, y: 34 }, { x: -22, y: 23 }, { x: -27, y: -9 }
       ]},
-      { shape: "diamond", r: 11, fill: "#fde68a", alpha: 0.85 }
+      { shape: "polygon", fill: "#2e1065", alpha: 0.6, points: [
+        { x: 0, y: -26 }, { x: 20, y: -6 }, { x: 16, y: 17 }, { x: 0, y: 25 }, { x: -16, y: 17 }, { x: -20, y: -6 }
+      ]},
+      { shape: "diamond", r: 14, fill: "#fde68a", alpha: 0.15 },
+      { shape: "diamond", r: 11, fill: "#fde68a", alpha: 0.4 },
+      { shape: "diamond", r: 7, fill: "#fef3c7" },
+      { shape: "circle", r: 2, x: 0, y: 0, fill: "#a855f7" },
+      { shape: "line", x: -16, y: -14, w: 32, h: 0, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.3 },
+      { shape: "line", x: -16, y: 14, w: 32, h: 0, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.3 }
     ]}
   },
   bullets: {
-    kinetic: { id: "kinetic", label: "Kinetic", palette: { primary: "#f8fafc", secondary: "#cbd5e1" }, layers: [{ shape: "capsule", w: 16, h: 7, fill: "#f8fafc" }] },
-    lightning: { id: "lightning", label: "Lightning", palette: { primary: "#72f5ff", secondary: "#2563eb" }, layers: [{ shape: "line", x: -10, y: -4, w: 8, h: 6, stroke: "#72f5ff", lineWidth: 2 }, { shape: "line", x: -2, y: 2, w: 12, h: -6, stroke: "#72f5ff", lineWidth: 2 }] },
-    fire: { id: "fire", label: "Fire", palette: { primary: "#fb923c", secondary: "#fed7aa" }, layers: [{ shape: "polygon", fill: "#fb923c", points: [{x: 12, y:0},{x:-3,y:-8},{x:-9,y:0},{x:-3,y:8}] }] },
-    ice: { id: "ice", label: "Ice", palette: { primary: "#93c5fd", secondary: "#e0f2fe" }, layers: [{ shape: "diamond", r: 8, fill: "#93c5fd", stroke: "#e0f2fe", lineWidth: 1.5 }] },
-    blood: { id: "blood", label: "Blood", palette: { primary: "#fb7185", secondary: "#fecdd3" }, layers: [{ shape: "circle", r: 6, fill: "#fb7185" }, { shape: "diamond", r: 4, x: 7, fill: "#fecdd3", alpha: 0.72 }] },
-    void: { id: "void", label: "Void", palette: { primary: "#c084fc", secondary: "#581c87" }, layers: [{ shape: "ring", r: 8, stroke: "#c084fc", lineWidth: 2 }, { shape: "circle", r: 3, fill: "#f5d0fe" }] }
+    kinetic: { id: "kinetic", label: "Kinetic", palette: { primary: "#f8fafc", secondary: "#cbd5e1" }, layers: [
+      { shape: "circle", r: 5, fill: "#cbd5e1", alpha: 0.3 },
+      { shape: "capsule", w: 16, h: 7, fill: "#f8fafc" },
+      { shape: "circle", r: 2, x: 4, y: 0, fill: "#ffffff" }
+    ]},
+    lightning: { id: "lightning", label: "Lightning", palette: { primary: "#72f5ff", secondary: "#2563eb" }, layers: [
+      { shape: "circle", r: 6, fill: "#72f5ff", alpha: 0.2 },
+      { shape: "line", x: -10, y: -4, w: 8, h: 6, stroke: "#72f5ff", lineWidth: 2.5 },
+      { shape: "line", x: -2, y: 2, w: 12, h: -6, stroke: "#72f5ff", lineWidth: 2.5 },
+      { shape: "circle", r: 2, x: 4, y: 0, fill: "#ffffff" }
+    ]},
+    fire: { id: "fire", label: "Fire", palette: { primary: "#fb923c", secondary: "#fed7aa" }, layers: [
+      { shape: "circle", r: 6, fill: "#fb923c", alpha: 0.2 },
+      { shape: "polygon", fill: "#dc2626", points: [{x: 10, y:0},{x:-2,y:-7},{x:-8,y:0},{x:-2,y:7}] },
+      { shape: "polygon", fill: "#fb923c", points: [{x: 8, y:0},{x:-1,y:-5},{x:-5,y:0},{x:-1,y:5}] },
+      { shape: "circle", r: 2, x: 2, y: 0, fill: "#fef3c7" }
+    ]},
+    ice: { id: "ice", label: "Ice", palette: { primary: "#93c5fd", secondary: "#e0f2fe" }, layers: [
+      { shape: "circle", r: 7, fill: "#93c5fd", alpha: 0.18 },
+      { shape: "diamond", r: 8, fill: "#3b82f6", stroke: "#e0f2fe", lineWidth: 1.5 },
+      { shape: "diamond", r: 5, fill: "#93c5fd" },
+      { shape: "circle", r: 1.5, x: 0, y: 0, fill: "#ffffff" }
+    ]},
+    blood: { id: "blood", label: "Blood", palette: { primary: "#fb7185", secondary: "#fecdd3" }, layers: [
+      { shape: "circle", r: 7, fill: "#fb7185", alpha: 0.2 },
+      { shape: "circle", r: 6, fill: "#be123c" },
+      { shape: "diamond", r: 4, x: 7, fill: "#fecdd3", alpha: 0.72 },
+      { shape: "circle", r: 2, x: -1, y: 0, fill: "#fef2f2" }
+    ]},
+    void: { id: "void", label: "Void", palette: { primary: "#c084fc", secondary: "#581c87" }, layers: [
+      { shape: "circle", r: 10, fill: "#c084fc", alpha: 0.12 },
+      { shape: "ring", r: 8, stroke: "#c084fc", lineWidth: 2 },
+      { shape: "ring", r: 5, stroke: "#a855f7", lineWidth: 1, alpha: 0.5 },
+      { shape: "circle", r: 3, fill: "#f5d0fe" },
+      { shape: "circle", r: 1, x: 0, y: 0, fill: "#ffffff" }
+    ]}
   },
   summons: {
-    wisp: { id: "wisp", label: "Wisp", palette: { primary: "#f0abfc", secondary: "#f5d0fe" }, layers: [{ shape: "ring", r: 13, stroke: "#f0abfc", lineWidth: 1.8, alpha: 0.55 }, { shape: "circle", r: 7, fill: "#f0abfc" }] },
-    hound: { id: "hound", label: "Hound", palette: { primary: "#fbbf24", secondary: "#fde68a" }, layers: [{ shape: "capsule", w: 20, h: 10, fill: "#fbbf24" }, { shape: "circle", x: 10, y: -4, r: 5, fill: "#fde68a" }] },
-    turret: { id: "turret", label: "Turret", palette: { primary: "#cbd5e1", secondary: "#94a3b8" }, layers: [{ shape: "rect", w: 16, h: 16, fill: "rgba(3,7,18,0.76)", stroke: "#cbd5e1", lineWidth: 2 }, { shape: "line", x: 0, y: 0, w: 16, h: 0, stroke: "#cbd5e1", lineWidth: 2 }] },
-    drone: { id: "drone", label: "Drone", palette: { primary: "#67e8f9", secondary: "#cffafe" }, layers: [{ shape: "ring", r: 9, stroke: "#67e8f9", lineWidth: 2 }, { shape: "line", x: -14, y: 0, w: 28, h: 0, stroke: "#cffafe", lineWidth: 1.4 }] },
-    mite: { id: "mite", label: "Mite", palette: { primary: "#86efac", secondary: "#bbf7d0" }, layers: [{ shape: "polygon", fill: "#86efac", points: [{x:10,y:0},{x:0,y:-7},{x:-9,y:-4},{x:-5,y:0},{x:-9,y:4},{x:0,y:7}] }] },
-    blade: { id: "blade", label: "Blade", palette: { primary: "#c4b5fd", secondary: "#ddd6fe" }, layers: [{ shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#c4b5fd", lineWidth: 2.2 }, { shape: "ring", r: 8, stroke: "#ddd6fe", lineWidth: 1.4 }] },
-    wasp: { id: "wasp", label: "Wasp", palette: { primary: "#86efac", secondary: "#fef08a" }, layers: [{ shape: "polygon", fill: "#86efac", points: [{x:11,y:0},{x:0,y:-7},{x:-10,y:-4},{x:-5,y:0},{x:-10,y:4},{x:0,y:7}] }, { shape: "circle", x: -2, y: -7, r: 5, fill: "#fef08a", alpha: 0.42 }, { shape: "circle", x: -2, y: 7, r: 5, fill: "#fef08a", alpha: 0.42 }] },
-    chakram: { id: "chakram", label: "Chakram", palette: { primary: "#c4b5fd", secondary: "#f5d0fe" }, layers: [{ shape: "ring", r: 10, stroke: "#c4b5fd", lineWidth: 2.2 }, { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#f5d0fe", lineWidth: 1.4 }] },
-    orb: { id: "orb", label: "Orb", palette: { primary: "#f8fafc", secondary: "#cbd5e1" }, layers: [{ shape: "diamond", r: 8, fill: "#f8fafc", stroke: "#cbd5e1", lineWidth: 1.4 }] }
+    wisp: { id: "wisp", label: "Wisp", palette: { primary: "#f0abfc", secondary: "#f5d0fe" }, layers: [
+      { shape: "ring", r: 14, stroke: "#f0abfc", lineWidth: 1, alpha: 0.2 },
+      { shape: "ring", r: 13, stroke: "#f0abfc", lineWidth: 1.8, alpha: 0.5 },
+      { shape: "circle", r: 8, fill: "#f0abfc", alpha: 0.3 },
+      { shape: "circle", r: 7, fill: "#f5d0fe" },
+      { shape: "circle", r: 3, fill: "#ffffff", alpha: 0.7 }
+    ]},
+    hound: { id: "hound", label: "Hound", palette: { primary: "#fbbf24", secondary: "#fde68a" }, layers: [
+      { shape: "capsule", w: 20, h: 10, fill: "#92400e" },
+      { shape: "capsule", w: 16, h: 8, fill: "#fbbf24", x: 1, y: -1 },
+      { shape: "circle", x: 10, y: -4, r: 5, fill: "#fde68a" },
+      { shape: "circle", r: 1.5, x: 11, y: -5, fill: "#451a03" },
+      { shape: "line", x: -8, y: -6, w: 6, h: -6, stroke: "#fbbf24", lineWidth: 2 },
+      { shape: "line", x: -8, y: 6, w: 6, h: 6, stroke: "#fbbf24", lineWidth: 2 }
+    ]},
+    turret: { id: "turret", label: "Turret", palette: { primary: "#cbd5e1", secondary: "#94a3b8" }, layers: [
+      { shape: "circle", r: 10, fill: "#1e293b", stroke: "#94a3b8", lineWidth: 1.5 },
+      { shape: "rect", w: 16, h: 16, fill: "rgba(3,7,18,0.76)", stroke: "#cbd5e1", lineWidth: 2 },
+      { shape: "circle", r: 4, fill: "#475569" },
+      { shape: "line", x: 0, y: 0, w: 16, h: 0, stroke: "#cbd5e1", lineWidth: 2 },
+      { shape: "circle", r: 1.5, x: 8, y: 0, fill: "#f8fafc" }
+    ]},
+    drone: { id: "drone", label: "Drone", palette: { primary: "#67e8f9", secondary: "#cffafe" }, layers: [
+      { shape: "ring", r: 11, stroke: "#67e8f9", lineWidth: 1, alpha: 0.2 },
+      { shape: "ring", r: 9, stroke: "#67e8f9", lineWidth: 2 },
+      { shape: "line", x: -14, y: 0, w: 28, h: 0, stroke: "#cffafe", lineWidth: 1.4 },
+      { shape: "circle", r: 3, fill: "#67e8f9", alpha: 0.6 },
+      { shape: "circle", r: 1.5, fill: "#ffffff" }
+    ]},
+    mite: { id: "mite", label: "Mite", palette: { primary: "#86efac", secondary: "#bbf7d0" }, layers: [
+      { shape: "circle", r: 8, fill: "#86efac", alpha: 0.15 },
+      { shape: "polygon", fill: "#15803d", points: [{x:10,y:0},{x:0,y:-7},{x:-9,y:-4},{x:-5,y:0},{x:-9,y:4},{x:0,y:7}] },
+      { shape: "polygon", fill: "#86efac", points: [{x:7,y:0},{x:0,y:-5},{x:-6,y:-2},{x:-3,y:0},{x:-6,y:2},{x:0,y:5}] },
+      { shape: "circle", r: 1.5, x: 2, y: 0, fill: "#bbf7d0" }
+    ]},
+    blade: { id: "blade", label: "Blade", palette: { primary: "#c4b5fd", secondary: "#ddd6fe" }, layers: [
+      { shape: "circle", r: 10, fill: "#c4b5fd", alpha: 0.12 },
+      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#7c3aed", lineWidth: 3 },
+      { shape: "line", x: -9, y: 0, w: 18, h: 0, stroke: "#c4b5fd", lineWidth: 1.5 },
+      { shape: "ring", r: 8, stroke: "#ddd6fe", lineWidth: 1.4 },
+      { shape: "circle", r: 2, fill: "#ffffff", alpha: 0.6 }
+    ]},
+    wasp: { id: "wasp", label: "Wasp", palette: { primary: "#86efac", secondary: "#fef08a" }, layers: [
+      { shape: "circle", r: 8, fill: "#86efac", alpha: 0.12 },
+      { shape: "polygon", fill: "#15803d", points: [{x:11,y:0},{x:0,y:-7},{x:-10,y:-4},{x:-5,y:0},{x:-10,y:4},{x:0,y:7}] },
+      { shape: "polygon", fill: "#86efac", points: [{x:8,y:0},{x:0,y:-5},{x:-7,y:-2},{x:-3,y:0},{x:-7,y:2},{x:0,y:5}] },
+      { shape: "circle", x: -2, y: -7, r: 5, fill: "#fef08a", alpha: 0.35 },
+      { shape: "circle", x: -2, y: 7, r: 5, fill: "#fef08a", alpha: 0.35 },
+      { shape: "circle", r: 1.5, x: 3, y: 0, fill: "#fef08a" }
+    ]},
+    chakram: { id: "chakram", label: "Chakram", palette: { primary: "#c4b5fd", secondary: "#f5d0fe" }, layers: [
+      { shape: "circle", r: 12, fill: "#c4b5fd", alpha: 0.1 },
+      { shape: "ring", r: 10, stroke: "#7c3aed", lineWidth: 3 },
+      { shape: "ring", r: 10, stroke: "#c4b5fd", lineWidth: 1.5 },
+      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#f5d0fe", lineWidth: 1.4 },
+      { shape: "line", x: 0, y: -10, w: 0, h: 20, stroke: "#f5d0fe", lineWidth: 1, alpha: 0.5 },
+      { shape: "circle", r: 1.5, fill: "#ffffff", alpha: 0.5 }
+    ]},
+    orb: { id: "orb", label: "Orb", palette: { primary: "#f8fafc", secondary: "#cbd5e1" }, layers: [
+      { shape: "circle", r: 10, fill: "#cbd5e1", alpha: 0.12 },
+      { shape: "diamond", r: 8, fill: "#94a3b8", stroke: "#cbd5e1", lineWidth: 1.4 },
+      { shape: "diamond", r: 5, fill: "#f8fafc" },
+      { shape: "circle", r: 1.5, fill: "#ffffff" }
+    ]}
   },
   pickups: {
-    xp: { id: "xp", label: "Experience", palette: { primary: "#a78bfa", secondary: "#ddd6fe" }, layers: [{ shape: "diamond", r: 6, fill: "#a78bfa", stroke: "#ddd6fe", lineWidth: 1.2 }] }
+    xp: { id: "xp", label: "Experience", palette: { primary: "#a78bfa", secondary: "#ddd6fe" }, layers: [
+      { shape: "circle", r: 8, fill: "#a78bfa", alpha: 0.12 },
+      { shape: "diamond", r: 6, fill: "#7c3aed", stroke: "#ddd6fe", lineWidth: 1.2 },
+      { shape: "diamond", r: 4, fill: "#a78bfa" },
+      { shape: "circle", r: 1.5, fill: "#f5d0fe" }
+    ]}
   }
 };
 

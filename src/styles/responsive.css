@@ -1,0 +1,18 @@
+@media (max-width: 700px) {
+  .hud {
+    border-width: 1px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+
+  .hud-stat span,
+  .level-line span,
+  .level-line em {
+    font-size: 11px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .modal {
+    max-height: calc(100dvh - 24px);
+  }
+}

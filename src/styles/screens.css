@@ -1,0 +1,191 @@
+.modal,
+.layout-editor {
+  border: var(--frame);
+  border-radius: 0;
+  background: var(--raised-ink);
+  box-shadow: 6px 6px 0 var(--ink);
+  backdrop-filter: none;
+}
+
+.modal::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid color-mix(in srgb, var(--viridian) 54%, transparent);
+  pointer-events: none;
+}
+
+.modal > * {
+  position: relative;
+}
+
+.eyebrow,
+.loadout-summary span,
+.loadout-summary em,
+.progress-summary span,
+.run-summary-grid span,
+.choice-meta i {
+  color: var(--bright-viridian);
+}
+
+.intro h1,
+.choice-modal h2,
+.menu-modal h1,
+.select-modal h2,
+.pause-header h2,
+.editor-header h2 {
+  color: var(--bone);
+  letter-spacing: 0.02em;
+}
+
+.intro p,
+.choice-pick span:not(.choice-meta),
+.select-grid span,
+.select-grid small,
+.select-grid b,
+.layout-grid button span {
+  color: var(--bone);
+}
+
+button,
+.intro button,
+.choices > button,
+.menu-actions button,
+.select-header button,
+.pause-header button,
+.pause-actions button,
+.draft-actions button,
+.banish-button,
+.layout-grid button,
+.editor-cancel,
+.editor-save,
+.reset-positions-button,
+.choice-card,
+.select-grid button,
+.loadout-summary div,
+.run-summary-grid div {
+  border-radius: 0;
+}
+
+.menu-actions button,
+.select-header button,
+.pause-header button,
+.pause-actions button,
+.draft-actions button,
+.banish-button,
+.editor-cancel,
+.reset-positions-button {
+  border: 1px solid var(--bone);
+  background: var(--ink);
+  color: var(--bone);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.menu-actions button:first-child,
+.editor-save {
+  border: 1px solid var(--bone);
+  background: var(--viridian);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.loadout-summary div,
+.run-summary-grid div,
+.layout-grid button,
+.select-grid button,
+.choice-card,
+.skill-node {
+  border: 1px solid color-mix(in srgb, var(--bone) 42%, transparent);
+  border-radius: 0;
+  background: var(--ink);
+}
+
+.loadout-summary strong,
+.run-summary-grid strong,
+.choice-pick strong,
+.select-grid strong,
+.layout-grid button strong {
+  color: var(--bone);
+}
+
+.progress-summary span,
+.choice-meta i,
+.select-grid em,
+.skill-node-header i {
+  border: 1px solid var(--viridian);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--viridian) 18%, var(--ink));
+  color: var(--bright-viridian);
+}
+
+.select-grid button.selected,
+.layout-grid button.selected,
+.skill-node.acquired {
+  border: 2px solid var(--bright-viridian);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--viridian) 20%, var(--ink));
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.select-grid button.selected::after {
+  border-radius: 0;
+  background: var(--bright-viridian);
+  color: var(--ink);
+}
+
+.select-grid b,
+.banish-button,
+.skill-node.locked .skill-node-header i {
+  color: var(--danger);
+}
+
+.choice-header {
+  background: var(--raised-ink);
+  backdrop-filter: none;
+}
+
+.choice-card.rarity-rare,
+.choice-card.rarity-epic,
+.choice-card.rarity-fusion,
+.choice-card.rarity-law {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 12%, var(--ink));
+}
+
+.choice-pick em,
+.skill-node.rarity-rare .skill-node-header i,
+.skill-node.rarity-epic .skill-node-header i,
+.skill-node.rarity-fusion .skill-node-header i,
+.skill-node.rarity-law .skill-node-header i {
+  color: var(--amber);
+}
+
+.rotate-lock {
+  background: var(--ink);
+}
+
+.art-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: var(--ink);
+  color: var(--bone);
+  font-size: 12px;
+  pointer-events: auto;
+}
+
+.art-loading span {
+  padding: 10px 12px;
+  border: var(--frame);
+  box-shadow: var(--pixel-shadow);
+}
+
+/* The development screenshot harness freezes every CSS-timed effect. */
+html[data-visual-state] *,
+html[data-visual-state] *::before,
+html[data-visual-state] *::after {
+  animation: none !important;
+  transition: none !important;
+}

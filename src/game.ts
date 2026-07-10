@@ -1,3 +1,5 @@
+import type { AtlasSpriteDefinition } from "./art/types";
+
 export type InputState = {
   moveX: number;
   moveY: number;
@@ -241,19 +243,27 @@ export type SpriteLayer = {
   font?: string;
 };
 
-export type SpriteDefinition = {
+type LayeredSpriteDefinition = {
   id: string;
   label: string;
   palette: { primary: string; secondary: string; accent?: string; shadow?: string };
   layers: SpriteLayer[];
 };
 
+export type ProceduralSpriteDefinition = LayeredSpriteDefinition & {
+  kind: "procedural";
+};
+
+// The runtime consumes this discriminated boundary. Layered definitions remain as
+// the procedural fallback while the atlas path is brought online incrementally.
+export type SpriteDefinition = AtlasSpriteDefinition | ProceduralSpriteDefinition;
+
 export type SpriteCatalog = {
-  players: Record<string, SpriteDefinition>;
-  enemies: Record<EnemyKind, SpriteDefinition>;
-  bullets: Record<Bullet["element"], SpriteDefinition>;
-  summons: Record<SummonKind, SpriteDefinition>;
-  pickups: Record<"xp", SpriteDefinition>;
+  players: Record<string, LayeredSpriteDefinition>;
+  enemies: Record<EnemyKind, LayeredSpriteDefinition>;
+  bullets: Record<Bullet["element"], LayeredSpriteDefinition>;
+  summons: Record<SummonKind, LayeredSpriteDefinition>;
+  pickups: Record<"xp", LayeredSpriteDefinition>;
 };
 
 export type RunObjective = {
@@ -497,7 +507,7 @@ export const weaponOptions: LoadoutOption<WeaponId>[] = [
   }
 ];
 
-const playerSprite = (id: string, label: string, primary: string, secondary: string, glyph: string, layers: SpriteLayer[]): SpriteDefinition => ({
+const playerSprite = (id: string, label: string, primary: string, secondary: string, glyph: string, layers: SpriteLayer[]): LayeredSpriteDefinition => ({
   id,
   label,
   palette: { primary, secondary, accent: "#f8fafc", shadow: primary },
@@ -579,78 +589,70 @@ export const spriteCatalog: SpriteCatalog = {
   },
   enemies: {
     grunt: { id: "grunt", label: "Husk", palette: { primary: "#e11d48", secondary: "#fb7185", shadow: "#e11d48" }, layers: [
-      { shape: "ring", r: 14, stroke: "#e11d48", lineWidth: 1, alpha: 0.18 },
-      { shape: "circle", r: 12, fill: "#9f1239", stroke: "#fb7185", lineWidth: 1.5 },
-      { shape: "circle", r: 9, fill: "#e11d48", alpha: 0.5 },
+      { shape: "circle", r: 13, fill: "#9f1239", stroke: "#fb7185", lineWidth: 2 },
+      { shape: "circle", r: 10, fill: "#e11d48", alpha: 0.6 },
       { shape: "circle", r: 2.5, x: -4, y: -3, fill: "#fecdd3" },
       { shape: "circle", r: 2.5, x: 4, y: -3, fill: "#fecdd3" },
       { shape: "circle", r: 1, x: -4, y: -3, fill: "#450a0a" },
       { shape: "circle", r: 1, x: 4, y: -3, fill: "#450a0a" },
       { shape: "line", x: -4, y: 5, w: 8, h: 0, stroke: "#450a0a", lineWidth: 1.5, alpha: 0.7 }
     ]},
-    runner: { id: "runner", label: "Skitter", palette: { primary: "#fb7185", secondary: "#fecdd3", shadow: "#fb7185" }, layers: [
-      { shape: "polygon", fill: "#881337", stroke: "#fb7185", lineWidth: 1.5, points: [{x:14,y:0},{x:0,y:-9},{x:-12,y:-5},{x:-6,y:0},{x:-12,y:5},{x:0,y:9}], pulse: 1.2 },
-      { shape: "polygon", fill: "#be123c", alpha: 0.55, points: [{x:10,y:0},{x:0,y:-6},{x:-8,y:-3},{x:-4,y:0},{x:-8,y:3},{x:0,y:6}] },
-      { shape: "line", x: -4, y: -9, w: 10, h: -8, stroke: "#fecdd3", lineWidth: 1.2 },
-      { shape: "line", x: -4, y: 9, w: 10, h: 8, stroke: "#fecdd3", lineWidth: 1.2 },
-      { shape: "circle", r: 1.8, x: 3, y: -2, fill: "#fef2f2" },
-      { shape: "circle", r: 1.8, x: 3, y: 2, fill: "#fef2f2" }
+    runner: { id: "runner", label: "Skitter", palette: { primary: "#f59e0b", secondary: "#fde68a", shadow: "#d97706" }, layers: [
+      { shape: "polygon", fill: "#78350f", stroke: "#f59e0b", lineWidth: 2, points: [{x:16,y:0},{x:2,y:-10},{x:-14,y:-6},{x:-7,y:0},{x:-14,y:6},{x:2,y:10}], pulse: 1.2 },
+      { shape: "polygon", fill: "#b45309", alpha: 0.55, points: [{x:11,y:0},{x:1,y:-7},{x:-10,y:-4},{x:-5,y:0},{x:-10,y:4},{x:1,y:7}] },
+      { shape: "line", x: -4, y: -9, w: 8, h: -7, stroke: "#fde68a", lineWidth: 1.2 },
+      { shape: "line", x: -4, y: 9, w: 8, h: 7, stroke: "#fde68a", lineWidth: 1.2 },
+      { shape: "circle", r: 1.8, x: 4, y: 0, fill: "#fef2f2" }
     ]},
-    brute: { id: "brute", label: "Grave Brute", palette: { primary: "#dc2626", secondary: "#fed7aa", shadow: "#991b1b" }, layers: [
-      { shape: "ring", r: 20, stroke: "#7f1d1d", lineWidth: 3, alpha: 0.3 },
-      { shape: "circle", r: 17, fill: "#450a0a", stroke: "#7f1d1d", lineWidth: 2.2 },
-      { shape: "circle", r: 14, fill: "#7f1d1d", alpha: 0.7 },
-      { shape: "rect", w: 23, h: 7, y: 7, fill: "#dc2626", stroke: "#fed7aa", lineWidth: 1.1 },
-      { shape: "circle", r: 3, x: -6, y: -4, fill: "#fbbf24", alpha: 0.8 },
-      { shape: "circle", r: 3, x: 6, y: -4, fill: "#fbbf24", alpha: 0.8 },
-      { shape: "circle", r: 1.2, x: -6, y: -4, fill: "#450a0a" },
-      { shape: "circle", r: 1.2, x: 6, y: -4, fill: "#450a0a" }
+    brute: { id: "brute", label: "Grave Brute", palette: { primary: "#7c3aed", secondary: "#c4b5fd", shadow: "#5b21b6" }, layers: [
+      { shape: "ring", r: 21, stroke: "#4c1d95", lineWidth: 3, alpha: 0.3 },
+      { shape: "circle", r: 18, fill: "#2e1065", stroke: "#7c3aed", lineWidth: 2.5 },
+      { shape: "circle", r: 14, fill: "#4c1d95", alpha: 0.7 },
+      { shape: "rect", w: 24, h: 7, y: 8, fill: "#5b21b6", stroke: "#c4b5fd", lineWidth: 1.1 },
+      { shape: "circle", r: 3.5, x: -6, y: -4, fill: "#c4b5fd", alpha: 0.8 },
+      { shape: "circle", r: 3.5, x: 6, y: -4, fill: "#c4b5fd", alpha: 0.8 },
+      { shape: "circle", r: 1.5, x: -6, y: -4, fill: "#1e1b4b" },
+      { shape: "circle", r: 1.5, x: 6, y: -4, fill: "#1e1b4b" }
     ]},
-    spitter: { id: "spitter", label: "Venom Choir", palette: { primary: "#86efac", secondary: "#bbf7d0", shadow: "#16a34a" }, layers: [
-      { shape: "ring", r: 17, stroke: "#14532d", lineWidth: 1, alpha: 0.2 },
-      { shape: "diamond", r: 15, fill: "#052e16", stroke: "#86efac", lineWidth: 2, pulse: 1.1 },
-      { shape: "diamond", r: 11, fill: "#14532d", alpha: 0.6 },
-      { shape: "circle", r: 6, fill: "#86efac", alpha: 0.75 },
-      { shape: "circle", r: 3, fill: "#bbf7d0" },
-      { shape: "line", x: -12, y: 12, w: 24, h: -24, stroke: "#bbf7d0", lineWidth: 1.4, alpha: 0.5 },
-      { shape: "circle", r: 2, x: -10, y: 10, fill: "#86efac", alpha: 0.6 },
-      { shape: "circle", r: 2, x: 10, y: -10, fill: "#86efac", alpha: 0.6 }
+    spitter: { id: "spitter", label: "Venom Choir", palette: { primary: "#10b981", secondary: "#6ee7b7", shadow: "#047857" }, layers: [
+      { shape: "polygon", fill: "#022c22", stroke: "#10b981", lineWidth: 2, points: [{x:0,y:-16},{x:14,y:0},{x:0,y:16},{x:-14,y:0}], pulse: 1.1 },
+      { shape: "polygon", fill: "#064e3b", alpha: 0.6, points: [{x:0,y:-11},{x:10,y:0},{x:0,y:11},{x:-10,y:0}] },
+      { shape: "circle", r: 5, fill: "#10b981", alpha: 0.75 },
+      { shape: "circle", r: 2.5, fill: "#a7f3d0" },
+      { shape: "line", x: -10, y: 10, w: 20, h: -20, stroke: "#6ee7b7", lineWidth: 1.4, alpha: 0.4 }
     ]},
-    charger: { id: "charger", label: "Gore Charger", palette: { primary: "#f43f5e", secondary: "#fef2f2", shadow: "#be123c" }, layers: [
-      { shape: "ring", r: 18, stroke: "#be123c", lineWidth: 1, alpha: 0.15 },
-      { shape: "polygon", fill: "#4c0519", stroke: "#f43f5e", lineWidth: 2, points: [{x:22,y:0},{x:3,y:-15},{x:-15,y:-9},{x:-8,y:0},{x:-15,y:9},{x:3,y:15}], pulse: 0.9 },
-      { shape: "polygon", fill: "#881337", alpha: 0.55, points: [{x:16,y:0},{x:2,y:-11},{x:-11,y:-6},{x:-5,y:0},{x:-11,y:6},{x:2,y:11}] },
-      { shape: "line", x: 2, y: -10, w: 17, h: 10, stroke: "#fef2f2", lineWidth: 1.5 },
-      { shape: "line", x: 2, y: 10, w: 17, h: -10, stroke: "#fef2f2", lineWidth: 1.5 },
-      { shape: "circle", r: 2, x: 6, y: -3, fill: "#fef2f2" },
-      { shape: "circle", r: 2, x: 6, y: 3, fill: "#fef2f2" }
+    charger: { id: "charger", label: "Gore Charger", palette: { primary: "#dc2626", secondary: "#fecaca", shadow: "#991b1b" }, layers: [
+      { shape: "polygon", fill: "#450a0a", stroke: "#dc2626", lineWidth: 2.5, points: [{x:24,y:0},{x:4,y:-16},{x:-16,y:-10},{x:-9,y:0},{x:-16,y:10},{x:4,y:16}], pulse: 0.9 },
+      { shape: "polygon", fill: "#7f1d1d", alpha: 0.55, points: [{x:17,y:0},{x:3,y:-11},{x:-12,y:-7},{x:-6,y:0},{x:-12,y:7},{x:3,y:11}] },
+      { shape: "line", x: 4, y: -11, w: 14, h: 8, stroke: "#fecaca", lineWidth: 2 },
+      { shape: "line", x: 4, y: 11, w: 14, h: -8, stroke: "#fecaca", lineWidth: 2 },
+      { shape: "circle", r: 2, x: 8, y: -3, fill: "#fef2f2" },
+      { shape: "circle", r: 2, x: 8, y: 3, fill: "#fef2f2" }
     ]},
-    elite: { id: "elite", label: "Bellguard", palette: { primary: "#f97316", secondary: "#fde68a", shadow: "#fb923c" }, layers: [
-      { shape: "ring", r: 22, stroke: "#fde68a", lineWidth: 1, alpha: 0.2, pulse: 1 },
-      { shape: "ring", r: 20, stroke: "#fde68a", lineWidth: 2.4, alpha: 0.5 },
-      { shape: "diamond", r: 17, fill: "#7c2d12", stroke: "#fb923c", lineWidth: 2.2 },
-      { shape: "diamond", r: 13, fill: "#9a3412", alpha: 0.5 },
-      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#ffedd5", lineWidth: 1.8 },
-      { shape: "circle", r: 3, x: 0, y: -6, fill: "#fde68a", alpha: 0.8 },
-      { shape: "circle", r: 1.2, x: 0, y: -6, fill: "#7c2d12" },
-      { shape: "circle", r: 2, x: -7, y: 5, fill: "#fde68a", alpha: 0.5 },
-      { shape: "circle", r: 2, x: 7, y: 5, fill: "#fde68a", alpha: 0.5 }
+    elite: { id: "elite", label: "Bellguard", palette: { primary: "#f97316", secondary: "#fde68a", shadow: "#c2410c" }, layers: [
+      { shape: "ring", r: 23, stroke: "#fde68a", lineWidth: 1, alpha: 0.15, pulse: 1 },
+      { shape: "ring", r: 20, stroke: "#fde68a", lineWidth: 2.5, alpha: 0.5 },
+      { shape: "polygon", fill: "#7c2d12", stroke: "#f97316", lineWidth: 2.5, points: [{x:0,y:-18},{x:16,y:0},{x:0,y:18},{x:-16,y:0}] },
+      { shape: "polygon", fill: "#9a3412", alpha: 0.5, points: [{x:0,y:-13},{x:11,y:0},{x:0,y:13},{x:-11,y:0}] },
+      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#ffedd5", lineWidth: 2 },
+      { shape: "circle", r: 3.5, x: 0, y: -7, fill: "#fde68a", alpha: 0.8 },
+      { shape: "circle", r: 1.5, x: 0, y: -7, fill: "#7c2d12" }
     ]},
-    boss: { id: "boss", label: "Cathedral Bell", palette: { primary: "#a855f7", secondary: "#fde68a", shadow: "#a855f7" }, layers: [
-      { shape: "ring", r: 38, stroke: "#fde68a", lineWidth: 1, alpha: 0.12, pulse: 2 },
-      { shape: "ring", r: 33, stroke: "#fde68a", lineWidth: 3, alpha: 0.55, pulse: 2 },
+    boss: { id: "boss", label: "Cathedral Bell", palette: { primary: "#a855f7", secondary: "#fde68a", shadow: "#7e22ce" }, layers: [
+      { shape: "ring", r: 40, stroke: "#fde68a", lineWidth: 1, alpha: 0.1, pulse: 2 },
+      { shape: "ring", r: 34, stroke: "#fde68a", lineWidth: 3, alpha: 0.5, pulse: 2 },
       { shape: "polygon", fill: "#1e1b4b", stroke: "#c4b5fd", lineWidth: 3, points: [
-        { x: 0, y: -34 }, { x: 27, y: -9 }, { x: 22, y: 23 }, { x: 0, y: 34 }, { x: -22, y: 23 }, { x: -27, y: -9 }
+        { x: 0, y: -36 }, { x: 28, y: -10 }, { x: 23, y: 24 }, { x: 0, y: 36 }, { x: -23, y: 24 }, { x: -28, y: -10 }
       ]},
-      { shape: "polygon", fill: "#2e1065", alpha: 0.6, points: [
-        { x: 0, y: -26 }, { x: 20, y: -6 }, { x: 16, y: 17 }, { x: 0, y: 25 }, { x: -16, y: 17 }, { x: -20, y: -6 }
+      { shape: "polygon", fill: "#312e81", alpha: 0.6, points: [
+        { x: 0, y: -27 }, { x: 21, y: -7 }, { x: 17, y: 18 }, { x: 0, y: 27 }, { x: -17, y: 18 }, { x: -21, y: -7 }
       ]},
-      { shape: "diamond", r: 14, fill: "#fde68a", alpha: 0.15 },
-      { shape: "diamond", r: 11, fill: "#fde68a", alpha: 0.4 },
+      { shape: "diamond", r: 14, fill: "#fde68a", alpha: 0.12 },
+      { shape: "diamond", r: 11, fill: "#fde68a", alpha: 0.35 },
       { shape: "diamond", r: 7, fill: "#fef3c7" },
       { shape: "circle", r: 2, x: 0, y: 0, fill: "#a855f7" },
-      { shape: "line", x: -16, y: -14, w: 32, h: 0, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.3 },
-      { shape: "line", x: -16, y: 14, w: 32, h: 0, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.3 }
+      { shape: "line", x: -17, y: -15, w: 34, h: 0, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.25 },
+      { shape: "line", x: -17, y: 15, w: 34, h: 0, stroke: "#c4b5fd", lineWidth: 1, alpha: 0.25 }
     ]}
   },
   bullets: {
@@ -769,7 +771,17 @@ export const spriteCatalog: SpriteCatalog = {
 
 type SpriteGroupName = keyof SpriteCatalog | "player" | "enemy" | "bullet" | "summon" | "pickup";
 
-export const getSpriteDefinition = (kind: SpriteGroupName, id: string): SpriteDefinition => {
+const proceduralSpriteCache = new WeakMap<LayeredSpriteDefinition, ProceduralSpriteDefinition>();
+
+const proceduralSprite = (definition: LayeredSpriteDefinition): ProceduralSpriteDefinition => {
+  const cached = proceduralSpriteCache.get(definition);
+  if (cached) return cached;
+  const resolved = { ...definition, kind: "procedural" as const };
+  proceduralSpriteCache.set(definition, resolved);
+  return resolved;
+};
+
+export const getSpriteDefinition = (kind: SpriteGroupName, id: string): ProceduralSpriteDefinition => {
   const normalized =
     kind === "player"
       ? "players"
@@ -782,8 +794,8 @@ export const getSpriteDefinition = (kind: SpriteGroupName, id: string): SpriteDe
             : kind === "pickup"
               ? "pickups"
               : kind;
-  const group = spriteCatalog[normalized] as Record<string, SpriteDefinition>;
-  return group[id] || group[Object.keys(group)[0]];
+  const group = spriteCatalog[normalized] as Record<string, LayeredSpriteDefinition>;
+  return proceduralSprite(group[id] || group[Object.keys(group)[0]]);
 };
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
@@ -2201,7 +2213,7 @@ const fireBullet = (
     y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    r: element === "void" ? game.player.bulletSize + 2 : game.player.bulletSize,
+    r: element === "void" ? game.player.bulletSize + 3 : game.player.bulletSize + 1,
     damage,
     life: game.player.bulletLife,
     pierce: mods.pierce ?? 0,
@@ -2849,14 +2861,15 @@ const hashTile = (x: number, y: number, salt = 0) => {
 };
 
 const drawProceduralStage = (ctx: CanvasRenderingContext2D, w: number, h: number, time: number, camera: Vec) => {
-  const grid = 48;
-  const tile = 96;
+  const grid = 56;
+  const tile = 112;
   const worldLeft = -camera.x;
   const worldTop = -camera.y;
   const worldRight = worldLeft + w;
   const worldBottom = worldTop + h;
 
-  ctx.strokeStyle = "rgba(148, 163, 184, 0.055)";
+  // Subtle floor grid — slightly brighter for depth perception
+  ctx.strokeStyle = "rgba(99, 102, 241, 0.06)";
   ctx.lineWidth = 1;
   const startGridX = Math.floor(worldLeft / grid) * grid;
   const startGridY = Math.floor(worldTop / grid) * grid;
@@ -2875,6 +2888,7 @@ const drawProceduralStage = (ctx: CanvasRenderingContext2D, w: number, h: number
     ctx.stroke();
   }
 
+  // Floor detail tiles — fewer, bigger, darker for readability
   const minTileX = Math.floor(worldLeft / tile) - 1;
   const maxTileX = Math.floor(worldRight / tile) + 1;
   const minTileY = Math.floor(worldTop / tile) - 1;
@@ -2888,33 +2902,30 @@ const drawProceduralStage = (ctx: CanvasRenderingContext2D, w: number, h: number
       const roll2 = hashTile(tx, ty, 2);
       const roll3 = hashTile(tx, ty, 3);
 
-      if (roll < 0.42) {
-        ctx.fillStyle = roll < 0.2 ? "rgba(30, 41, 59, 0.18)" : "rgba(88, 28, 135, 0.08)";
+      // Subtle floor plate
+      if (roll < 0.3) {
+        ctx.fillStyle = "rgba(30, 27, 75, 0.12)";
         ctx.beginPath();
-        ctx.roundRect(sx + 10 + roll2 * 32, sy + 12 + roll3 * 28, 28 + roll * 54, 12 + roll2 * 22, 8);
+        ctx.roundRect(sx + 12 + roll2 * 28, sy + 14 + roll3 * 24, 32 + roll * 48, 14 + roll2 * 20, 6);
         ctx.fill();
       }
 
-      if (roll2 > 0.73) {
-        ctx.strokeStyle = "rgba(196, 181, 253, 0.12)";
-        ctx.lineWidth = 1.5;
+      // Faint accent dot
+      if (roll3 > 0.9) {
+        ctx.fillStyle = "rgba(125, 211, 252, 0.08)";
         ctx.beginPath();
-        ctx.moveTo(sx + 14 + roll * 36, sy + 20);
-        ctx.lineTo(sx + 38 + roll2 * 34, sy + 42 + Math.sin(time + tx) * 2);
-        ctx.lineTo(sx + 22 + roll3 * 56, sy + 74);
-        ctx.stroke();
-      }
-
-      if (roll3 > 0.86) {
-        ctx.save();
-        ctx.translate(sx + 18 + roll * 62, sy + 18 + roll2 * 62);
-        ctx.rotate((tx - ty) * 0.4);
-        ctx.fillStyle = "rgba(125, 211, 252, 0.12)";
-        diamond(ctx, 0, 0, 5 + roll * 5);
-        ctx.restore();
+        ctx.arc(sx + 20 + roll * 60, sy + 20 + roll2 * 60, 2 + roll * 3, 0, TAU);
+        ctx.fill();
       }
     }
   }
+
+  // Screen edge vignette for focus
+  const vignette = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
+  vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
+  vignette.addColorStop(1, "rgba(0, 0, 0, 0.4)");
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, w, h);
 };
 
 const diamond = (ctx: CanvasRenderingContext2D, x: number, y: number, r: number) => {
@@ -2941,7 +2952,7 @@ const drawCapsule = (ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.roundRect(x - w / 2, y - h / 2, w, h, radius);
 };
 
-const drawSpriteDefinition = (ctx: CanvasRenderingContext2D, sprite: SpriteDefinition, time: number, scale = 1) => {
+const drawSpriteDefinition = (ctx: CanvasRenderingContext2D, sprite: ProceduralSpriteDefinition, time: number, scale = 1) => {
   ctx.save();
   ctx.shadowColor = sprite.palette.shadow || sprite.palette.primary;
   ctx.shadowBlur = 10 * scale;
@@ -3052,6 +3063,20 @@ const drawCharacter = (ctx: CanvasRenderingContext2D, player: Player, time: numb
   const cooldownPulse = player.activeTimer <= 0 ? 1 + Math.sin(time * 8) * 0.04 : 1;
 
   ctx.save();
+
+  // Strong ground shadow for depth
+  ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
+  ctx.beginPath();
+  ctx.ellipse(0, player.r * 0.7, player.r * 1.1, player.r * 0.4, 0, 0, TAU);
+  ctx.fill();
+
+  // White contrast outline ring
+  ctx.strokeStyle = "rgba(248, 250, 252, 0.55)";
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, player.r + 4, 0, TAU);
+  ctx.stroke();
+
   if (player.invuln > 0) {
     ctx.globalAlpha = 0.72 + Math.sin(time * 28) * 0.18;
   }
@@ -3168,7 +3193,7 @@ const drawBullet = (ctx: CanvasRenderingContext2D, bullet: Bullet, weaponId: Wea
   ctx.translate(bullet.x, bullet.y);
   ctx.rotate(angle);
   ctx.shadowColor = color;
-  ctx.shadowBlur = bullet.element === "kinetic" ? 8 : 14;
+  ctx.shadowBlur = bullet.element === "kinetic" ? 12 : 18;
   ctx.fillStyle = color;
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
@@ -3299,21 +3324,47 @@ const drawFixedJoystick = (
   color: string
 ) => {
   ctx.save();
-  ctx.globalAlpha = stick.activeId === -1 ? 0.5 : 0.86;
-  ctx.fillStyle = "rgba(7, 10, 24, 0.52)";
+
+  // Backdrop dimming circle — separates control zone from gameplay
+  ctx.globalAlpha = stick.activeId === -1 ? 0.42 : 0.72;
+  ctx.fillStyle = "rgba(3, 7, 18, 0.7)";
+  ctx.beginPath();
+  ctx.arc(stick.x, stick.y, 66, 0, TAU);
+  ctx.fill();
+
+  // Outer ring
+  ctx.globalAlpha = stick.activeId === -1 ? 0.5 : 0.9;
   ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.arc(stick.x, stick.y, 62, 0, TAU);
-  ctx.fill();
   ctx.stroke();
 
-  ctx.globalAlpha = stick.activeId === -1 ? 0.42 : 0.95;
+  // Inner directional cross
+  ctx.globalAlpha = stick.activeId === -1 ? 0.12 : 0.25;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(stick.x - 50, stick.y);
+  ctx.lineTo(stick.x + 50, stick.y);
+  ctx.moveTo(stick.x, stick.y - 50);
+  ctx.lineTo(stick.x, stick.y + 50);
+  ctx.stroke();
+
+  // Knob
+  ctx.globalAlpha = stick.activeId === -1 ? 0.5 : 0.95;
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(stick.knobX, stick.knobY, 24, 0, TAU);
   ctx.fill();
 
+  // Knob highlight
+  ctx.globalAlpha = 0.4;
+  ctx.fillStyle = "#f8fafc";
+  ctx.beginPath();
+  ctx.arc(stick.knobX - 6, stick.knobY - 6, 8, 0, TAU);
+  ctx.fill();
+
+  // Label
   ctx.globalAlpha = 0.78;
   ctx.fillStyle = "#f8fafc";
   ctx.font = "800 10px Inter, system-ui, sans-serif";
@@ -3322,4 +3373,3 @@ const drawFixedJoystick = (
   ctx.fillText(label, stick.x, stick.y + 82);
   ctx.restore();
 };
-

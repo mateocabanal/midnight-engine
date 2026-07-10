@@ -1,0 +1,20 @@
+.editor-stick,
+.editor-active-button {
+  border-radius: 0;
+  border: 2px dashed var(--bright-viridian);
+  background: color-mix(in srgb, var(--viridian) 14%, var(--ink));
+}
+
+.editor-aim-stick {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--ink));
+}
+
+.editor-active-button {
+  border-color: var(--amber);
+  color: var(--bone);
+}
+
+.editor-stick-label {
+  color: var(--bone);
+}

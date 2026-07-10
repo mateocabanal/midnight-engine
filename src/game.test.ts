@@ -134,6 +134,7 @@ describe("game core", () => {
     expect(Object.keys(spriteCatalog.bullets)).toEqual(expect.arrayContaining(["kinetic", "fire", "ice", "lightning", "blood", "void"]));
 
     const saint = getSpriteDefinition("player", "saint");
+    expect(saint.kind).toBe("procedural");
     expect(saint.layers.length).toBeGreaterThan(1);
     expect(saint.palette.primary).toMatch(/^#/);
   });

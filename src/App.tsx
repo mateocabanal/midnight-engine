@@ -3,7 +3,6 @@ import {
   banishUpgrade,
   characterOptions,
   createGame,
-  drawGame,
   getSkillTree,
   getAcquiredUpgrades,
   isUpgradeUnlocked,
@@ -22,6 +21,10 @@ import {
   type SkillTreeCategory,
   type WeaponId
 } from "./game";
+import { drawGame } from "./rendering/gameRenderer";
+import { createPixelCompositor } from "./rendering/pixelCompositor";
+import { useArtPreload } from "./runtime/useArtPreload";
+import { projectHud } from "./ui/hudProjection";
 
 const pointerVector = (origin: { x: number; y: number }, point: { x: number; y: number }) => {
   const dx = point.x - origin.x;
@@ -125,20 +128,8 @@ const makeInput = (): InputState => ({ moveX: 0, moveY: 0, aimX: 1, aimY: 0, fir
 
 const initialProgress = loadProgress();
 
-const getHudStats = (game: Game) => {
-  const ammo = Math.max(0, game.player.magazine - game.player.shots);
-  const isReloading = game.player.reload > 0;
-
-  return {
-    ...game.ui,
-    ammo: isReloading ? "Reloading" : `${ammo} / ${game.player.magazine}`,
-    isReloading,
-    levelProgress: `${Math.floor(game.xp)} / ${game.nextXp}`,
-    summary: game.summary
-  };
-};
-
 export default function App() {
+  const art = useArtPreload();
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterId>(initialProgress.selectedLoadout.characterId);
   const [selectedWeapon, setSelectedWeapon] = useState<WeaponId>(initialProgress.selectedLoadout.weaponId);
   const loadout = { characterId: selectedCharacter, weaponId: selectedWeapon };
@@ -151,7 +142,7 @@ export default function App() {
   const [menu, setMenu] = useState<"main" | "character" | "weapon" | "options" | "run">("main");
   const [controlLayout, setControlLayout] = useState<ControlLayout>(loadControlLayout());
   const [choices, setChoices] = useState<Choice[]>([]);
-  const [stats, setStats] = useState(getHudStats(gameRef.current));
+  const [stats, setStats] = useState(projectHud(gameRef.current));
   const [progress, setProgress] = useState(initialProgress);
   const savedSummaryKeyRef = useRef("");
   const [customPositions, setCustomPositions] = useState<CustomPositions>(loadCustomPositions());
@@ -167,6 +158,28 @@ export default function App() {
   const [showPause, setShowPause] = useState(false);
   const [skillTreeTab, setSkillTreeTab] = useState(0);
   const skillTreeData = useRef(getSkillTree());
+  const visualRenderFrozenRef = useRef(false);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    void import("./visual/devHarness").then(async ({ applyRequestedVisualStyle, createVisualGame, getVisualState }) => {
+      const visualState = getVisualState();
+      if (!visualState) return;
+
+      await applyRequestedVisualStyle();
+      const screen = gameRef.current.screen;
+      gameRef.current = createVisualGame(visualState);
+      gameRef.current.screen = screen;
+      setChoices([]);
+      setMenu(visualState === "main-menu" ? "main" : "run");
+      setPaused(true);
+      setShowPause(false);
+      setStats(projectHud(gameRef.current));
+      visualRenderFrozenRef.current = true;
+      document.documentElement.dataset.visualState = visualState;
+    });
+  }, []);
 
   const selectedCharacterOption = characterOptions.find((character) => character.id === selectedCharacter) || characterOptions[0];
   const selectedWeaponOption = weaponOptions.find((weapon) => weapon.id === selectedWeapon) || weaponOptions[0];
@@ -309,8 +322,8 @@ export default function App() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const compositor = createPixelCompositor(canvas);
+    if (!compositor) return;
 
     let raf = 0;
     let last = performance.now();
@@ -319,9 +332,7 @@ export default function App() {
     const resize = () => {
       const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
       const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      compositor.resize(rect.width, rect.height, dpr);
       gameRef.current.screen.w = rect.width;
       gameRef.current.screen.h = rect.height;
       const previous = controlsRef.current;
@@ -345,14 +356,14 @@ export default function App() {
         }
       }
 
-      drawGame(ctx, game, controlsRef.current);
+      compositor.render((ctx) => drawGame(ctx, game, controlsRef.current));
       statTimer += dt;
       if (statTimer > 0.08) {
-        setStats(getHudStats(game));
+        setStats(projectHud(game));
         statTimer = 0;
       }
 
-      raf = requestAnimationFrame(frame);
+      if (!visualRenderFrozenRef.current) raf = requestAnimationFrame(frame);
     };
 
     raf = requestAnimationFrame(frame);
@@ -365,17 +376,17 @@ export default function App() {
   const chooseUpgrade = (choice: Choice) => {
     choice.apply(gameRef.current);
     setChoices([]);
-    setStats(getHudStats(gameRef.current));
+    setStats(projectHud(gameRef.current));
   };
 
   const rerollChoices = () => {
     setChoices(rerollUpgradeChoices(gameRef.current));
-    setStats(getHudStats(gameRef.current));
+    setStats(projectHud(gameRef.current));
   };
 
   const banishChoice = (choice: Choice) => {
     setChoices(banishUpgrade(gameRef.current, choice.id));
-    setStats(getHudStats(gameRef.current));
+    setStats(projectHud(gameRef.current));
   };
 
   const handleControlLayoutChange = (layout: ControlLayout) => {
@@ -429,7 +440,7 @@ export default function App() {
     game.player.hp = Math.min(game.player.maxHp, game.player.hp + 12);
     game.player.shield = Math.min(75, game.player.shield + 4);
     setChoices([]);
-    setStats(getHudStats(game));
+    setStats(projectHud(game));
   };
 
   const resetInput = () => {
@@ -447,7 +458,7 @@ export default function App() {
     setChoices([]);
     setMenu("run");
     setPaused(false);
-    setStats(getHudStats(gameRef.current));
+    setStats(projectHud(gameRef.current));
   };
 
   const backToMenu = () => {
@@ -459,7 +470,7 @@ export default function App() {
     setPaused(true);
     setMenu("main");
     setShowPause(false);
-    setStats(getHudStats(gameRef.current));
+    setStats(projectHud(gameRef.current));
   };
 
   const togglePause = () => {
@@ -545,6 +556,12 @@ export default function App() {
         onPointerCancel={onPointerUp}
       >
         <canvas ref={canvasRef} className="game-canvas" aria-label="Midnight Engine game canvas" />
+
+        {!art.ready ? (
+          <div className="art-loading" role="status" aria-live="polite">
+            <span>Preparing the graveyard</span>
+          </div>
+        ) : null}
 
         {menu === "run" ? (
           <header className="hud" aria-label="Run status">

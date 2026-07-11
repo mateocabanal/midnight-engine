@@ -252,40 +252,6 @@ button {
   touch-action: none;
 }
 
-.combo-display {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  pointer-events: none;
-  animation: combo-pop 0.3s ease;
-}
-
-.combo-display strong {
-  font-size: clamp(40px, 12vw, 72px);
-  font-weight: 950;
-  color: #fde68a;
-  text-shadow: 0 0 24px rgba(253, 230, 138, 0.5), 0 4px 12px rgba(0, 0, 0, 0.6);
-  line-height: 1;
-}
-
-.combo-display span {
-  font-size: 12px;
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: #94a3b8;
-}
-
-@keyframes combo-pop {
-  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
-  60% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
-}
-
 .hp-vignette {
   position: absolute;
   inset: 0;

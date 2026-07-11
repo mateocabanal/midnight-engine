@@ -90,15 +90,6 @@
   color: var(--bone);
 }
 
-.combo-display strong {
-  color: var(--amber);
-  text-shadow: 3px 3px 0 var(--ink);
-}
-
-.combo-display span {
-  color: var(--bone);
-}
-
 .hp-vignette {
   box-shadow: inset 0 0 0 6px color-mix(in srgb, var(--danger) 72%, transparent);
 }

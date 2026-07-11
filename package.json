@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run src",
     "e2e": "playwright test",
-    "visual:check": "playwright test --config=playwright.visual.config.ts"
+    "visual:check": "playwright test --config=playwright.visual.config.ts",
+    "pwa:check": "playwright test --config=playwright.pwa.config.ts"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

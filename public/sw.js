@@ -1,10 +1,35 @@
-const CACHE_NAME = "midnight-engine-v3";
+const CACHE_NAME = "midnight-engine-v4";
 const SCOPE = self.registration.scope;
-const APP_SHELL = ["", "index.html", "manifest.webmanifest", "icons/icon.svg"].map((path) => new URL(path, SCOPE).toString());
+const APP_SHELL = [
+  "",
+  "index.html",
+  "manifest.webmanifest",
+  "icons/icon.svg",
+  "icons/icon-192.png",
+  "icons/icon-512.png",
+  "fonts/PixelifySans-Variable.ttf",
+  "fonts/Silkscreen-Regular.ttf",
+  "art/characters.png",
+  "art/enemies.png",
+  "art/weapons.png",
+  "art/summons.png",
+  "art/glyphs.png",
+  "art/environment.png"
+].map((path) => new URL(path, SCOPE).toString());
 
 self.addEventListener("install", (event) => {
-  const requests = APP_SHELL.map((url) => new Request(url, { cache: "reload" }));
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(requests)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const indexUrl = new URL("index.html", SCOPE).toString();
+    const indexResponse = await fetch(new Request(indexUrl, { cache: "reload" }));
+    if (!indexResponse.ok) throw new Error(`Unable to precache ${indexUrl}`);
+    const html = await indexResponse.clone().text();
+    const buildAssets = Array.from(html.matchAll(/(?:src|href)="([^"]*\/assets\/[^"]+)"/g))
+      .map((match) => new URL(match[1], SCOPE).toString());
+    const requests = [...new Set([...APP_SHELL, ...buildAssets])].map((url) => new Request(url, { cache: "reload" }));
+    await cache.put(indexUrl, indexResponse);
+    await cache.addAll(requests.filter((request) => request.url !== indexUrl));
+  })());
   self.skipWaiting();
 });
 

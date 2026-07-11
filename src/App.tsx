@@ -176,7 +176,7 @@ export default function App() {
       setPaused(true);
       setShowPause(false);
       setStats(projectHud(gameRef.current));
-      visualRenderFrozenRef.current = true;
+      visualRenderFrozenRef.current = visualState !== "stress";
       document.documentElement.dataset.visualState = visualState;
     });
   }, []);
@@ -356,7 +356,7 @@ export default function App() {
         }
       }
 
-      compositor.render((ctx) => drawGame(ctx, game, controlsRef.current));
+      compositor.render((ctx) => drawGame(ctx, game, controlsRef.current, art.atlases));
       statTimer += dt;
       if (statTimer > 0.08) {
         setStats(projectHud(game));
@@ -371,7 +371,7 @@ export default function App() {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
     };
-  }, [paused, choices.length, showPause]);
+  }, [art.atlases, paused, choices.length, showPause]);
 
   const chooseUpgrade = (choice: Choice) => {
     choice.apply(gameRef.current);

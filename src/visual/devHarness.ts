@@ -1,6 +1,6 @@
 import { createGame, stepGame, type Game, type InputState } from "../game";
 
-export type VisualState = "main-menu" | "run-hud";
+export type VisualState = "main-menu" | "run-hud" | "stress";
 
 const idleInput: InputState = { moveX: 0, moveY: 0, aimX: 1, aimY: 0, firing: false, active: false };
 
@@ -21,7 +21,7 @@ const withSeededRandom = <T,>(seed: number, run: () => T): T => {
 
 export const getVisualState = (): VisualState | null => {
   const value = new URLSearchParams(window.location.search).get("visual");
-  return value === "main-menu" || value === "run-hud" ? value : null;
+  return value === "main-menu" || value === "run-hud" || value === "stress" ? value : null;
 };
 
 export const applyRequestedVisualStyle = async () => {
@@ -55,5 +55,37 @@ export const createVisualGame = (state: VisualState): Game => withSeededRandom(0
   // Keep the intentionally busy combat composition, but eliminate the random
   // camera shake that the director transition would otherwise introduce.
   game.screenShake = 0;
+
+  if (state === "stress") {
+    const enemyKinds = ["grunt", "runner", "brute", "spitter", "charger", "elite", "boss"] as const;
+    const seedEnemy = game.enemies[0];
+    game.enemies = Array.from({ length: 200 }, (_, index) => ({
+      ...seedEnemy,
+      id: index + 1,
+      kind: enemyKinds[index % enemyKinds.length],
+      x: ((index * 47) % 1100) - 550,
+      y: ((index * 89) % 740) - 370,
+      r: 12 + (index % 5) * 2,
+      hp: 100,
+      maxHp: 100,
+      hitFlash: 0
+    }));
+    game.bullets = Array.from({ length: 400 }, (_, index) => ({
+      x: ((index * 71) % 1000) - 500,
+      y: ((index * 43) % 700) - 350,
+      vx: 220,
+      vy: 80,
+      r: 4,
+      damage: 12,
+      life: 1,
+      pierce: 0,
+      bounces: 0,
+      split: 0,
+      crit: 0,
+      element: (["kinetic", "lightning", "fire", "ice", "blood", "void"] as const)[index % 6],
+      depth: 0
+    }));
+    game.particles = [];
+  }
   return game;
 });

@@ -39,14 +39,24 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build
+      # Vite's preview server serves the test build at the root. Build this
+      # variant only for browser checks; the Pages artifact is built below.
+      - name: Build browser-test bundle
         run: npm run build
+        env:
+          VITE_BASE_PATH: /
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
       - name: Browser smoke test
         run: npm run e2e
+
+      - name: Offline PWA test
+        run: npm run pwa:check
+
+      - name: Build GitHub Pages artifact
+        run: npm run build
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

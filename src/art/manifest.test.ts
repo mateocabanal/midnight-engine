@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { characterOptions, weaponOptions } from "../game";
 import { artManifest, allArtEntityIds } from "./manifest";
 import { getAnimationFrame, frameFitsAtlas, resolveAtlasSprite } from "./spriteResolver";
@@ -29,6 +31,13 @@ describe("art manifest", () => {
         expect(animation.frames.length).toBeGreaterThan(0);
         for (const frame of animation.frames) expect(frameFitsAtlas(frame, atlas)).toBe(true);
       }
+    }
+  });
+
+  it("ships every declared atlas from the public bundle", () => {
+    for (const atlas of Object.values(artManifest.atlases)) {
+      const assetPath = atlas.src.replace(/^\//, "");
+      expect(existsSync(resolve(process.cwd(), "public", assetPath)), `${atlas.id} is bundled`).toBe(true);
     }
   });
 

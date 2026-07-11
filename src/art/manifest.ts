@@ -8,6 +8,8 @@ const frame = (x: number, y: number, width = 32, height = 32, durationMs = 100):
   durationMs
 });
 
+const publicAsset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
+
 const atlasSprite = (
   id: string,
   label: string,
@@ -44,11 +46,12 @@ const entitySprites = <T extends readonly string[]>(
 
 export const artManifest: ArtManifest = {
   atlases: {
-    characters: { id: "characters", src: "/art/characters.png", width: 512, height: 64 },
-    enemies: { id: "enemies", src: "/art/enemies.png", width: 512, height: 64 },
-    weapons: { id: "weapons", src: "/art/weapons.png", width: 512, height: 96 },
-    summons: { id: "summons", src: "/art/summons.png", width: 512, height: 96 },
-    glyphs: { id: "glyphs", src: "/art/glyphs.png", width: 128, height: 32 }
+    characters: { id: "characters", src: publicAsset("art/characters.png"), width: 512, height: 64 },
+    enemies: { id: "enemies", src: publicAsset("art/enemies.png"), width: 512, height: 64 },
+    weapons: { id: "weapons", src: publicAsset("art/weapons.png"), width: 512, height: 96 },
+    summons: { id: "summons", src: publicAsset("art/summons.png"), width: 512, height: 96 },
+    glyphs: { id: "glyphs", src: publicAsset("art/glyphs.png"), width: 128, height: 32 },
+    environment: { id: "environment", src: publicAsset("art/environment.png"), width: 128, height: 128 }
   },
   characters: entitySprites(characterIds, "characters", {
     saint: "Saint", ilya: "Ilya", nox: "Nox", mira: "Mira", scarlett: "Scarlett", corvus: "Corvus", kaden: "Kaden", lyra: "Lyra"

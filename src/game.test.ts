@@ -6,6 +6,8 @@ import {
   directorPhases,
   getSpriteDefinition,
   getUpgradeChoices,
+  arrangeScytheFormation,
+  permanentSummonKinds,
   rerollUpgradeChoices,
   spriteCatalog,
   stepGame,
@@ -101,6 +103,30 @@ describe("game core", () => {
       for (let frame = 0; frame < 30; frame += 1) stepGame(game, idleInput, 0.016);
       expect(target.hp, kind).toBeLessThan(initialHp);
     }
+  });
+
+  it("keeps a majority of summon families permanent", () => {
+    expect([...permanentSummonKinds].sort()).toEqual(["blade", "drone", "hound", "turret", "wisp"]);
+
+    const game = createGame({ characterId: "lyra", weaponId: "revolver" });
+    expect(game.player.orbitals.some((orbital) => orbital.kind === "hound" && orbital.life === null)).toBe(true);
+    for (let frame = 0; frame < 120; frame += 1) stepGame(game, idleInput, 0.1);
+    expect(game.player.orbitals.some((orbital) => orbital.kind === "hound" && orbital.life === null)).toBe(true);
+  });
+
+  it("evenly spaces multiple soul scythes on a shared orbit", () => {
+    const game = createGame();
+    game.player.orbitals = [
+      { angle: 0.2, distance: 48, damage: 10, life: null, speed: 1, kind: "blade", attackCooldown: 0, attackFlash: 0 },
+      { angle: 1.1, distance: 72, damage: 10, life: null, speed: 5, kind: "blade", attackCooldown: 0, attackFlash: 0 },
+      { angle: 2.8, distance: 96, damage: 10, life: null, speed: 3, kind: "blade", attackCooldown: 0, attackFlash: 0 }
+    ];
+
+    arrangeScytheFormation(game.player.orbitals, 0.5);
+    const scythes = game.player.orbitals;
+    expect(scythes.map((scythe) => scythe.distance)).toEqual([72, 72, 72]);
+    expect(scythes.map((scythe) => scythe.angle)).toEqual([0.5, 0.5 + (Math.PI * 2) / 3, 0.5 + (Math.PI * 4) / 3]);
+    for (const scythe of scythes) expect(scythe.speed).toBeCloseTo(3.6);
   });
 
   it("records defeat and victory summaries", () => {

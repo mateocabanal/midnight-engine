@@ -68,11 +68,11 @@ export const upgradeCatalogue: UpgradeSpec[] = [
   node("blood_economy", "Blood Economy", "blood", "capstone", "Healing, shield and reload costs convert into one another.", ["clot_armour", "red_refund"], ["blood", "conversion"]),
 
   node("grave_interest", "Grave Interest", "souls", "root", "Every sixth kill creates a Soul.", [], ["onKill", "soul"]),
-  node("soul_blade", "Soul Blade", "souls", "branch", "Collected Souls create temporary orbiting blades.", ["grave_interest"], ["soul", "summon", "orbital"]),
+  node("soul_blade", "Soul Scythe", "souls", "branch", "Collected Souls create permanent orbiting scythes.", ["grave_interest"], ["soul", "summon", "orbital"]),
   node("tithe", "Tithe", "souls", "branch", "Elite and cursed enemies create additional Souls.", ["grave_interest"], ["soul", "elite"]),
   node("undertaker_engine", "Undertaker Engine", "souls", "capstone", "Soul weapons inherit your projectile elements.", ["soul_blade", "tithe"], ["soul", "inheritance"]),
 
-  node("crown_of_teeth", "Crown of Teeth", "crown", "root", "Gain an orbiting ritual blade.", [], ["summon", "orbital"]),
+  node("crown_of_teeth", "Crown of Teeth", "crown", "root", "Gain a permanent orbiting ritual scythe.", [], ["summon", "orbital"]),
   node("wider_crown", "Wider Crown", "crown", "branch", "Orbit radius, impact size and damage increase.", ["crown_of_teeth"], ["orbital", "size"]),
   node("hungry_crown", "Hungry Crown", "crown", "branch", "Expired projectiles can briefly join the crown.", ["crown_of_teeth"], ["orbital", "onBulletExpire"]),
   node("storm_crown", "Storm Crown", "crown", "capstone", "Orbital hits trigger your on-hit effects at reduced power.", ["wider_crown", "hungry_crown"], ["orbital", "onHit"]),

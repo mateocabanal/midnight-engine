@@ -204,7 +204,12 @@ const summonFrame = (index, clip, frameIndex) => {
   if (index === 1) return [shadow, rect(ox + 8, oy + 24, 29, 12, bone), rect(ox + 13, oy + 20, 18, 14, raised), rect(ox + 31, oy + 20, 10, 10, bone), rect(ox + 36, oy + 24, 3, 3, danger), rect(ox + 11 + (phase % 2) * 4, oy + 35, 4, 6, bone), rect(ox + 27 - (phase % 2) * 4, oy + 35, 4, 6, bone)].join("");
   if (index === 2) return [shadow, rect(ox + 12, oy + 27, 24, 11, amber), rect(ox + 15, oy + 17, 18, 14, raised), rect(ox + 20, oy + 13, 8, 7, bone), rect(ox + 9, oy + 36, 5, 5, bone), rect(ox + 34, oy + 36, 5, 5, bone), clip === 3 ? rect(ox + 33, oy + 20, 13, 4, amber) : ""].join("");
   if (index === 4) return [shadow, rect(ox + 11, oy + 24, 26, 10, danger), [0,1,2,3,4,5].map((n) => rect(ox + 10 + n * 5, oy + 33 + ((phase + n) % 2) * 3, 3, 7, bone)).join(""), rect(ox + 31, oy + 20, 8, 7, danger), clip === 5 ? `<rect x="${ox + 5}" y="${oy + 15}" width="38" height="24" fill="none" stroke="${danger}" stroke-width="3"/>` : ""].join("");
-  if (index === 5) return [shadow, `<path d="M${ox + 24} ${oy + 6}L${ox + 29} ${oy + 22}L${ox + 42} ${oy + 24}L${ox + 29} ${oy + 28}L${ox + 24} ${oy + 43}L${ox + 19} ${oy + 28}L${ox + 6} ${oy + 24}L${ox + 19} ${oy + 22}Z" fill="${bone}"/>`, rect(ox + 21, oy + 20, 6, 8, danger)].join("");
+  if (index === 5) return [shadow,
+    rect(ox + 22, oy + 6, 4, 35, violet), rect(ox + 23, oy + 6, 2, 35, bone),
+    rect(ox + 9, oy + 5, 15, 4, bone), rect(ox + 6, oy + 8, 8, 4, bone),
+    rect(ox + 5, oy + 12, 5, 5, bone), rect(ox + 10, oy + 15, 4, 4, violet),
+    rect(ox + 20, oy + 35, 8, 5, danger)
+  ].join("");
   const color = [bright, amber, bone, bright, danger, bone, amber, violet, bright][index];
   return [shadow, rect(ox + 11, oy + 15, 26, 24, color), rect(ox + 15, oy + 19, 18, 16, raised), rect(ox + 21, oy + 24, 6, 6, bone), index === 7 ? `<rect x="${ox + 7}" y="${oy + 11}" width="34" height="32" fill="none" stroke="${violet}" stroke-width="3"/>` : ""].join("");
 };

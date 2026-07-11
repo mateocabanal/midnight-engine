@@ -161,7 +161,7 @@ export const artManifest: ArtManifest = {
     revolver: "Revolver", shotgun: "Shotgun", needle_smg: "Needle SMG", crossbow: "Crossbow", flame_cannon: "Flame Cannon", arc_rifle: "Arc Rifle", shard_launcher: "Shard Launcher", rail_lance: "Rail Lance", chakram: "Chakram", hive_staff: "Hive Staff", prism_launcher: "Prism Launcher", aether_spear: "Aether Spear"
   }, { primary: midnightPalette.bone, secondary: midnightPalette.amber }),
   summons: Object.fromEntries(summonIds.map((id, index) => [id, summonSprite(id, {
-    wisp: "Wisp", hound: "Hound", turret: "Turret", drone: "Drone", mite: "Mite", blade: "Blade", wasp: "Wasp", chakram: "Chakram", orb: "Orb"
+    wisp: "Wisp", hound: "Hound", turret: "Turret", drone: "Drone", mite: "Mite", blade: "Soul Scythe", wasp: "Wasp", chakram: "Chakram", orb: "Orb"
   }[id], index)])) as Record<typeof summonIds[number], AtlasSpriteDefinition>,
   pickups: {
     xp: atlasSprite("xp", "Experience", "glyphs", 0, 0, { primary: midnightPalette.brightViridian, secondary: midnightPalette.bone })

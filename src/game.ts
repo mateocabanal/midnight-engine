@@ -111,11 +111,12 @@ type Particle = {
   size: number;
 };
 
-type Orbital = {
+export type Orbital = {
   angle: number;
   distance: number;
   damage: number;
-  life: number;
+  // Null is a permanent familiar; finite values are temporary summons.
+  life: number | null;
   speed: number;
   kind: SummonKind;
   attackCooldown: number;
@@ -745,12 +746,13 @@ export const spriteCatalog: SpriteCatalog = {
       { shape: "polygon", fill: "#86efac", points: [{x:7,y:0},{x:0,y:-5},{x:-6,y:-2},{x:-3,y:0},{x:-6,y:2},{x:0,y:5}] },
       { shape: "circle", r: 1.5, x: 2, y: 0, fill: "#bbf7d0" }
     ]},
-    blade: { id: "blade", label: "Blade", palette: { primary: "#c4b5fd", secondary: "#ddd6fe" }, layers: [
+    blade: { id: "blade", label: "Soul Scythe", palette: { primary: "#c4b5fd", secondary: "#ddd6fe" }, layers: [
       { shape: "circle", r: 10, fill: "#c4b5fd", alpha: 0.12 },
-      { shape: "line", x: -11, y: 0, w: 22, h: 0, stroke: "#7c3aed", lineWidth: 3 },
-      { shape: "line", x: -9, y: 0, w: 18, h: 0, stroke: "#c4b5fd", lineWidth: 1.5 },
-      { shape: "ring", r: 8, stroke: "#ddd6fe", lineWidth: 1.4 },
-      { shape: "circle", r: 2, fill: "#ffffff", alpha: 0.6 }
+      { shape: "line", x: 0, y: -13, w: 0, h: 26, stroke: "#7c3aed", lineWidth: 4 },
+      { shape: "line", x: 0, y: -13, w: 0, h: 26, stroke: "#c4b5fd", lineWidth: 1.5 },
+      { shape: "line", x: -11, y: -12, w: 11, h: 0, stroke: "#ddd6fe", lineWidth: 4 },
+      { shape: "line", x: -13, y: -8, w: 8, h: -4, stroke: "#ddd6fe", lineWidth: 3 },
+      { shape: "circle", r: 2, x: 0, y: 12, fill: "#ffffff", alpha: 0.6 }
     ]},
     wasp: { id: "wasp", label: "Wasp", palette: { primary: "#86efac", secondary: "#fef08a" }, layers: [
       { shape: "circle", r: 8, fill: "#86efac", alpha: 0.12 },
@@ -2202,7 +2204,7 @@ const triggerActiveAbility = (game: Game, input: InputState) => {
   for (let i = 0; i < 3; i += 1) spawnOrbital(game, 15 * player.summonDamage, 14, "hound");
   for (const orbital of player.orbitals) {
     orbital.damage *= 1.18;
-    orbital.life += 4;
+    if (orbital.life !== null) orbital.life += 4;
     orbital.speed *= 1.18;
   }
   burst(game, player.x, player.y, "#f0abfc", 24, 4);
@@ -2689,6 +2691,22 @@ const summonAttackProfiles: Record<SummonKind, {
   orb: { cooldown: 0.66, damageMultiplier: 1, speed: 380, life: 0.86, radius: 4, element: "void" }
 };
 
+export const permanentSummonKinds = new Set<SummonKind>(["wisp", "hound", "turret", "drone", "blade"]);
+const SCYTHE_ORBIT_SPEED = 3.6;
+
+const isPermanentSummon = (kind: SummonKind) => permanentSummonKinds.has(kind);
+
+export const arrangeScytheFormation = (orbitals: Orbital[], phase: number) => {
+  const scythes = orbitals.filter((orbital) => orbital.kind === "blade");
+  if (scythes.length === 0) return;
+  const radius = scythes.reduce((total, scythe) => total + scythe.distance, 0) / scythes.length;
+  for (const [index, scythe] of scythes.entries()) {
+    scythe.distance = radius;
+    scythe.speed = SCYTHE_ORBIT_SPEED;
+    scythe.angle = phase + (TAU * index) / scythes.length;
+  }
+};
+
 const fireSummonAttack = (game: Game, orbital: Orbital, x: number, y: number, target: Enemy) => {
   const profile = summonAttackProfiles[orbital.kind];
   const angle = Math.atan2(target.y - y, target.x - x);
@@ -2706,10 +2724,11 @@ const fireSummonAttack = (game: Game, orbital: Orbital, x: number, y: number, ta
 
 const updateOrbitals = (game: Game, dt: number) => {
   const player = game.player;
+  arrangeScytheFormation(player.orbitals, game.time * SCYTHE_ORBIT_SPEED);
   for (let i = player.orbitals.length - 1; i >= 0; i -= 1) {
     const orbital = player.orbitals[i];
     orbital.angle += orbital.speed * dt;
-    orbital.life -= dt;
+    if (orbital.life !== null) orbital.life -= dt;
     orbital.attackCooldown = Math.max(0, orbital.attackCooldown - dt);
     orbital.attackFlash = Math.max(0, orbital.attackFlash - dt);
     const x = player.x + Math.cos(orbital.angle) * orbital.distance;
@@ -2722,7 +2741,7 @@ const updateOrbitals = (game: Game, dt: number) => {
         if (has(game, "conductor") && Math.random() < 0.08) chainLightning(game, x, y, 66, 4 * player.lightningDamage);
       }
     }
-    if (orbital.life <= 0) player.orbitals.splice(i, 1);
+    if (orbital.life !== null && orbital.life <= 0) player.orbitals.splice(i, 1);
   }
 };
 
@@ -2842,8 +2861,8 @@ const killEnemy = (game: Game, enemy: Enemy) => {
     game.player.souls += 1 + (has(game, "soul_furnace") && Math.random() < 0.35 ? 1 : 0);
     if (game.player.souls >= 3) {
       game.player.souls -= 3;
-      game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(46, 78), damage: 10, life: 16, speed: rand(3, 5), kind: "blade", attackCooldown: 0, attackFlash: 0 });
-      text(game, enemy.x, enemy.y - 20, "soul blade", "#c4b5fd");
+      spawnOrbital(game, 10 * game.player.summonDamage, 16, "blade");
+      text(game, enemy.x, enemy.y - 20, "soul scythe", "#c4b5fd");
     }
   }
 
@@ -2991,12 +3010,14 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
   const existing = player.orbitals.length;
   const cap = has(game, "hive_engine") ? 12 : has(game, "twin_spawn") ? 10 : 8;
   if (existing >= cap) player.orbitals.shift();
+  const existingScythe = kind === "blade" ? player.orbitals.find((orbital) => orbital.kind === "blade") : undefined;
+  const distance = kind === "blade" ? existingScythe?.distance ?? 62 : rand(46, has(game, "leash_breaker") ? 96 : 78);
   player.orbitals.push({
     angle: rand(0, TAU),
-    distance: rand(46, has(game, "leash_breaker") ? 96 : 78),
+    distance,
     damage,
-    life,
-    speed: rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1),
+    life: isPermanentSummon(kind) ? null : life,
+    speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1),
     kind,
     attackCooldown: 0,
     attackFlash: 0
@@ -3004,15 +3025,16 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
   if (has(game, "twin_spawn") && player.orbitals.length < cap && Math.random() < 0.5) {
     player.orbitals.push({
       angle: rand(0, TAU),
-      distance: rand(46, has(game, "leash_breaker") ? 96 : 78),
+      distance,
       damage: damage * 0.75,
-      life,
-      speed: rand(2.8, 5.2),
+      life: isPermanentSummon(kind) ? null : life,
+      speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(2.8, 5.2),
       kind,
       attackCooldown: 0,
       attackFlash: 0
     });
   }
+  arrangeScytheFormation(player.orbitals, game.time * SCYTHE_ORBIT_SPEED);
 };
 
 const pullEnemies = (game: Game, x: number, y: number, radius: number, strength: number) => {

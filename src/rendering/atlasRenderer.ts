@@ -55,7 +55,8 @@ const drawSprite = (
   animation: "idle" | "move" | "attack" | "hit",
   elapsed: number,
   fallbackKind: "player" | "enemy" | "summon" | "pickup",
-  alpha = 1
+  alpha = 1,
+  rotation = 0
 ) => {
   if (!sprite) return;
   const image = atlases.get(sprite.atlasId);
@@ -67,16 +68,17 @@ const drawSprite = (
     const frame = getAnimationFrame(sprite, animation, elapsed);
     const height = size;
     const width = Math.round((sprite.logicalSize.width / sprite.logicalSize.height) * height);
-    const left = px - Math.round((sprite.pivot.x / sprite.logicalSize.width) * width);
-    const top = py - Math.round((sprite.pivot.y / sprite.logicalSize.height) * height);
+    const left = -Math.round((sprite.pivot.x / sprite.logicalSize.width) * width);
+    const top = -Math.round((sprite.pivot.y / sprite.logicalSize.height) * height);
     ctx.imageSmoothingEnabled = false;
-    if (sprite.flipX) {
-      ctx.translate(px * 2 - left - width, 0);
-      ctx.scale(-1, 1);
-    }
+    ctx.translate(px, py);
+    if (rotation) ctx.rotate(rotation);
+    if (sprite.flipX) ctx.scale(-1, 1);
     ctx.drawImage(image, frame.x, frame.y, frame.width, frame.height, left, top, width, height);
   } else {
-    drawFallback(ctx, px, py, size, sprite.palette, fallbackKind);
+    ctx.translate(px, py);
+    if (rotation) ctx.rotate(rotation);
+    drawFallback(ctx, 0, 0, size, sprite.palette, fallbackKind);
   }
   ctx.restore();
 };
@@ -124,45 +126,37 @@ const drawEnvironment = (ctx: CanvasRenderingContext2D, game: Game, camera: { x:
   }
 };
 
-const drawBullet = (ctx: CanvasRenderingContext2D, bullet: Game["bullets"][number]) => {
-  const effect = artManifest.effects[bullet.element];
-  const x = quantize(bullet.x);
-  const y = quantize(bullet.y);
-  const size = Math.max(3, quantize(bullet.r));
+const drawBullet = (ctx: CanvasRenderingContext2D, atlases: LoadedAtlases, bullet: Game["bullets"][number]) => {
   const angle = Math.atan2(bullet.vy, bullet.vx);
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.fillStyle = effect.palette.primary;
-  if (bullet.element === "lightning") {
-    ctx.strokeStyle = effect.palette.primary;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-size * 2, -size);
-    ctx.lineTo(0, size);
-    ctx.lineTo(size * 2, -size);
-    ctx.stroke();
-  } else if (bullet.element === "void") {
-    ctx.strokeStyle = effect.palette.primary;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-size, -size, size * 2, size * 2);
-  } else if (bullet.element === "fire") {
-    drawDiamond(ctx, 0, 0, size + 1);
-    ctx.fill();
-    ctx.fillStyle = effect.palette.secondary;
-    ctx.fillRect(-1, -1, 3, 3);
-  } else {
-    ctx.fillRect(-size, -Math.max(1, Math.floor(size / 2)), size * 2 + 2, Math.max(2, size));
-  }
-  ctx.restore();
+  drawSprite(
+    ctx,
+    atlases,
+    artManifest.bullets[bullet.element],
+    bullet.x,
+    bullet.y,
+    Math.max(12, quantize(bullet.r * 3)),
+    "idle",
+    bullet.life * 1000,
+    "summon",
+    1,
+    angle
+  );
 };
 
-const drawEnemyProjectile = (ctx: CanvasRenderingContext2D, shot: Game["enemyProjectiles"][number]) => {
-  const x = quantize(shot.x);
-  const y = quantize(shot.y);
-  ctx.fillStyle = "#D35F66";
-  drawDiamond(ctx, x, y, Math.max(3, shot.r));
-  ctx.fill();
+const drawEnemyProjectile = (ctx: CanvasRenderingContext2D, atlases: LoadedAtlases, shot: Game["enemyProjectiles"][number]) => {
+  drawSprite(
+    ctx,
+    atlases,
+    artManifest.bullets.blood,
+    shot.x,
+    shot.y,
+    Math.max(12, quantize(shot.r * 3)),
+    "idle",
+    shot.life * 1000,
+    "summon",
+    1,
+    Math.atan2(shot.vy, shot.vx)
+  );
 };
 
 const drawEliteBar = (ctx: CanvasRenderingContext2D, enemy: Game["enemies"][number]) => {
@@ -184,13 +178,13 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
   for (const gem of game.gems) {
     drawSprite(ctx, atlases, artManifest.pickups.xp, gem.x, gem.y, 16, "idle", game.time * 1000 + gem.value * 50, "pickup");
   }
-  for (const bullet of game.bullets) drawBullet(ctx, bullet);
-  for (const shot of game.enemyProjectiles) drawEnemyProjectile(ctx, shot);
+  for (const bullet of game.bullets) drawBullet(ctx, atlases, bullet);
+  for (const shot of game.enemyProjectiles) drawEnemyProjectile(ctx, atlases, shot);
 
   for (const orbital of game.player.orbitals) {
     const x = game.player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = game.player.y + Math.sin(orbital.angle) * orbital.distance;
-    drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, 28, "move", game.time * 1000 + orbital.angle * 100, "summon");
+    drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, 30, orbital.attackFlash > 0 ? "attack" : "move", game.time * 1000 + orbital.angle * 100, "summon", 1, orbital.kind === "blade" || orbital.kind === "chakram" ? orbital.angle : 0);
   }
 
   for (const enemy of game.enemies) {

@@ -28,12 +28,30 @@ const atlasSprite = (
   animations: [
     { id: "idle", frames: [frame(x, y), frame(x + 32, y)], loop: true },
     { id: "move", frames: [frame(x, y), frame(x + 32, y), frame(x + 64, y)], loop: true },
+    { id: "attack", frames: [frame(x + 64, y, 32, 32, 80), frame(x + 96, y, 32, 32, 80)] },
     { id: "hit", frames: [frame(x + 96, y, 32, 32, 80)] }
   ]
 });
 
+const bulletSprite = (
+  id: string,
+  label: string,
+  x: number,
+  palette: AtlasSpriteDefinition["palette"]
+): AtlasSpriteDefinition => ({
+  kind: "atlas",
+  id,
+  label,
+  atlasId: "bullets",
+  logicalSize: { width: 16, height: 16 },
+  pivot: { x: 8, y: 8 },
+  palette,
+  animations: [{ id: "idle", frames: [frame(x, 0, 32, 32, 100)], loop: true }]
+});
+
 const characterIds = ["saint", "ilya", "nox", "mira", "scarlett", "corvus", "kaden", "lyra"] as const;
 const enemyIds = ["grunt", "runner", "brute", "spitter", "charger", "elite", "boss"] as const;
+const bulletIds = ["kinetic", "lightning", "fire", "ice", "blood", "void"] as const;
 const weaponIds = ["revolver", "shotgun", "needle_smg", "crossbow", "flame_cannon", "arc_rifle", "shard_launcher", "rail_lance", "chakram", "hive_staff", "prism_launcher", "aether_spear"] as const;
 const summonIds = ["wisp", "hound", "turret", "drone", "mite", "blade", "wasp", "chakram", "orb"] as const;
 
@@ -48,6 +66,7 @@ export const artManifest: ArtManifest = {
   atlases: {
     characters: { id: "characters", src: publicAsset("art/characters.png"), width: 512, height: 64 },
     enemies: { id: "enemies", src: publicAsset("art/enemies.png"), width: 512, height: 64 },
+    bullets: { id: "bullets", src: publicAsset("art/bullets.png"), width: 192, height: 32 },
     weapons: { id: "weapons", src: publicAsset("art/weapons.png"), width: 512, height: 96 },
     summons: { id: "summons", src: publicAsset("art/summons.png"), width: 512, height: 96 },
     glyphs: { id: "glyphs", src: publicAsset("art/glyphs.png"), width: 128, height: 32 },
@@ -59,6 +78,14 @@ export const artManifest: ArtManifest = {
   enemies: entitySprites(enemyIds, "enemies", {
     grunt: "Husk", runner: "Skitter", brute: "Grave Brute", spitter: "Venom Choir", charger: "Gore Charger", elite: "Bellguard", boss: "Cathedral Bell"
   }, { primary: midnightPalette.danger, secondary: midnightPalette.bone }),
+  bullets: {
+    kinetic: bulletSprite("kinetic", "Kinetic round", 0, { primary: midnightPalette.bone, secondary: midnightPalette.raisedInk }),
+    lightning: bulletSprite("lightning", "Lightning spark", 32, { primary: midnightPalette.brightViridian, secondary: midnightPalette.bone }),
+    fire: bulletSprite("fire", "Cinder round", 64, { primary: midnightPalette.danger, secondary: midnightPalette.amber }),
+    ice: bulletSprite("ice", "Frost shard", 96, { primary: midnightPalette.brightViridian, secondary: midnightPalette.bone }),
+    blood: bulletSprite("blood", "Blood thorn", 128, { primary: midnightPalette.danger, secondary: midnightPalette.bone }),
+    void: bulletSprite("void", "Void shard", 160, { primary: midnightPalette.amber, secondary: midnightPalette.viridian })
+  },
   weapons: entitySprites(weaponIds, "weapons", {
     revolver: "Revolver", shotgun: "Shotgun", needle_smg: "Needle SMG", crossbow: "Crossbow", flame_cannon: "Flame Cannon", arc_rifle: "Arc Rifle", shard_launcher: "Shard Launcher", rail_lance: "Rail Lance", chakram: "Chakram", hive_staff: "Hive Staff", prism_launcher: "Prism Launcher", aether_spear: "Aether Spear"
   }, { primary: midnightPalette.bone, secondary: midnightPalette.amber }),
@@ -78,4 +105,4 @@ export const artManifest: ArtManifest = {
   }
 };
 
-export const allArtEntityIds = { characterIds, enemyIds, weaponIds, summonIds };
+export const allArtEntityIds = { characterIds, enemyIds, bulletIds, weaponIds, summonIds };

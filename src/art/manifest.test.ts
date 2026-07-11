@@ -11,6 +11,7 @@ describe("art manifest", () => {
     expect(Object.keys(artManifest.characters).sort()).toEqual(characterOptions.map(({ id }) => id).sort());
     expect(Object.keys(artManifest.weapons).sort()).toEqual(weaponOptions.map(({ id }) => id).sort());
     expect(Object.keys(artManifest.enemies).sort()).toEqual([...allArtEntityIds.enemyIds].sort());
+    expect(Object.keys(artManifest.bullets).sort()).toEqual([...allArtEntityIds.bulletIds].sort());
     expect(Object.keys(artManifest.summons).sort()).toEqual([...allArtEntityIds.summonIds].sort());
     expect(Object.keys(artManifest.pickups)).toEqual(["xp"]);
   });
@@ -19,6 +20,7 @@ describe("art manifest", () => {
     const atlasSprites = [
       ...Object.values(artManifest.characters),
       ...Object.values(artManifest.enemies),
+      ...Object.values(artManifest.bullets),
       ...Object.values(artManifest.weapons),
       ...Object.values(artManifest.summons),
       ...Object.values(artManifest.pickups)
@@ -46,6 +48,12 @@ describe("art manifest", () => {
     expect(sprite.animations.flatMap((animation) => animation.frames).every((frame) => frame.durationMs >= 80 && frame.durationMs <= 125)).toBe(true);
     expect(getAnimationFrame(sprite, "idle", 0)).toEqual(sprite.animations[0].frames[0]);
     expect(getAnimationFrame(sprite, "idle", 100)).toEqual(sprite.animations[0].frames[1]);
+  });
+
+  it("gives every summon an authored attack frame", () => {
+    for (const [kind, sprite] of Object.entries(artManifest.summons)) {
+      expect(sprite.animations.some((animation) => animation.id === "attack"), kind).toBe(true);
+    }
   });
 
   it("uses the shared palette and chooses a procedural fallback when an atlas is absent", () => {

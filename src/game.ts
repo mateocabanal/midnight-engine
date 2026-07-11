@@ -83,6 +83,13 @@ type Bullet = {
   fromOrbit?: boolean;
 };
 
+type BulletMods = Partial<Pick<Bullet, "split" | "bounces" | "crit" | "pierce" | "depth">> & {
+  speed?: number;
+  life?: number;
+  radius?: number;
+  fromOrbit?: boolean;
+};
+
 type Gem = {
   x: number;
   y: number;
@@ -108,6 +115,8 @@ type Orbital = {
   life: number;
   speed: number;
   kind: SummonKind;
+  attackCooldown: number;
+  attackFlash: number;
 };
 
 type SummonKind = "wisp" | "hound" | "turret" | "drone" | "mite" | "blade" | "wasp" | "chakram" | "orb";
@@ -2205,23 +2214,24 @@ const fireBullet = (
   angle: number,
   damage: number,
   element: Bullet["element"],
-  mods: Partial<Pick<Bullet, "split" | "bounces" | "crit" | "pierce" | "depth">> = {}
+  mods: BulletMods = {}
 ) => {
-  const speed = game.player.bulletSpeed;
+  const speed = mods.speed ?? game.player.bulletSpeed;
   game.bullets.push({
     x,
     y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    r: element === "void" ? game.player.bulletSize + 3 : game.player.bulletSize + 1,
+    r: mods.radius ?? (element === "void" ? game.player.bulletSize + 3 : game.player.bulletSize + 1),
     damage,
-    life: game.player.bulletLife,
+    life: mods.life ?? game.player.bulletLife,
     pierce: mods.pierce ?? 0,
     bounces: mods.bounces ?? 0,
     split: mods.split ?? 0,
     crit: mods.crit ?? 0,
     element,
-    depth: mods.depth ?? 0
+    depth: mods.depth ?? 0,
+    fromOrbit: mods.fromOrbit
   });
 };
 
@@ -2276,7 +2286,9 @@ const updateBullets = (game: Game, dt: number) => {
           damage: Math.max(5, bullet.damage * 0.42),
           life: 12,
           speed: rand(2.2, 4.2),
-          kind: "orb"
+          kind: "orb",
+          attackCooldown: 0,
+          attackFlash: 0
         });
       }
       game.bullets.splice(i, 1);
@@ -2459,14 +2471,53 @@ const updateGems = (game: Game, dt: number) => {
   }
 };
 
+const summonAttackProfiles: Record<SummonKind, {
+  cooldown: number;
+  damageMultiplier: number;
+  speed: number;
+  life: number;
+  radius: number;
+  pierce?: number;
+  element: Bullet["element"];
+}> = {
+  wisp: { cooldown: 0.54, damageMultiplier: 0.9, speed: 460, life: 0.8, radius: 3, element: "lightning" },
+  hound: { cooldown: 0.72, damageMultiplier: 1.05, speed: 500, life: 0.58, radius: 4, element: "kinetic" },
+  turret: { cooldown: 0.3, damageMultiplier: 0.72, speed: 660, life: 0.72, radius: 3, element: "kinetic" },
+  drone: { cooldown: 0.88, damageMultiplier: 0.52, speed: 400, life: 0.75, radius: 3, element: "ice" },
+  mite: { cooldown: 0.58, damageMultiplier: 0.62, speed: 520, life: 0.5, radius: 3, element: "blood" },
+  blade: { cooldown: 0.46, damageMultiplier: 0.82, speed: 560, life: 0.5, radius: 4, pierce: 1, element: "kinetic" },
+  wasp: { cooldown: 0.36, damageMultiplier: 0.56, speed: 580, life: 0.54, radius: 3, element: "blood" },
+  chakram: { cooldown: 0.52, damageMultiplier: 0.92, speed: 520, life: 0.66, radius: 4, pierce: 1, element: "void" },
+  orb: { cooldown: 0.66, damageMultiplier: 1, speed: 380, life: 0.86, radius: 4, element: "void" }
+};
+
+const fireSummonAttack = (game: Game, orbital: Orbital, x: number, y: number, target: Enemy) => {
+  const profile = summonAttackProfiles[orbital.kind];
+  const angle = Math.atan2(target.y - y, target.x - x);
+  fireBullet(game, x, y, angle, orbital.damage * profile.damageMultiplier, profile.element, {
+    speed: profile.speed,
+    life: profile.life,
+    radius: profile.radius,
+    pierce: profile.pierce ?? 0,
+    crit: game.player.crit * 0.2,
+    fromOrbit: true
+  });
+  orbital.attackCooldown = profile.cooldown;
+  orbital.attackFlash = 0.14;
+};
+
 const updateOrbitals = (game: Game, dt: number) => {
   const player = game.player;
   for (let i = player.orbitals.length - 1; i >= 0; i -= 1) {
     const orbital = player.orbitals[i];
     orbital.angle += orbital.speed * dt;
     orbital.life -= dt;
+    orbital.attackCooldown = Math.max(0, orbital.attackCooldown - dt);
+    orbital.attackFlash = Math.max(0, orbital.attackFlash - dt);
     const x = player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = player.y + Math.sin(orbital.angle) * orbital.distance;
+    const target = nearestEnemy(game, x, y);
+    if (target && orbital.attackCooldown <= 0) fireSummonAttack(game, orbital, x, y, target);
     for (const enemy of game.enemies) {
       if (Math.hypot(enemy.x - x, enemy.y - y) < enemy.r + 8) {
         hurtEnemy(game, enemy, orbital.damage * dt * 5, has(game, "conductor") ? "lightning" : "kinetic");
@@ -2593,7 +2644,7 @@ const killEnemy = (game: Game, enemy: Enemy) => {
     game.player.souls += 1 + (has(game, "soul_furnace") && Math.random() < 0.35 ? 1 : 0);
     if (game.player.souls >= 3) {
       game.player.souls -= 3;
-      game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(46, 78), damage: 10, life: 16, speed: rand(3, 5), kind: "blade" });
+      game.player.orbitals.push({ angle: rand(0, TAU), distance: rand(46, 78), damage: 10, life: 16, speed: rand(3, 5), kind: "blade", attackCooldown: 0, attackFlash: 0 });
       text(game, enemy.x, enemy.y - 20, "soul blade", "#c4b5fd");
     }
   }
@@ -2748,7 +2799,9 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
     damage,
     life,
     speed: rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1),
-    kind
+    kind,
+    attackCooldown: 0,
+    attackFlash: 0
   });
   if (has(game, "twin_spawn") && player.orbitals.length < cap && Math.random() < 0.5) {
     player.orbitals.push({
@@ -2757,7 +2810,9 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
       damage: damage * 0.75,
       life,
       speed: rand(2.8, 5.2),
-      kind
+      kind,
+      attackCooldown: 0,
+      attackFlash: 0
     });
   }
 };

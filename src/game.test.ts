@@ -72,6 +72,37 @@ describe("game core", () => {
     expect(game.particles.some((particle) => particle.text?.toLowerCase().includes("covenant"))).toBe(true);
   });
 
+  it("gives every summon a visible ranged attack against a target", () => {
+    const summonKinds = ["wisp", "hound", "turret", "drone", "mite", "blade", "wasp", "chakram", "orb"] as const;
+
+    for (const kind of summonKinds) {
+      const game = createGame();
+      const target = game.enemies[0];
+      target.x = game.player.x + 72;
+      target.y = game.player.y;
+      target.speed = 0;
+      game.enemies = [target];
+      game.player.orbitals.push({
+        angle: 0,
+        distance: 32,
+        damage: 12,
+        life: 10,
+        speed: 0,
+        kind,
+        attackCooldown: 0,
+        attackFlash: 0
+      });
+      const initialHp = target.hp;
+
+      stepGame(game, idleInput, 0.016);
+
+      expect(game.player.orbitals[0].attackFlash, kind).toBeGreaterThan(0);
+      expect(game.bullets.some((bullet) => bullet.fromOrbit), kind).toBe(true);
+      for (let frame = 0; frame < 30; frame += 1) stepGame(game, idleInput, 0.016);
+      expect(target.hp, kind).toBeLessThan(initialHp);
+    }
+  });
+
   it("records defeat and victory summaries", () => {
     const defeat = createGame();
     defeat.player.hp = 0;

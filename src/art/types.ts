@@ -65,6 +65,7 @@ export type ArtManifest = {
   atlases: Record<string, AtlasSource>;
   characters: Record<string, AtlasSpriteDefinition>;
   enemies: Record<string, AtlasSpriteDefinition>;
+  bullets: Record<string, AtlasSpriteDefinition>;
   weapons: Record<string, AtlasSpriteDefinition>;
   summons: Record<string, AtlasSpriteDefinition>;
   pickups: Record<string, AtlasSpriteDefinition>;

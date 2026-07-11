@@ -1,6 +1,6 @@
 import { createGame, stepGame, type Game, type InputState } from "../game";
 
-export type VisualState = "main-menu" | "run-hud" | "stress";
+export type VisualState = "main-menu" | "run-hud" | "skill-tree" | "stress";
 
 const idleInput: InputState = { moveX: 0, moveY: 0, aimX: 1, aimY: 0, firing: false, active: false };
 
@@ -21,7 +21,7 @@ const withSeededRandom = <T,>(seed: number, run: () => T): T => {
 
 export const getVisualState = (): VisualState | null => {
   const value = new URLSearchParams(window.location.search).get("visual");
-  return value === "main-menu" || value === "run-hud" || value === "stress" ? value : null;
+  return value === "main-menu" || value === "run-hud" || value === "skill-tree" || value === "stress" ? value : null;
 };
 
 export const applyRequestedVisualStyle = async () => {
@@ -56,6 +56,11 @@ export const createVisualGame = (state: VisualState): Game => withSeededRandom(0
   // camera shake that the director transition would otherwise introduce.
   game.screenShake = 0;
 
+  if (state === "skill-tree") {
+    game.upgrades.static_prayer = 1;
+    game.upgrades.quick_hands = 1;
+  }
+
   if (state === "stress") {
     const enemyKinds = ["grunt", "runner", "brute", "spitter", "charger", "elite", "boss"] as const;
     const seedEnemy = game.enemies[0];
@@ -78,6 +83,7 @@ export const createVisualGame = (state: VisualState): Game => withSeededRandom(0
       r: 4,
       damage: 12,
       life: 1,
+      age: index * 0.013,
       pierce: 0,
       bounces: 0,
       split: 0,

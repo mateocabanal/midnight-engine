@@ -1,4 +1,5 @@
 import type { AtlasSpriteDefinition } from "./art/types";
+import { upgradeCatalogue, upgradeTrees, type UpgradeTier, type UpgradeTreeId } from "./upgrades/catalog";
 
 export type InputState = {
   moveX: number;
@@ -29,7 +30,7 @@ export type LoadoutOption<T extends string> = {
   tradeoff: string;
 };
 
-type UpgradeId = string;
+export type UpgradeId = string;
 
 type EnemyKind = "grunt" | "runner" | "brute" | "spitter" | "charger" | "elite" | "boss";
 
@@ -63,6 +64,7 @@ type EnemyProjectile = {
   r: number;
   damage: number;
   life: number;
+  age: number;
   color: string;
 };
 
@@ -74,6 +76,7 @@ type Bullet = {
   r: number;
   damage: number;
   life: number;
+  age: number;
   pierce: number;
   bounces: number;
   split: number;
@@ -220,6 +223,10 @@ type UpgradeDef = {
   fusion?: boolean;
   law?: boolean;
   requires?: UpgradeId[];
+  tree?: UpgradeTreeId | "fusion";
+  tier?: UpgradeTier;
+  tags?: string[];
+  fusionTrees?: [UpgradeTreeId, UpgradeTreeId];
   apply: (game: Game) => void;
 };
 
@@ -810,8 +817,41 @@ export const getSpriteDefinition = (kind: SpriteGroupName, id: string): Procedur
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const len = (x: number, y: number) => Math.hypot(x, y) || 1;
-const has = (game: Game, id: UpgradeId) => (game.upgrades[id] || 0) > 0;
-const count = (game: Game, id: UpgradeId) => game.upgrades[id] || 0;
+const legacyUpgradeEquivalents: Record<string, UpgradeId[]> = {
+  law_of_echoes: ["mirror_chamber", "hall_of_mirrors"],
+  fresh_clip: ["static_prayer"],
+  empty_chamber: ["empty_bell"],
+  capacitor: ["static_prayer"],
+  static_touch: ["static_prayer"],
+  chain_spark: ["thunder_magazine", "tempest_crown"],
+  firestarter: ["frostfire_rounds"],
+  cold_touch: ["frostfire_rounds"],
+  brittle: ["brittle_core"],
+  hemorrhage: ["serrated_lead", "blood_tax"],
+  serrated_rounds: ["serrated_lead"],
+  vampiric_shell: ["red_refund"],
+  cauterize: ["red_refund"],
+  soul_shepherd: ["grave_interest", "soul_blade"],
+  soul_furnace: ["tithe"],
+  law_of_orbit: ["hungry_crown"],
+  conductor: ["storm_crown", "undertaker_engine"],
+  greed: ["compound_interest"],
+  magnetism: ["greed_magnet", "gem_singularity"],
+  broodmother: ["parasite_rounds", "brood_cascade"],
+  familiar_training: ["larval_split"],
+  leash_breaker: ["host_jump"],
+  twin_spawn: ["brood_cascade"],
+  law_of_gravity: ["void_mark", "event_horizon"],
+  napalm: ["thermal_shock"],
+  deep_freeze: ["brittle_core"],
+  ice_bloom: ["solar_frostbite"],
+  ash_wake: ["thermal_shock"]
+};
+
+const has = (game: Game, id: UpgradeId) =>
+  (game.upgrades[id] || 0) > 0 || (legacyUpgradeEquivalents[id]?.some((replacement) => (game.upgrades[replacement] || 0) > 0) ?? false);
+const count = (game: Game, id: UpgradeId) =>
+  game.upgrades[id] || Math.max(0, ...(legacyUpgradeEquivalents[id] ?? []).map((replacement) => game.upgrades[replacement] || 0));
 const addUpgrade = (game: Game, id: UpgradeId) => {
   game.upgrades[id] = (game.upgrades[id] || 0) + 1;
 };
@@ -930,7 +970,7 @@ export const recordRunSummary = (summary: RunSummary): PersistedProgress => {
   return next;
 };
 
-const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
+const legacyRawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
   ["heavy_caliber", "Heavy Caliber", "ballistics", "common", "+22% projectile damage, -10% fire rate."],
   ["long_barrel", "Long Barrel", "ballistics", "common", "+22% projectile speed, +18% range."],
   ["rifled_jacket", "Rifled Jacket", "ballistics", "uncommon", "+1 pierce; each pierce after the first reduces remaining damage."],
@@ -1042,6 +1082,17 @@ const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
   law: rarity === "law"
 }));
 
+// The legacy table remains temporarily as a migration reference for effect
+// parity, but only the structured catalogue below is exposed to the game.
+void legacyRawUpgradeDefs;
+
+const rawUpgradeDefs: Omit<UpgradeDef, "apply">[] = upgradeCatalogue.map((upgrade) => ({
+  ...upgrade,
+  category: upgrade.tree,
+  fusion: upgrade.tier === "fusion",
+  law: false
+}));
+
 export type SkillTreeNode = {
   id: UpgradeId;
   name: string;
@@ -1051,6 +1102,9 @@ export type SkillTreeNode = {
   requires: UpgradeId[];
   fusion: boolean;
   law: boolean;
+  tree: UpgradeTreeId | "fusion";
+  tier: UpgradeTier;
+  tags: string[];
 };
 
 export type SkillTreeCategory = {
@@ -1059,33 +1113,23 @@ export type SkillTreeCategory = {
 };
 
 export const getSkillTree = (): SkillTreeCategory[] => {
-  const categories = new Map<string, SkillTreeNode[]>();
-  for (const def of rawUpgradeDefs) {
-    const cat = def.category!;
-    if (!categories.has(cat)) categories.set(cat, []);
-    categories.get(cat)!.push({
+  const groups = [...upgradeTrees, { id: "fusion" as const, nodes: upgradeCatalogue.filter((upgrade) => upgrade.tree === "fusion") }];
+  return groups.map((group) => ({
+    name: group.id,
+    nodes: group.nodes.map((def) => ({
       id: def.id,
       name: def.name,
-      category: cat,
-      rarity: def.rarity!,
+      category: def.tree,
+      rarity: def.rarity,
       description: def.description,
-      requires: def.requires ?? [],
-      fusion: !!def.fusion,
-      law: !!def.law
-    });
-  }
-  const order = [
-    "ballistics", "critical", "fire", "frost", "shock",
-    "poison", "bleed", "curse", "summon", "reload",
-    "magazine", "fire_rate", "defence", "sustain", "utility",
-    "economy", "law", "fusion"
-  ];
-  const sorted = [...categories.entries()].sort((a, b) => {
-    const ai = order.indexOf(a[0]);
-    const bi = order.indexOf(b[0]);
-    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
-  });
-  return sorted.map(([name, nodes]) => ({ name, nodes }));
+      requires: def.requires,
+      fusion: def.tier === "fusion",
+      law: false,
+      tree: def.tree,
+      tier: def.tier,
+      tags: def.tags
+    }))
+  }));
 };
 
 export const isUpgradeUnlocked = (game: Game, upgrade: { requires: UpgradeId[] }): boolean => {
@@ -1258,9 +1302,8 @@ export const getUpgradeChoices = (game: Game): Choice[] => {
   });
 
   const fusions = available.filter((upgrade) => upgrade.fusion);
-  const laws = available.filter((upgrade) => upgrade.law);
   const basics = available.filter((upgrade) => !upgrade.fusion && !upgrade.law);
-  const guaranteed = [...fusions, ...laws].slice(0, game.level >= 8 ? 2 : 1);
+  const guaranteed = fusions.slice(0, 1);
   const weighted = pickWeightedChoices(game, basics, 3 - guaranteed.length);
   const choices = shuffle([...guaranteed, ...weighted]).slice(0, 3);
 
@@ -1305,6 +1348,13 @@ const synergyWeight = (game: Game, upgrade: UpgradeDef) => {
     if (token.length > 3 && textValue.includes(token)) weight *= 1.25;
   }
   if (upgrade.requires?.some((id) => has(game, id))) weight *= 1.6;
+  const ownedInTree = upgrade.tree && upgrade.tree !== "fusion"
+    ? rawUpgradeDefs.some((candidate) => candidate.tree === upgrade.tree && has(game, candidate.id))
+    : false;
+  if (game.level <= 3 && upgrade.tier === "root") weight *= 2.4;
+  if (game.level <= 3 && upgrade.tier === "capstone") weight *= 0.2;
+  if (ownedInTree && upgrade.tier === "branch") weight *= 1.75;
+  if (ownedInTree && upgrade.tier === "capstone") weight *= 2.1;
   if (game.draft.seen.includes(upgrade.id)) weight *= 0.65;
   return weight;
 };
@@ -1331,6 +1381,150 @@ function applyUpgrade(game: Game, id: UpgradeId) {
   addUpgrade(game, id);
 
   switch (id) {
+    case "split_chamber":
+      player.bulletPierce += 1;
+      break;
+    case "serrated_lead":
+      player.bleedDamage *= 1.22;
+      player.bulletPierce += 1;
+      break;
+    case "powder_wake":
+      player.bulletLife *= 1.15;
+      player.damage *= 1.08;
+      break;
+    case "mirror_chamber":
+      player.fireRate *= 1.06;
+      break;
+    case "polished_bore":
+      player.crit += 0.1;
+      player.bulletSpeed *= 1.12;
+      break;
+    case "phantom_copy":
+      player.damage *= 1.08;
+      break;
+    case "hall_of_mirrors":
+      player.critDamage *= 1.18;
+      break;
+    case "static_prayer":
+      player.lightningDamage *= 1.16;
+      break;
+    case "quick_hands":
+      player.reloadSpeed *= 1.22;
+      break;
+    case "empty_bell":
+      player.reloadSpeed *= 1.08;
+      player.damage *= 1.06;
+      break;
+    case "frostfire_rounds":
+      player.fireDamage *= 1.12;
+      player.frostDamage *= 1.12;
+      break;
+    case "thermal_shock":
+      player.fireDamage *= 1.18;
+      break;
+    case "brittle_core":
+      player.frostDamage *= 1.16;
+      player.critDamage *= 1.12;
+      break;
+    case "blood_tax":
+      player.bleedDamage *= 1.18;
+      break;
+    case "clot_armour":
+      player.shield = Math.min(70, player.shield + 18);
+      break;
+    case "red_refund":
+      player.maxHp += 8;
+      player.hp = Math.min(player.maxHp, player.hp + 12);
+      break;
+    case "grave_interest":
+      player.souls += 1;
+      break;
+    case "soul_blade":
+      spawnOrbital(game, 12 * player.summonDamage, 20, "blade");
+      break;
+    case "tithe":
+      player.souls += 2;
+      player.summonDamage *= 1.1;
+      break;
+    case "undertaker_engine":
+      player.summonDamage *= 1.24;
+      break;
+    case "crown_of_teeth":
+      spawnOrbital(game, 14 * player.summonDamage, 24, "blade");
+      break;
+    case "wider_crown":
+      player.summonDamage *= 1.2;
+      for (const orbital of player.orbitals) orbital.distance *= 1.16;
+      break;
+    case "hungry_crown":
+    case "storm_crown":
+      player.summonDamage *= 1.18;
+      break;
+    case "gem_bomb":
+      player.pickupRadius *= 1.15;
+      break;
+    case "greed_magnet":
+      player.pickupRadius *= 1.45;
+      break;
+    case "compound_interest":
+      player.pickupRadius *= 1.1;
+      break;
+    case "parasite_rounds":
+      player.summonDamage *= 1.12;
+      spawnOrbital(game, 10 * player.summonDamage, 16, "mite");
+      break;
+    case "larval_split":
+    case "host_jump":
+      player.summonDamage *= 1.2;
+      break;
+    case "brood_cascade":
+      player.summonDamage *= 1.25;
+      spawnOrbital(game, 14 * player.summonDamage, 20, "mite");
+      break;
+    case "void_mark":
+      player.curseDamage *= 1.18;
+      break;
+    case "event_horizon":
+      player.damage *= 1.1;
+      player.curseDamage *= 1.12;
+      break;
+    case "deep_chamber":
+      player.bulletLife *= 1.25;
+      player.bulletSize *= 1.15;
+      player.bulletSpeed *= 0.9;
+      break;
+    case "recursive_arsenal":
+      player.pellets += 1;
+      player.bulletPierce += 1;
+      break;
+    case "echoing_thunder":
+    case "tempest_crown":
+      player.lightningDamage *= 1.3;
+      player.summonDamage *= 1.12;
+      break;
+    case "frozen_brood":
+    case "elemental_undertaker":
+    case "shattered_horizon":
+      player.fireDamage *= 1.2;
+      player.frostDamage *= 1.2;
+      player.summonDamage *= 1.12;
+      break;
+    case "sanguine_tithe":
+      player.maxHp += 10;
+      player.souls += 3;
+      break;
+    case "hungry_singularity":
+      player.pickupRadius *= 1.25;
+      player.curseDamage *= 1.22;
+      break;
+    case "crimson_brood":
+      player.bleedDamage *= 1.24;
+      player.summonDamage *= 1.24;
+      break;
+    case "phantom_crown":
+      player.summonDamage *= 1.3;
+      player.fireRate *= 1.08;
+      break;
     case "heavy_caliber":
       player.damage *= 1.22;
       player.fireRate *= 0.9;
@@ -1609,14 +1803,14 @@ const applyCharacter = (game: Game, characterId: CharacterId) => {
     player.reloadSpeed *= 1.15;
     player.crit += 0.03;
     player.activeCooldown = 14;
-    addUpgrade(game, "fresh_clip");
+    addUpgrade(game, "static_prayer");
   }
   if (characterId === "ilya") {
     player.damage *= 0.9;
     player.lightningDamage *= 1.18;
     player.speed *= 1.06;
     player.activeCooldown = 12;
-    addUpgrade(game, "static_touch");
+    addUpgrade(game, "static_prayer");
   }
   if (characterId === "nox") {
     player.maxHp = Math.max(55, player.maxHp - 20);
@@ -1624,26 +1818,26 @@ const applyCharacter = (game: Game, characterId: CharacterId) => {
     player.summonDamage *= 1.12;
     player.poisonDamage *= 1.14;
     player.activeCooldown = 16;
-    addUpgrade(game, "venom_tip");
+    addUpgrade(game, "parasite_rounds");
   }
   if (characterId === "mira") {
     player.reloadSpeed *= 0.88;
     player.crit += 0.04;
     player.activeCooldown = 20;
-    addUpgrade(game, "rebound");
+    addUpgrade(game, "mirror_chamber");
   }
   if (characterId === "scarlett") {
     player.bulletSpeed *= 0.9;
     player.fireDamage *= 1.2;
     player.activeCooldown = 18;
-    addUpgrade(game, "ember_touch");
+    addUpgrade(game, "frostfire_rounds");
   }
   if (characterId === "corvus") {
     player.crit += 0.08;
     player.critDamage *= 1.1;
     player.curseDamage *= 1.14;
     player.activeCooldown = 16;
-    addUpgrade(game, "hex_mark");
+    addUpgrade(game, "void_mark");
   }
   if (characterId === "kaden") {
     player.fireRate *= 0.85;
@@ -1651,13 +1845,13 @@ const applyCharacter = (game: Game, characterId: CharacterId) => {
     player.maxHp += 18;
     player.hp += 18;
     player.activeCooldown = 22;
-    addUpgrade(game, "bulwark");
+    addUpgrade(game, "crown_of_teeth");
   }
   if (characterId === "lyra") {
     player.damage *= 0.88;
     player.summonDamage *= 1.25;
     player.activeCooldown = 18;
-    addUpgrade(game, "hound_whistle");
+    addUpgrade(game, "parasite_rounds");
     spawnOrbital(game, 12 * player.summonDamage, 18, "hound");
   }
 };
@@ -2225,6 +2419,7 @@ const fireBullet = (
     r: mods.radius ?? (element === "void" ? game.player.bulletSize + 3 : game.player.bulletSize + 1),
     damage,
     life: mods.life ?? game.player.bulletLife,
+    age: 0,
     pierce: mods.pierce ?? 0,
     bounces: mods.bounces ?? 0,
     split: mods.split ?? 0,
@@ -2244,6 +2439,7 @@ const updateBullets = (game: Game, dt: number) => {
     }
     bullet.x += bullet.vx * dt;
     bullet.y += bullet.vy * dt;
+    bullet.age += dt;
     bullet.life -= dt;
 
     const bounced = bounceBullet(game, bullet);
@@ -2334,6 +2530,7 @@ const fireEnemyProjectile = (game: Game, enemy: Enemy, angle: number, speed: num
     r: enemy.kind === "boss" ? 7 : 5,
     damage,
     life: enemy.kind === "boss" ? 4.2 : 3.2,
+    age: 0,
     color
   });
 };
@@ -2344,6 +2541,7 @@ const updateEnemyProjectiles = (game: Game, dt: number) => {
     const shot = game.enemyProjectiles[i];
     shot.x += shot.vx * dt;
     shot.y += shot.vy * dt;
+    shot.age += dt;
     shot.life -= dt;
     if (Math.hypot(player.x - shot.x, player.y - shot.y) < player.r + shot.r) {
       hurtPlayer(game, shot.damage);

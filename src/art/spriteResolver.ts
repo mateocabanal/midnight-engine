@@ -1,14 +1,17 @@
 import type { LoadedAtlases } from "./atlasLoader";
-import type { AtlasFrame, AtlasSpriteDefinition } from "./types";
+import type { AnimationId, AtlasFrame, AtlasSpriteDefinition } from "./types";
 
 export const getAnimationFrame = (
   sprite: AtlasSpriteDefinition,
-  animationId: AtlasSpriteDefinition["animations"][number]["id"],
+  animationId: AnimationId,
   elapsedMs: number
 ): AtlasFrame => {
   const animation = sprite.animations.find((candidate) => candidate.id === animationId) ?? sprite.animations[0];
   const duration = animation.frames.reduce((total, frame) => total + frame.durationMs, 0);
-  const point = animation.loop && duration > 0 ? elapsedMs % duration : Math.min(elapsedMs, duration - 1);
+  const loops = animation.playback === "loop" || animation.loop;
+  const cycleDuration = animation.playback === "ping-pong" ? duration * 2 : duration;
+  let point = loops && cycleDuration > 0 ? elapsedMs % cycleDuration : Math.min(Math.max(0, elapsedMs), Math.max(0, duration - 1));
+  if (animation.playback === "ping-pong" && point >= duration) point = Math.max(0, duration * 2 - point - 1);
   let elapsed = 0;
 
   for (const frame of animation.frames) {

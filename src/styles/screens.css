@@ -160,6 +160,85 @@ button,
   color: var(--amber);
 }
 
+.skill-tree-tabs button {
+  border-radius: 0;
+  border-color: color-mix(in srgb, var(--bone) 24%, transparent);
+  background: var(--raised-ink);
+  text-transform: capitalize;
+}
+
+.skill-tree-tabs button.selected {
+  border-color: var(--bright-viridian);
+  background: color-mix(in srgb, var(--viridian) 24%, var(--ink));
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.skill-tree-nodes {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px 18px;
+  padding: 10px 4px 16px 16px;
+}
+
+.skill-tree-nodes::before {
+  content: "";
+  position: absolute;
+  top: 24px;
+  bottom: 32px;
+  left: 7px;
+  width: 2px;
+  background: linear-gradient(var(--viridian), var(--amber));
+  opacity: 0.55;
+}
+
+.skill-node {
+  position: relative;
+  min-height: 106px;
+}
+
+.skill-node::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: -10px;
+  width: 10px;
+  height: 2px;
+  background: var(--viridian);
+}
+
+.skill-node.tier-root,
+.skill-node.tier-capstone {
+  grid-column: 1 / -1;
+}
+
+.skill-node.tier-capstone,
+.skill-node.tier-fusion {
+  border-color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, var(--ink));
+}
+
+.skill-node-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skill-glyph {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--viridian);
+  color: var(--bright-viridian);
+  background: var(--raised-ink);
+}
+
+.tier-capstone .skill-glyph,
+.tier-fusion .skill-glyph {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
 .rotate-lock {
   background: var(--ink);
 }

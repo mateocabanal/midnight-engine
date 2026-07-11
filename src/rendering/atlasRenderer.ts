@@ -1,7 +1,7 @@
 import { artManifest } from "../art/manifest";
 import { getAnimationFrame } from "../art/spriteResolver";
 import type { LoadedAtlases } from "../art/atlasLoader";
-import type { AtlasSpriteDefinition } from "../art/types";
+import type { AnimationId, AtlasSpriteDefinition } from "../art/types";
 import type { Game } from "../game";
 import type { GameRenderControls } from "./gameRenderer";
 
@@ -9,6 +9,16 @@ const TAU = Math.PI * 2;
 const GRID = 2;
 const STAGE_TILE = 64;
 const LIGHT_RADIUS = 212;
+const animationStates = new WeakMap<object, { state: AnimationId; startedAt: number }>();
+
+const stateElapsed = (entity: object, state: AnimationId, nowSeconds: number) => {
+  const current = animationStates.get(entity);
+  if (!current || current.state !== state || nowSeconds < current.startedAt) {
+    animationStates.set(entity, { state, startedAt: nowSeconds });
+    return 0;
+  }
+  return (nowSeconds - current.startedAt) * 1000;
+};
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 const quantize = (value: number) => Math.round(value / GRID) * GRID;
@@ -52,7 +62,7 @@ const drawSprite = (
   x: number,
   y: number,
   size: number,
-  animation: "idle" | "move" | "attack" | "hit",
+  animation: AnimationId,
   elapsed: number,
   fallbackKind: "player" | "enemy" | "summon" | "pickup",
   alpha = 1,
@@ -72,7 +82,8 @@ const drawSprite = (
     const top = -Math.round((sprite.pivot.y / sprite.logicalSize.height) * height);
     ctx.imageSmoothingEnabled = false;
     ctx.translate(px, py);
-    if (rotation) ctx.rotate(rotation);
+    const selectedAnimation = sprite.animations.find((candidate) => candidate.id === animation) ?? sprite.animations[0];
+    if (rotation && selectedAnimation.directional !== "screen") ctx.rotate(rotation);
     if (sprite.flipX) ctx.scale(-1, 1);
     ctx.drawImage(image, frame.x, frame.y, frame.width, frame.height, left, top, width, height);
   } else {
@@ -135,8 +146,8 @@ const drawBullet = (ctx: CanvasRenderingContext2D, atlases: LoadedAtlases, bulle
     bullet.x,
     bullet.y,
     Math.max(12, quantize(bullet.r * 3)),
-    "idle",
-    bullet.life * 1000,
+    "flight",
+    bullet.age * 1000,
     "summon",
     1,
     angle
@@ -151,8 +162,8 @@ const drawEnemyProjectile = (ctx: CanvasRenderingContext2D, atlases: LoadedAtlas
     shot.x,
     shot.y,
     Math.max(12, quantize(shot.r * 3)),
-    "idle",
-    shot.life * 1000,
+    "flight",
+    shot.age * 1000,
     "summon",
     1,
     Math.atan2(shot.vy, shot.vx)
@@ -184,18 +195,20 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
   for (const orbital of game.player.orbitals) {
     const x = game.player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = game.player.y + Math.sin(orbital.angle) * orbital.distance;
-    drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, 30, orbital.attackFlash > 0 ? "attack" : "move", game.time * 1000 + orbital.angle * 100, "summon", 1, orbital.kind === "blade" || orbital.kind === "chakram" ? orbital.angle : 0);
+    const animation = orbital.attackFlash > 0 ? "attack" : "move";
+    drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, 34, animation, stateElapsed(orbital, animation, game.time), "summon", 1, orbital.kind === "blade" || orbital.kind === "chakram" ? orbital.angle : 0);
   }
 
   for (const enemy of game.enemies) {
-    const animation = enemy.chargeTimer > 0 ? "attack" : "move";
+    const animation = enemy.hitFlash > 0 ? "hit" : enemy.chargeTimer > 0 ? "attack" : "move";
     const size = enemy.kind === "boss" ? 78 : enemy.kind === "elite" ? 48 : Math.max(26, enemy.r * 2.4);
-    drawSprite(ctx, atlases, artManifest.enemies[enemy.kind], enemy.x, enemy.y, size, animation, game.time * 1000 + enemy.id * 37, "enemy", enemy.hitFlash > 0 ? 0.62 : 1);
+    drawSprite(ctx, atlases, artManifest.enemies[enemy.kind], enemy.x, enemy.y, size, animation, stateElapsed(enemy, animation, game.time), "enemy", enemy.hitFlash > 0 ? 0.62 : 1);
     drawEliteBar(ctx, enemy);
   }
 
   const player = game.player;
-  drawSprite(ctx, atlases, artManifest.characters[player.characterId], player.x, player.y, 38, player.activeTimer > 0 ? "attack" : "move", game.time * 1000, "player", player.invuln > 0 ? 0.8 : 1);
+  const playerAnimation: AnimationId = player.activeTimer > 0 ? "active" : player.reload > 0 ? "reload" : player.cooldown > 0 ? "attack" : "move";
+  drawSprite(ctx, atlases, artManifest.characters[player.characterId], player.x, player.y, 48, playerAnimation, stateElapsed(player, playerAnimation, game.time), "player", player.invuln > 0 ? 0.8 : 1);
   drawSprite(ctx, atlases, artManifest.weapons[player.weaponId], player.x + 14, player.y - 12, 28, "idle", game.time * 1000, "summon");
 
   for (const particle of game.particles) {

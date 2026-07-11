@@ -174,7 +174,8 @@ export default function App() {
       setChoices([]);
       setMenu(visualState === "main-menu" ? "main" : "run");
       setPaused(true);
-      setShowPause(false);
+      setShowPause(visualState === "skill-tree");
+      if (visualState === "skill-tree") setSkillTreeTab(2);
       setStats(projectHud(gameRef.current));
       visualRenderFrozenRef.current = visualState !== "stress";
       document.documentElement.dataset.visualState = visualState;
@@ -691,11 +692,14 @@ export default function App() {
                   return (
                     <div
                       key={node.id}
-                      className={`skill-node rarity-${node.rarity}${acquired ? " acquired" : ""}${!acquired && !unlocked ? " locked" : ""}`}
+                      className={`skill-node tier-${node.tier} rarity-${node.rarity}${acquired ? " acquired" : ""}${!acquired && !unlocked ? " locked" : ""}`}
                     >
                       <div className="skill-node-header">
-                        <strong>{node.name}</strong>
-                        <i>{node.rarity}</i>
+                        <span className="skill-node-title">
+                          <b className="skill-glyph" aria-hidden="true">{node.tier === "root" ? "◆" : node.tier === "branch" ? "◇" : node.tier === "capstone" ? "✦" : "✧"}</b>
+                          <strong>{node.name}</strong>
+                        </span>
+                        <i>{node.tier}</i>
                       </div>
                       <p>{node.description}</p>
                       {missingReqs.length > 0 ? (

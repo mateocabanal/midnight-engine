@@ -43,11 +43,24 @@ describe("art manifest", () => {
     }
   });
 
-  it("uses 8-12 fps animation timing and deterministic frame selection", () => {
+  it("uses authored premium timing and deterministic frame selection", () => {
     const sprite = artManifest.characters.saint;
-    expect(sprite.animations.flatMap((animation) => animation.frames).every((frame) => frame.durationMs >= 80 && frame.durationMs <= 125)).toBe(true);
+    expect(sprite.animations.flatMap((animation) => animation.frames).every((frame) => frame.durationMs >= 45 && frame.durationMs <= 140)).toBe(true);
     expect(getAnimationFrame(sprite, "idle", 0)).toEqual(sprite.animations[0].frames[0]);
-    expect(getAnimationFrame(sprite, "idle", 100)).toEqual(sprite.animations[0].frames[1]);
+    expect(getAnimationFrame(sprite, "idle", 140)).toEqual(sprite.animations[0].frames[1]);
+  });
+
+  it("provides the complete first-wave animation vocabulary", () => {
+    const actorClips = ["idle", "move", "attack", "reload", "active", "hit", "death", "select"];
+    for (const id of ["saint", "ilya", "nox", "mira"] as const) {
+      expect(artManifest.characters[id].animations.map(({ id: clip }) => clip)).toEqual(actorClips);
+    }
+    for (const id of ["wisp", "hound", "turret", "mite", "blade"] as const) {
+      expect(artManifest.summons[id].animations.map(({ id: clip }) => clip)).toEqual(["spawn", "idle", "move", "attack", "hit", "death"]);
+    }
+    for (const sprite of Object.values(artManifest.bullets)) {
+      expect(sprite.animations.map(({ id }) => id)).toEqual(["spawn", "flight", "impact", "expire"]);
+    }
   });
 
   it("gives every summon an authored attack frame", () => {

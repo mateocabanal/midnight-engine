@@ -24,12 +24,18 @@ export type AtlasRect = {
 
 export type AtlasFrame = AtlasRect & {
   durationMs: number;
+  events?: ("fire" | "impact" | "spawnChild")[];
 };
 
+export type AnimationId = "idle" | "move" | "attack" | "reload" | "active" | "hit" | "death" | "select" | "spawn" | "flight" | "impact" | "expire";
+
 export type AtlasAnimation = {
-  id: "idle" | "move" | "attack" | "hit" | "spawn";
+  id: AnimationId;
   frames: AtlasFrame[];
   loop?: boolean;
+  playback?: "loop" | "once" | "ping-pong";
+  directional?: "flip-x" | "rotate" | "screen";
+  next?: AnimationId;
 };
 
 export type AtlasSpriteDefinition = {

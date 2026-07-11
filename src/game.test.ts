@@ -126,7 +126,31 @@ describe("game core", () => {
     const scythes = game.player.orbitals;
     expect(scythes.map((scythe) => scythe.distance)).toEqual([72, 72, 72]);
     expect(scythes.map((scythe) => scythe.angle)).toEqual([0.5, 0.5 + (Math.PI * 2) / 3, 0.5 + (Math.PI * 4) / 3]);
-    for (const scythe of scythes) expect(scythe.speed).toBeCloseTo(3.6);
+    for (const scythe of scythes) expect(scythe.speed).toBeCloseTo(2);
+  });
+
+  it("uses summon attack speed for both firing cadence and orbit speed", () => {
+    const game = createGame();
+    game.enemies = [];
+    game.player.orbitals = [{
+      angle: 0,
+      distance: 64,
+      damage: 10,
+      life: null,
+      speed: 2,
+      attackSpeed: 1.5,
+      kind: "wisp",
+      attackCooldown: 0,
+      attackFlash: 0
+    }];
+
+    stepGame(game, idleInput, 0.2);
+
+    expect(game.player.orbitals[0].angle).toBeCloseTo(0.6);
+    expect(game.player.orbitals[0].attackCooldown).toBeCloseTo(0);
+    game.enemies = [{ ...createGame().enemies[0], x: game.player.x + 64, y: game.player.y }];
+    stepGame(game, idleInput, 0.016);
+    expect(game.player.orbitals[0].attackCooldown).toBeCloseTo(0.54 / 1.5, 2);
   });
 
   it("records defeat and victory summaries", () => {

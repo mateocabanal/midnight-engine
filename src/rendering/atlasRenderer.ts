@@ -145,7 +145,7 @@ const drawBullet = (ctx: CanvasRenderingContext2D, atlases: LoadedAtlases, bulle
     artManifest.bullets[bullet.element],
     bullet.x,
     bullet.y,
-    Math.max(12, quantize(bullet.r * 3)),
+    Math.max(20, quantize(bullet.r * 3.8)),
     "flight",
     bullet.age * 1000,
     "summon",
@@ -196,7 +196,8 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
     const x = game.player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = game.player.y + Math.sin(orbital.angle) * orbital.distance;
     const animation = orbital.attackFlash > 0 ? "attack" : "move";
-    drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, 34, animation, stateElapsed(orbital, animation, game.time), "summon", 1, orbital.kind === "blade" || orbital.kind === "chakram" ? orbital.angle : 0);
+    const size = orbital.kind === "blade" ? 72 : 50;
+    drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, size, animation, stateElapsed(orbital, animation, game.time), "summon", 1, orbital.kind === "blade" || orbital.kind === "chakram" ? orbital.angle : 0);
   }
 
   for (const enemy of game.enemies) {

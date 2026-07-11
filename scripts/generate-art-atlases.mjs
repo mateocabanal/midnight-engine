@@ -200,18 +200,19 @@ const summonFrame = (index, clip, frameIndex) => {
   const ox = x + lunge;
   const oy = y + bob + collapse;
   const shadow = rect(x + 10, y + 40, 28, 3, "#020404");
-  if (index === 0) return [shadow, `<path d="M${ox + 24} ${oy + 7}L${ox + 11} ${oy + 29}L${ox + 18} ${oy + 39}H${ox + 30}L${ox + 37} ${oy + 29}Z" fill="${bright}"/>`, rect(ox + 17, oy + 15, 14, 17, raised), rect(ox + 20, oy + 20, 2, 2, bone), rect(ox + 27, oy + 20, 2, 2, bone), clip === 3 ? rect(ox + 35, oy + 21, 9, 4, bone) : ""].join("");
-  if (index === 1) return [shadow, rect(ox + 8, oy + 24, 29, 12, bone), rect(ox + 13, oy + 20, 18, 14, raised), rect(ox + 31, oy + 20, 10, 10, bone), rect(ox + 36, oy + 24, 3, 3, danger), rect(ox + 11 + (phase % 2) * 4, oy + 35, 4, 6, bone), rect(ox + 27 - (phase % 2) * 4, oy + 35, 4, 6, bone)].join("");
-  if (index === 2) return [shadow, rect(ox + 12, oy + 27, 24, 11, amber), rect(ox + 15, oy + 17, 18, 14, raised), rect(ox + 20, oy + 13, 8, 7, bone), rect(ox + 9, oy + 36, 5, 5, bone), rect(ox + 34, oy + 36, 5, 5, bone), clip === 3 ? rect(ox + 33, oy + 20, 13, 4, amber) : ""].join("");
-  if (index === 4) return [shadow, rect(ox + 11, oy + 24, 26, 10, danger), [0,1,2,3,4,5].map((n) => rect(ox + 10 + n * 5, oy + 33 + ((phase + n) % 2) * 3, 3, 7, bone)).join(""), rect(ox + 31, oy + 20, 8, 7, danger), clip === 5 ? `<rect x="${ox + 5}" y="${oy + 15}" width="38" height="24" fill="none" stroke="${danger}" stroke-width="3"/>` : ""].join("");
+  if (index === 0) return [shadow, `<path d="M${ox + 24} ${oy + 7}L${ox + 11} ${oy + 29}L${ox + 18} ${oy + 39}H${ox + 30}L${ox + 37} ${oy + 29}Z" fill="${bright}"/>`, `<path d="M${ox + 14} ${oy + 15}L${ox + 5} ${oy + 24}L${ox + 15} ${oy + 25}M${ox + 34} ${oy + 15}L${ox + 43} ${oy + 24}L${ox + 33} ${oy + 25}" fill="none" stroke="${viridian}" stroke-width="2"/>`, rect(ox + 17, oy + 15, 14, 17, raised), rect(ox + 19, oy + 18, 10, 3, viridian), rect(ox + 20, oy + 20, 2, 2, bone), rect(ox + 27, oy + 20, 2, 2, bone), rect(ox + 23, oy + 27, 3, 7, bone), clip === 3 ? rect(ox + 35, oy + 21, 9, 4, bone) + rect(ox + 42, oy + 19, 3, 7, bright) : ""].join("");
+  if (index === 1) return [shadow, rect(ox + 8, oy + 24, 29, 12, bone), rect(ox + 13, oy + 20, 18, 14, raised), rect(ox + 14, oy + 28, 14, 3, amber), rect(ox + 31, oy + 20, 10, 10, bone), rect(ox + 36, oy + 24, 3, 3, danger), rect(ox + 34, oy + 29, 4, 3, bone), rect(ox + 11 + (phase % 2) * 4, oy + 35, 4, 6, bone), rect(ox + 27 - (phase % 2) * 4, oy + 35, 4, 6, bone), rect(ox + 7, oy + 27, 5, 3, raised)].join("");
+  if (index === 2) return [shadow, rect(ox + 12, oy + 27, 24, 11, amber), rect(ox + 15, oy + 17, 18, 14, raised), rect(ox + 18, oy + 29, 12, 3, bone), rect(ox + 20, oy + 13, 8, 7, bone), rect(ox + 22, oy + 15, 4, 2, bright), rect(ox + 9, oy + 36, 5, 5, bone), rect(ox + 34, oy + 36, 5, 5, bone), rect(ox + 16, oy + 34, 2, 5, raised), rect(ox + 30, oy + 34, 2, 5, raised), clip === 3 ? rect(ox + 33, oy + 20, 13, 4, amber) + rect(ox + 43, oy + 18, 3, 8, bone) : ""].join("");
+  if (index === 4) return [shadow, rect(ox + 11, oy + 24, 26, 10, danger), rect(ox + 14, oy + 26, 13, 3, raised), [0,1,2,3,4,5].map((n) => rect(ox + 10 + n * 5, oy + 33 + ((phase + n) % 2) * 3, 3, 7, bone)).join(""), rect(ox + 31, oy + 20, 8, 7, danger), rect(ox + 34, oy + 21, 2, 2, bone), rect(ox + 38, oy + 25, 4, 3, amber), clip === 5 ? `<rect x="${ox + 5}" y="${oy + 15}" width="38" height="24" fill="none" stroke="${danger}" stroke-width="3"/>` : ""].join("");
   if (index === 5) return [shadow,
-    rect(ox + 22, oy + 6, 4, 35, violet), rect(ox + 23, oy + 6, 2, 35, bone),
-    rect(ox + 9, oy + 5, 15, 4, bone), rect(ox + 6, oy + 8, 8, 4, bone),
-    rect(ox + 5, oy + 12, 5, 5, bone), rect(ox + 10, oy + 15, 4, 4, violet),
-    rect(ox + 20, oy + 35, 8, 5, danger)
+    rect(ox + 22, oy + 4, 4, 38, violet), rect(ox + 23, oy + 4, 2, 38, bone),
+    rect(ox + 7, oy + 4, 18, 4, bone), rect(ox + 4, oy + 8, 10, 4, bone),
+    rect(ox + 3, oy + 12, 6, 7, bone), rect(ox + 8, oy + 16, 5, 5, violet),
+    rect(ox + 15, oy + 7, 5, 2, amber), rect(ox + 19, oy + 34, 10, 6, danger),
+    rect(ox + 25, oy + 28, 3, 3, bone), clip === 3 ? `<path d="M${ox + 4} ${oy + 5}L${ox + 0} ${oy + 14}L${ox + 5} ${oy + 22}" fill="none" stroke="${bright}" stroke-width="2"/>` : ""
   ].join("");
   const color = [bright, amber, bone, bright, danger, bone, amber, violet, bright][index];
-  return [shadow, rect(ox + 11, oy + 15, 26, 24, color), rect(ox + 15, oy + 19, 18, 16, raised), rect(ox + 21, oy + 24, 6, 6, bone), index === 7 ? `<rect x="${ox + 7}" y="${oy + 11}" width="34" height="32" fill="none" stroke="${violet}" stroke-width="3"/>` : ""].join("");
+  return [shadow, rect(ox + 11, oy + 15, 26, 24, color), rect(ox + 15, oy + 19, 18, 16, raised), rect(ox + 18, oy + 20, 12, 3, color), rect(ox + 21, oy + 24, 6, 6, bone), rect(ox + 22, oy + 25, 2, 2, ink), rect(ox + 26, oy + 25, 2, 2, ink), index === 6 ? `<path d="M${ox + 12} ${oy + 18}L${ox + 5} ${oy + 11}M${ox + 36} ${oy + 18}L${ox + 43} ${oy + 11}" fill="none" stroke="${amber}" stroke-width="2"/>` : "", index === 7 ? `<rect x="${ox + 7}" y="${oy + 11}" width="34" height="32" fill="none" stroke="${violet}" stroke-width="3"/><rect x="${ox + 12}" y="${oy + 16}" width="24" height="22" fill="none" stroke="${bright}" stroke-width="1"/>` : "", index === 8 ? rect(ox + 15, oy + 12, 18, 3, bright) + rect(ox + 22, oy + 10, 4, 5, amber) : ""].join("");
 };
 
 const premiumSummonContent = () => Array.from({ length: 9 }, (_, index) =>
@@ -224,12 +225,12 @@ const bulletContent = () => Array.from({ length: 6 }, (_, index) => Array.from({
     const y = index * 96 + clip * 24;
     const phase = frameIndex % 4;
     const grow = clip === 0 ? Math.min(3, frameIndex) : clip >= 2 ? Math.max(1, 4 - frameIndex) : 3;
-    if (index === 0) return rect(x + 4, y + 10, 12 + grow, 4, bone) + rect(x + 6 + phase, y + 9, 5, 1, amber) + (clip >= 2 ? rect(x + 15, y + 7, 2, 10, bone) : "");
-    if (index === 1) return rect(x + 3, y + 12, 6, 3, bright) + rect(x + 7 + phase, y + 8, 5, 5, bright) + rect(x + 10, y + 11, 5, 4, bone) + rect(x + 13 + phase, y + 5, 5, 7, bright) + rect(x + 16, y + 9, 5, 3, bright);
-    if (index === 2) return `<path d="M${x + 4} ${y + 12}L${x + 13 + grow} ${y + 5 - phase}L${x + 20} ${y + 12}L${x + 12 + grow} ${y + 19 + phase}Z" fill="${danger}"/>` + rect(x + 8, y + 10, 8, 4, amber);
-    if (index === 3) return `<path d="M${x + 3} ${y + 12}L${x + 13 + grow} ${y + 4}L${x + 20} ${y + 12}L${x + 13 + grow} ${y + 20}Z" fill="${bone}"/>` + rect(x + 10, y + 8 + phase, 5, 8, bright);
-    if (index === 4) return `<path d="M${x + 3} ${y + 12}L${x + 14 + grow} ${y + 5}L${x + 21} ${y + 12}L${x + 14 + grow} ${y + 19}Z" fill="${danger}"/>` + rect(x + 9 + phase, y + 9, 5, 6, bone);
-    return rect(x + 4 + phase, y + 4 + phase, 16 - phase * 2, 16 - phase * 2, violet) + rect(x + 7 + phase, y + 7 + phase, 10 - phase * 2, 10 - phase * 2, ink) + rect(x + 10, y + 10, 4, 4, amber);
+    if (index === 0) return rect(x + 3, y + 9, 14 + grow, 6, raised) + rect(x + 5, y + 10, 12 + grow, 4, bone) + rect(x + 6 + phase, y + 9, 5, 1, amber) + rect(x + 2, y + 11, 3, 2, amber) + (clip >= 2 ? rect(x + 15, y + 7, 2, 10, bone) : "");
+    if (index === 1) return rect(x + 2, y + 11, 19, 5, viridian) + rect(x + 3, y + 12, 6, 3, bright) + rect(x + 7 + phase, y + 8, 5, 5, bright) + rect(x + 10, y + 11, 5, 4, bone) + rect(x + 13 + phase, y + 5, 5, 7, bright) + rect(x + 16, y + 9, 5, 3, bright);
+    if (index === 2) return `<path d="M${x + 3} ${y + 12}L${x + 13 + grow} ${y + 4 - phase}L${x + 21} ${y + 12}L${x + 12 + grow} ${y + 20 + phase}Z" fill="${raised}"/>` + `<path d="M${x + 5} ${y + 12}L${x + 13 + grow} ${y + 6 - phase}L${x + 19} ${y + 12}L${x + 12 + grow} ${y + 18 + phase}Z" fill="${danger}"/>` + rect(x + 8, y + 10, 8, 4, amber) + rect(x + 11, y + 11, 3, 2, bone);
+    if (index === 3) return `<path d="M${x + 2} ${y + 12}L${x + 13 + grow} ${y + 3}L${x + 22} ${y + 12}L${x + 13 + grow} ${y + 21}Z" fill="${bright}"/>` + `<path d="M${x + 4} ${y + 12}L${x + 13 + grow} ${y + 5}L${x + 20} ${y + 12}L${x + 13 + grow} ${y + 19}Z" fill="${bone}"/>` + rect(x + 10, y + 8 + phase, 5, 8, bright);
+    if (index === 4) return `<path d="M${x + 2} ${y + 12}L${x + 14 + grow} ${y + 4}L${x + 22} ${y + 12}L${x + 14 + grow} ${y + 20}Z" fill="${raised}"/>` + `<path d="M${x + 4} ${y + 12}L${x + 14 + grow} ${y + 6}L${x + 20} ${y + 12}L${x + 14 + grow} ${y + 18}Z" fill="${danger}"/>` + rect(x + 9 + phase, y + 9, 5, 6, bone) + rect(x + 12, y + 12, 3, 2, amber);
+    return rect(x + 3 + phase, y + 3 + phase, 18 - phase * 2, 18 - phase * 2, raised) + rect(x + 4 + phase, y + 4 + phase, 16 - phase * 2, 16 - phase * 2, violet) + rect(x + 7 + phase, y + 7 + phase, 10 - phase * 2, 10 - phase * 2, ink) + rect(x + 10, y + 10, 4, 4, amber) + rect(x + 11, y + 8, 2, 2, bright);
   }).join("")
 ).join("")).join("");
 

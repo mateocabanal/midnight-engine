@@ -118,6 +118,8 @@ export type Orbital = {
   // Null is a permanent familiar; finite values are temporary summons.
   life: number | null;
   speed: number;
+  // Haste drives both the firing cadence and the visible orbit cadence.
+  attackSpeed?: number;
   kind: SummonKind;
   attackCooldown: number;
   attackFlash: number;
@@ -1042,7 +1044,7 @@ const legacyRawUpgradeDefs: Omit<UpgradeDef, "apply">[] = ([
   ["bone_turret", "Bone Turret", "summon", "uncommon", "On reload, deploy a temporary turret."],
   ["mender_drone", "Mender Drone", "summon", "rare", "Orbiting drone restores health or shield."],
   ["broodmother", "Broodmother", "summon", "uncommon", "Kills can spawn explosive Mites."],
-  ["familiar_training", "Familiar Training", "summon", "common", "Summons gain damage and move speed."],
+  ["familiar_training", "Familiar Training", "summon", "common", "Summons gain damage and attack speed; faster attacks also accelerate their orbit."],
   ["soul_shepherd", "Soul Shepherd", "summon", "rare", "Elite and cursed kills drop Souls; Souls spawn Wisps.", ["wisp_egg", "familiar_training"]],
   ["pack_tactics", "Pack Tactics", "summon", "rare", "Player gains damage per active summon.", ["familiar_training"]],
   ["sacrificial_rite", "Sacrificial Rite", "summon", "epic", "Summon death explodes and applies your best status.", ["pack_tactics", "broodmother"]],
@@ -1699,11 +1701,14 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       spawnOrbital(game, 5 * player.summonDamage, 24, "drone");
       break;
     case "broodmother":
-    case "familiar_training":
     case "twin_spawn":
     case "leash_breaker":
     case "rally_signal":
       player.summonDamage *= 1.18;
+      break;
+    case "familiar_training":
+      player.summonDamage *= 1.18;
+      for (const orbital of player.orbitals) orbital.attackSpeed = (orbital.attackSpeed ?? 1) * 1.18;
       break;
     case "pack_tactics":
       player.summonDamage *= 1.12;
@@ -2205,7 +2210,7 @@ const triggerActiveAbility = (game: Game, input: InputState) => {
   for (const orbital of player.orbitals) {
     orbital.damage *= 1.18;
     if (orbital.life !== null) orbital.life += 4;
-    orbital.speed *= 1.18;
+    orbital.attackSpeed = (orbital.attackSpeed ?? 1) * 1.18;
   }
   burst(game, player.x, player.y, "#f0abfc", 24, 4);
   text(game, player.x, player.y - 34, "Rally Beasts", "#f0abfc");
@@ -2412,13 +2417,17 @@ const fireBullet = (
   element: Bullet["element"],
   mods: BulletMods = {}
 ) => {
-  const speed = mods.speed ?? game.player.bulletSpeed;
+  // The default combat language favours chunky, legible projectiles over
+  // needle-speed streaks. Individual weapon and upgrade values still scale
+  // from these shared defaults.
+  const speed = (mods.speed ?? game.player.bulletSpeed) * 0.78;
+  const radius = (mods.radius ?? (element === "void" ? game.player.bulletSize + 3 : game.player.bulletSize + 1)) * 1.5;
   game.bullets.push({
     x,
     y,
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    r: mods.radius ?? (element === "void" ? game.player.bulletSize + 3 : game.player.bulletSize + 1),
+    r: radius,
     damage,
     life: mods.life ?? game.player.bulletLife,
     age: 0,
@@ -2692,7 +2701,8 @@ const summonAttackProfiles: Record<SummonKind, {
 };
 
 export const permanentSummonKinds = new Set<SummonKind>(["wisp", "hound", "turret", "drone", "blade"]);
-const SCYTHE_ORBIT_SPEED = 3.6;
+const SCYTHE_ORBIT_SPEED = 2;
+const SUMMON_ORBIT_SPEED = { min: 1.6, max: 2.7 };
 
 const isPermanentSummon = (kind: SummonKind) => permanentSummonKinds.has(kind);
 
@@ -2718,16 +2728,20 @@ const fireSummonAttack = (game: Game, orbital: Orbital, x: number, y: number, ta
     crit: game.player.crit * 0.2,
     fromOrbit: true
   });
-  orbital.attackCooldown = profile.cooldown;
+  orbital.attackCooldown = profile.cooldown / (orbital.attackSpeed ?? 1);
   orbital.attackFlash = 0.14;
 };
 
 const updateOrbitals = (game: Game, dt: number) => {
   const player = game.player;
-  arrangeScytheFormation(player.orbitals, game.time * SCYTHE_ORBIT_SPEED);
+  const scythes = player.orbitals.filter((orbital) => orbital.kind === "blade");
+  const scytheHaste = scythes.length === 0
+    ? 1
+    : scythes.reduce((total, orbital) => total + (orbital.attackSpeed ?? 1), 0) / scythes.length;
+  arrangeScytheFormation(player.orbitals, game.time * SCYTHE_ORBIT_SPEED * scytheHaste);
   for (let i = player.orbitals.length - 1; i >= 0; i -= 1) {
     const orbital = player.orbitals[i];
-    orbital.angle += orbital.speed * dt;
+    orbital.angle += orbital.speed * (orbital.attackSpeed ?? 1) * dt;
     if (orbital.life !== null) orbital.life -= dt;
     orbital.attackCooldown = Math.max(0, orbital.attackCooldown - dt);
     orbital.attackFlash = Math.max(0, orbital.attackFlash - dt);
@@ -3017,7 +3031,8 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
     distance,
     damage,
     life: isPermanentSummon(kind) ? null : life,
-    speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(2.8, 5.2) * (has(game, "familiar_training") ? 1.2 : 1),
+    speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(SUMMON_ORBIT_SPEED.min, SUMMON_ORBIT_SPEED.max),
+    attackSpeed: (has(game, "familiar_training") ? 1.18 : 1) * (has(game, "hive_engine") ? 1.18 : 1),
     kind,
     attackCooldown: 0,
     attackFlash: 0
@@ -3028,7 +3043,8 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
       distance,
       damage: damage * 0.75,
       life: isPermanentSummon(kind) ? null : life,
-      speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(2.8, 5.2),
+      speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(SUMMON_ORBIT_SPEED.min, SUMMON_ORBIT_SPEED.max),
+      attackSpeed: (has(game, "familiar_training") ? 1.18 : 1) * (has(game, "hive_engine") ? 1.18 : 1),
       kind,
       attackCooldown: 0,
       attackFlash: 0

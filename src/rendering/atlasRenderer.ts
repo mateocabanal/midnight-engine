@@ -187,7 +187,7 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
   ctx.translate(camera.x, camera.y);
 
   for (const gem of game.gems) {
-    drawSprite(ctx, atlases, artManifest.pickups.xp, gem.x, gem.y, 16, "idle", game.time * 1000 + gem.value * 50, "pickup");
+    drawSprite(ctx, atlases, artManifest.pickups.xp, gem.x, gem.y, 22, "idle", game.time * 1000 + gem.value * 50, "pickup");
   }
   for (const bullet of game.bullets) drawBullet(ctx, atlases, bullet);
   for (const shot of game.enemyProjectiles) drawEnemyProjectile(ctx, atlases, shot);
@@ -202,7 +202,7 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
 
   for (const enemy of game.enemies) {
     const animation = enemy.hitFlash > 0 ? "hit" : enemy.chargeTimer > 0 ? "attack" : "move";
-    const size = enemy.kind === "boss" ? 78 : enemy.kind === "elite" ? 48 : Math.max(26, enemy.r * 2.4);
+    const size = enemy.kind === "boss" ? 104 : enemy.kind === "elite" ? 66 : Math.max(36, enemy.r * 2.9);
     drawSprite(ctx, atlases, artManifest.enemies[enemy.kind], enemy.x, enemy.y, size, animation, stateElapsed(enemy, animation, game.time), "enemy", enemy.hitFlash > 0 ? 0.62 : 1);
     drawEliteBar(ctx, enemy);
   }
@@ -210,7 +210,8 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
   const player = game.player;
   const playerAnimation: AnimationId = player.activeTimer > 0 ? "active" : player.reload > 0 ? "reload" : player.cooldown > 0 ? "attack" : "move";
   drawSprite(ctx, atlases, artManifest.characters[player.characterId], player.x, player.y, 48, playerAnimation, stateElapsed(player, playerAnimation, game.time), "player", player.invuln > 0 ? 0.8 : 1);
-  drawSprite(ctx, atlases, artManifest.weapons[player.weaponId], player.x + 14, player.y - 12, 28, "idle", game.time * 1000, "summon");
+  const weaponAnimation: AnimationId = player.activeTimer > 0 ? "active" : player.reload > 0 ? "reload" : player.cooldown > 0 ? "attack" : "idle";
+  drawSprite(ctx, atlases, artManifest.weapons[player.weaponId], player.x + 14, player.y - 12, 38, weaponAnimation, stateElapsed(player, weaponAnimation, game.time), "summon");
 
   for (const particle of game.particles) {
     ctx.globalAlpha = clamp(particle.life, 0, 1);

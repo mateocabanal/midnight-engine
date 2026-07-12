@@ -58,9 +58,23 @@ describe("art manifest", () => {
     for (const id of ["wisp", "hound", "turret", "mite", "blade"] as const) {
       expect(artManifest.summons[id].animations.map(({ id: clip }) => clip)).toEqual(["spawn", "idle", "move", "attack", "hit", "death"]);
     }
+    for (const sprite of Object.values(artManifest.enemies)) {
+      expect(sprite.animations.map(({ id }) => id)).toEqual(["spawn", "idle", "move", "attack", "hit", "death"]);
+    }
+    for (const sprite of Object.values(artManifest.weapons)) {
+      expect(sprite.animations.map(({ id }) => id)).toEqual(["idle", "attack", "reload", "active"]);
+    }
     for (const sprite of Object.values(artManifest.bullets)) {
       expect(sprite.animations.map(({ id }) => id)).toEqual(["spawn", "flight", "impact", "expire"]);
     }
+  });
+
+  it("uses high-resolution logical frames for every normal entity family", () => {
+    expect(Object.values(artManifest.characters).every(({ logicalSize }) => logicalSize.width >= 48 && logicalSize.height >= 48)).toBe(true);
+    expect(Object.values(artManifest.enemies).every(({ logicalSize }) => logicalSize.width >= 64 && logicalSize.height >= 64)).toBe(true);
+    expect(Object.values(artManifest.weapons).every(({ logicalSize }) => logicalSize.width >= 48 && logicalSize.height >= 48)).toBe(true);
+    expect(Object.values(artManifest.summons).every(({ logicalSize }) => logicalSize.width >= 48 && logicalSize.height >= 48)).toBe(true);
+    expect(Object.values(artManifest.bullets).every(({ logicalSize }) => logicalSize.width >= 32 && logicalSize.height >= 32)).toBe(true);
   });
 
   it("gives every summon an authored attack frame", () => {

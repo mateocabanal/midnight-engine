@@ -43,8 +43,8 @@ const bulletSprite = (
   id,
   label,
   atlasId: "bullets",
-  logicalSize: { width: 24, height: 24 },
-  pivot: { x: 12, y: 12 },
+  logicalSize: { width: 32, height: 32 },
+  pivot: { x: 16, y: 16 },
   palette,
   animations: ([
     ["spawn", 0, 4, 55, false],
@@ -53,11 +53,72 @@ const bulletSprite = (
     ["expire", 3, 5, 55, false]
   ] as const).map(([animationId, row, count, durationMs, loop]) => ({
     id: animationId,
-    frames: Array.from({ length: count }, (_, frameIndex) => frame(frameIndex * 24, index * 96 + row * 24, 24, 24, durationMs)),
+    frames: Array.from({ length: count }, (_, frameIndex) => frame(frameIndex * 32, index * 128 + row * 32, 32, 32, durationMs)),
     loop,
     playback: loop ? "loop" : "once",
     directional: id === "lightning" || id === "void" ? "screen" : "rotate"
   }))
+});
+
+const enemyAnimation = (index: number, id: AnimationId, row: number, count: number, durationMs: number, loop = false): AtlasAnimation => {
+  const blockX = (index % 4) * 512;
+  const blockY = Math.floor(index / 4) * 384;
+  return {
+    id,
+    frames: Array.from({ length: count }, (_, frameIndex) => frame(blockX + frameIndex * 64, blockY + row * 64, 64, 64, durationMs)),
+    loop,
+    playback: loop ? "loop" : "once",
+    directional: "flip-x"
+  };
+};
+
+const enemySprite = (id: string, label: string, index: number): AtlasSpriteDefinition => ({
+  kind: "atlas", id, label, atlasId: "enemies",
+  logicalSize: { width: 64, height: 64 }, pivot: { x: 32, y: 56 },
+  palette: { primary: midnightPalette.danger, secondary: midnightPalette.bone },
+  animations: [
+    enemyAnimation(index, "spawn", 0, 6, 85),
+    enemyAnimation(index, "idle", 1, 8, 125, true),
+    enemyAnimation(index, "move", 2, 8, 82, true),
+    enemyAnimation(index, "attack", 3, 8, 68),
+    enemyAnimation(index, "hit", 4, 4, 70),
+    enemyAnimation(index, "death", 5, 8, 90)
+  ]
+});
+
+const weaponAnimation = (index: number, id: AnimationId, row: number, count: number, durationMs: number, loop = false): AtlasAnimation => {
+  const blockX = (index % 4) * 384;
+  const blockY = Math.floor(index / 4) * 192;
+  return {
+    id,
+    frames: Array.from({ length: count }, (_, frameIndex) => frame(blockX + frameIndex * 48, blockY + row * 48, 48, 48, durationMs)),
+    loop,
+    playback: loop ? "loop" : "once",
+    directional: "rotate"
+  };
+};
+
+const weaponSprite = (id: string, label: string, index: number): AtlasSpriteDefinition => ({
+  kind: "atlas", id, label, atlasId: "weapons",
+  logicalSize: { width: 48, height: 48 }, pivot: { x: 18, y: 24 },
+  palette: { primary: midnightPalette.bone, secondary: midnightPalette.amber },
+  animations: [
+    weaponAnimation(index, "idle", 0, 6, 130, true),
+    weaponAnimation(index, "attack", 1, 8, 58),
+    weaponAnimation(index, "reload", 2, 8, 78),
+    weaponAnimation(index, "active", 3, 8, 68)
+  ]
+});
+
+const pickupSprite = (): AtlasSpriteDefinition => ({
+  kind: "atlas", id: "xp", label: "Experience", atlasId: "glyphs",
+  logicalSize: { width: 32, height: 32 }, pivot: { x: 16, y: 16 },
+  palette: { primary: midnightPalette.brightViridian, secondary: midnightPalette.bone },
+  animations: [
+    { id: "spawn", frames: Array.from({ length: 6 }, (_, index) => frame(index * 32, 0, 32, 32, 70)) },
+    { id: "idle", frames: Array.from({ length: 8 }, (_, index) => frame(index * 32, 32, 32, 32, 110)), loop: true },
+    { id: "active", frames: Array.from({ length: 8 }, (_, index) => frame(index * 32, 64, 32, 32, 60)) }
+  ]
 });
 
 const actorAnimation = (
@@ -136,19 +197,19 @@ const entitySprites = <T extends readonly string[]>(
 export const artManifest: ArtManifest = {
   atlases: {
     characters: { id: "characters", src: publicAsset("art/characters.png"), width: 2304, height: 768 },
-    enemies: { id: "enemies", src: publicAsset("art/enemies.png"), width: 512, height: 64 },
-    bullets: { id: "bullets", src: publicAsset("art/bullets.png"), width: 120, height: 576 },
-    weapons: { id: "weapons", src: publicAsset("art/weapons.png"), width: 512, height: 96 },
+    enemies: { id: "enemies", src: publicAsset("art/enemies.png"), width: 2048, height: 768 },
+    bullets: { id: "bullets", src: publicAsset("art/bullets.png"), width: 160, height: 768 },
+    weapons: { id: "weapons", src: publicAsset("art/weapons.png"), width: 1536, height: 576 },
     summons: { id: "summons", src: publicAsset("art/summons.png"), width: 1536, height: 864 },
-    glyphs: { id: "glyphs", src: publicAsset("art/glyphs.png"), width: 128, height: 32 },
+    glyphs: { id: "glyphs", src: publicAsset("art/glyphs.png"), width: 256, height: 96 },
     environment: { id: "environment", src: publicAsset("art/environment.png"), width: 128, height: 128 }
   },
   characters: Object.fromEntries(characterIds.map((id, index) => [id, characterSprite(id, {
     saint: "Saint", ilya: "Ilya", nox: "Nox", mira: "Mira", scarlett: "Scarlett", corvus: "Corvus", kaden: "Kaden", lyra: "Lyra"
   }[id], index, { primary: [midnightPalette.amber, midnightPalette.brightViridian, midnightPalette.danger, "#77678E", midnightPalette.danger, "#77678E", midnightPalette.bone, midnightPalette.brightViridian][index], secondary: midnightPalette.bone })])) as Record<typeof characterIds[number], AtlasSpriteDefinition>,
-  enemies: entitySprites(enemyIds, "enemies", {
+  enemies: Object.fromEntries(enemyIds.map((id, index) => [id, enemySprite(id, {
     grunt: "Husk", runner: "Skitter", brute: "Grave Brute", spitter: "Venom Choir", charger: "Gore Charger", elite: "Bellguard", boss: "Cathedral Bell"
-  }, { primary: midnightPalette.danger, secondary: midnightPalette.bone }),
+  }[id], index)])) as Record<typeof enemyIds[number], AtlasSpriteDefinition>,
   bullets: {
     kinetic: bulletSprite("kinetic", "Kinetic round", 0, { primary: midnightPalette.bone, secondary: midnightPalette.raisedInk }),
     lightning: bulletSprite("lightning", "Lightning spark", 1, { primary: midnightPalette.brightViridian, secondary: midnightPalette.bone }),
@@ -157,14 +218,14 @@ export const artManifest: ArtManifest = {
     blood: bulletSprite("blood", "Blood thorn", 4, { primary: midnightPalette.danger, secondary: midnightPalette.bone }),
     void: bulletSprite("void", "Void shard", 5, { primary: midnightPalette.amber, secondary: midnightPalette.viridian })
   },
-  weapons: entitySprites(weaponIds, "weapons", {
+  weapons: Object.fromEntries(weaponIds.map((id, index) => [id, weaponSprite(id, {
     revolver: "Revolver", shotgun: "Shotgun", needle_smg: "Needle SMG", crossbow: "Crossbow", flame_cannon: "Flame Cannon", arc_rifle: "Arc Rifle", shard_launcher: "Shard Launcher", rail_lance: "Rail Lance", chakram: "Chakram", hive_staff: "Hive Staff", prism_launcher: "Prism Launcher", aether_spear: "Aether Spear"
-  }, { primary: midnightPalette.bone, secondary: midnightPalette.amber }),
+  }[id], index)])) as Record<typeof weaponIds[number], AtlasSpriteDefinition>,
   summons: Object.fromEntries(summonIds.map((id, index) => [id, summonSprite(id, {
     wisp: "Wisp", hound: "Hound", turret: "Turret", drone: "Drone", mite: "Mite", blade: "Soul Scythe", wasp: "Wasp", chakram: "Chakram", orb: "Orb"
   }[id], index)])) as Record<typeof summonIds[number], AtlasSpriteDefinition>,
   pickups: {
-    xp: atlasSprite("xp", "Experience", "glyphs", 0, 0, { primary: midnightPalette.brightViridian, secondary: midnightPalette.bone })
+    xp: pickupSprite()
   },
   effects: {
     kinetic: { kind: "procedural", id: "kinetic", label: "Kinetic shot", effect: "bullet", palette: { primary: midnightPalette.bone, secondary: midnightPalette.raisedInk } },

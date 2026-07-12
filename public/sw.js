@@ -1,4 +1,4 @@
-const CACHE_NAME = "midnight-engine-v5";
+const CACHE_NAME = "midnight-engine-v6";
 const SCOPE = self.registration.scope;
 const APP_SHELL = [
   "",

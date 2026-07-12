@@ -35,6 +35,41 @@
   font-weight: 700;
 }
 
+.health-stat {
+  min-width: 138px;
+  gap: 4px;
+}
+
+.health-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.health-line strong {
+  font-size: 15px;
+}
+
+.bar.health-bar span {
+  background: var(--danger);
+}
+
+.shield-readout {
+  color: var(--bright-viridian);
+  font-size: 10px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.health-stat.is-critical {
+  border-color: var(--danger);
+}
+
+.health-stat.is-critical .health-line strong {
+  color: var(--danger);
+}
+
 .bar,
 .bar span {
   border-radius: 0;

@@ -42,20 +42,20 @@ const fusion = (
 ): UpgradeSpec => ({ id, name, tree: "fusion", tier: "fusion", rarity: "fusion", description, requires, tags, fusionTrees: trees });
 
 export const upgradeCatalogue: UpgradeSpec[] = [
-  node("split_chamber", "Split Chamber", "gunpowder", "root", "Hits release two weaker fragments.", [], ["onHit", "projectile", "generated"]),
+  node("split_chamber", "Split Chamber", "gunpowder", "root", "Hits release two weaker fragments; projectile size increases.", [], ["onHit", "projectile", "generated", "size"]),
   node("serrated_lead", "Serrated Lead", "gunpowder", "branch", "Fragments pierce once and inflict Bleed.", ["split_chamber"], ["onHit", "bleed", "pierce"]),
-  node("powder_wake", "Powder Wake", "gunpowder", "branch", "Expired shots leave a damaging powder cloud.", ["split_chamber"], ["onBulletExpire", "area"]),
-  node("recursive_gun", "Recursive Gun", "gunpowder", "capstone", "Fragments can split one additional generation with reduced damage.", ["serrated_lead", "powder_wake"], ["generated", "generationLimit"]),
+  node("powder_wake", "Powder Wake", "gunpowder", "branch", "Heavy rounds grow larger and expired shots leave a damaging powder cloud.", ["split_chamber"], ["onBulletExpire", "area", "size"]),
+  node("recursive_gun", "Recursive Gun", "gunpowder", "capstone", "Oversized fragments can split one additional generation with reduced damage.", ["serrated_lead", "powder_wake"], ["generated", "generationLimit", "size"]),
 
-  node("mirror_chamber", "Mirror Chamber", "mirror", "root", "Every sixth shot creates a weaker echo.", [], ["onShot", "echo"]),
+  node("mirror_chamber", "Mirror Cadence", "mirror", "root", "Gain fire rate; every sixth shot creates a weaker echo.", [], ["onShot", "echo", "fireRate"]),
   node("polished_bore", "Polished Bore", "mirror", "branch", "Echoes gain critical chance and projectile speed.", ["mirror_chamber"], ["echo", "critical"]),
   node("phantom_copy", "Phantom Copy", "mirror", "branch", "Echoes count as independent shots for triggered effects.", ["mirror_chamber"], ["echo", "onShot"]),
   node("hall_of_mirrors", "Hall of Mirrors", "mirror", "capstone", "Echoes inherit all elemental and on-shot effects.", ["polished_bore", "phantom_copy"], ["echo", "inheritance"]),
 
   node("static_prayer", "Static Prayer", "reload", "root", "Completing a reload strikes nearby enemies with lightning.", [], ["onReload", "lightning"]),
-  node("quick_hands", "Quick Hands", "reload", "branch", "Kills accelerate the current reload and improve reload speed.", ["static_prayer"], ["onKill", "reload"]),
-  node("empty_bell", "Empty Bell", "reload", "branch", "Reloading an empty weapon emits a larger nova.", ["static_prayer"], ["onReload", "area"]),
-  node("thunder_magazine", "Thunder Magazine", "reload", "capstone", "Reload effects repeat once at reduced power.", ["quick_hands", "empty_bell"], ["onReload", "repeat"]),
+  node("quick_hands", "Quick Hands", "reload", "branch", "Gain reload speed; kills accelerate the current reload.", ["static_prayer"], ["onKill", "reload", "reloadSpeed"]),
+  node("empty_bell", "Bell-Fed Magazine", "reload", "branch", "Gain ammo capacity; reloading empty emits a larger nova.", ["static_prayer"], ["onReload", "area", "ammo"]),
+  node("thunder_magazine", "Thunder Magazine", "reload", "capstone", "Fast reloads and larger magazines repeat reload effects at reduced power.", ["quick_hands", "empty_bell"], ["onReload", "repeat", "reloadSpeed", "ammo"]),
 
   node("frostfire_rounds", "Frostfire Rounds", "frostfire", "root", "Shots alternate between Burn and Chill.", [], ["fire", "frost", "onHit"]),
   node("thermal_shock", "Thermal Shock", "frostfire", "branch", "Burning frozen targets erupt when struck.", ["frostfire_rounds"], ["fire", "frost", "area"]),
@@ -78,14 +78,14 @@ export const upgradeCatalogue: UpgradeSpec[] = [
   node("storm_crown", "Storm Crown", "crown", "capstone", "Orbital hits trigger your on-hit effects at reduced power.", ["wider_crown", "hungry_crown"], ["orbital", "onHit"]),
 
   node("gem_bomb", "Gem Bomb", "gemcraft", "root", "Collected experience gems burst around the player.", [], ["onGemCollect", "area"]),
-  node("greed_magnet", "Greed Magnet", "gemcraft", "branch", "Pickup distance and pull force increase.", ["gem_bomb"], ["pickup", "utility"]),
+  node("greed_magnet", "Grave Stride", "gemcraft", "branch", "Gain move speed; pickup distance and pull force increase.", ["gem_bomb"], ["pickup", "utility", "movement"]),
   node("compound_interest", "Compound Interest", "gemcraft", "branch", "Uncollected gems grow in value over time.", ["gem_bomb"], ["pickup", "economy"]),
   node("gem_singularity", "Gem Singularity", "gemcraft", "capstone", "Gem bursts pull enemies and nearby gems inward.", ["greed_magnet", "compound_interest"], ["pickup", "void", "area"]),
 
   node("parasite_rounds", "Parasite Rounds", "brood", "root", "Some kills hatch seeking blood larvae.", [], ["onKill", "summon", "blood"]),
-  node("larval_split", "Larval Split", "brood", "branch", "Larva kills can hatch one weaker larva.", ["parasite_rounds"], ["summon", "generated"]),
-  node("host_jump", "Host Jump", "brood", "branch", "Surviving larvae retarget after impact.", ["parasite_rounds"], ["summon", "retarget"]),
-  node("brood_cascade", "Brood Cascade", "brood", "capstone", "Parasite chains create temporary Mites.", ["larval_split", "host_jump"], ["summon", "onKill"]),
+  node("larval_split", "Brood Strength", "brood", "branch", "Gain summon attack damage; larva kills can hatch one weaker larva.", ["parasite_rounds"], ["summon", "generated", "summonDamage"]),
+  node("host_jump", "Familiar Tempo", "brood", "branch", "Gain summon attack speed; faster attacks also accelerate their orbit and retargeting.", ["parasite_rounds"], ["summon", "retarget", "summonAttackSpeed"]),
+  node("brood_cascade", "Brood Cascade", "brood", "capstone", "Attack-damage and attack-speed summons chain kills into temporary Mites.", ["larval_split", "host_jump"], ["summon", "onKill", "summonDamage", "summonAttackSpeed"]),
 
   node("void_mark", "Void Mark", "void", "root", "Every seventh shot creates a pulling void pulse.", [], ["onShot", "void", "area"]),
   node("event_horizon", "Event Horizon", "void", "branch", "Enemies caught together share a portion of incoming damage.", ["void_mark"], ["void", "sharedDamage"]),

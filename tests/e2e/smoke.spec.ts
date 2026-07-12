@@ -40,6 +40,7 @@ test("main menu, loadout modal, and run HUD render without console errors", asyn
 
   await page.getByRole("button", { name: "Start Run" }).click();
   await expect(page.getByLabel("Run status")).toBeVisible();
+  await expect(page.getByLabel(/Health \d+ of \d+/)).toBeVisible();
   await expect(page.getByText("SURVIVE UNTIL DAWN")).toBeVisible();
   await expect(page.getByText(/OPENING DUSK/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /Active/i })).toBeVisible();

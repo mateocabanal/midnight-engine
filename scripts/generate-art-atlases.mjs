@@ -67,15 +67,24 @@ const enemyContent = () => {
     const horn = index === 4 || index === 6;
     return [
       rect(x + bodyX + shift - 2, y + bodyY + bodyH, bodyW + 4, 2, "#020404"),
+      rect(x + bodyX + shift - 1, y + bodyY - 1, bodyW + 2, bodyH + 2, "#020404"),
       rect(x + bodyX + shift, y + bodyY, bodyW, bodyH, kind.color),
       rect(x + bodyX + shift + 2, y + bodyY + 2, Math.max(4, bodyW - 4), Math.max(4, bodyH - 5), raised),
+      rect(x + bodyX + shift + 2, y + bodyY + bodyH - 4, Math.max(4, bodyW - 4), 2, kind.color),
       rect(x + bodyX + shift + 3, y + bodyY + 4, 3, 3, bone),
       rect(x + bodyX + shift + bodyW - 6, y + bodyY + 4, 3, 3, bone),
       rect(x + bodyX + shift + 4, y + bodyY + 5, 1, 1, ink),
       rect(x + bodyX + shift + bodyW - 5, y + bodyY + 5, 1, 1, ink),
+      rect(x + bodyX + shift + Math.floor(bodyW / 2) - 1, y + bodyY + 3, 2, Math.max(3, bodyH - 8), kind.color),
       horn ? rect(x + bodyX + shift + 1, y + bodyY - 3, 3, 4, bone) : "",
       horn ? rect(x + bodyX + shift + bodyW - 4, y + bodyY - 3, 3, 4, bone) : "",
+      index === 0 ? rect(x + bodyX + shift - 3, y + bodyY + bodyH - 5, 3, 5, danger) + rect(x + bodyX + shift + bodyW, y + bodyY + bodyH - 5, 3, 5, danger) : "",
+      index === 1 ? `<path d="M${x + bodyX + shift + 1} ${y + bodyY + bodyH}L${x + bodyX + shift - 3} ${y + bodyY + bodyH + 4}M${x + bodyX + shift + bodyW - 2} ${y + bodyY + bodyH}L${x + bodyX + shift + bodyW + 2} ${y + bodyY + bodyH + 4}" fill="none" stroke="${bone}" stroke-width="2"/>` : "",
+      index === 2 ? `<rect x="${x + bodyX + shift + 4}" y="${y + bodyY + 4}" width="${Math.max(4, bodyW - 8)}" height="${Math.max(4, bodyH - 8)}" fill="none" stroke="${violet}" stroke-width="2"/>` : "",
       index === 3 ? rect(x + bodyX + shift + 6, y + bodyY + bodyH - 2, 4, 4, bright) : "",
+      index === 3 ? rect(x + bodyX + shift + bodyW - 11, y + bodyY + bodyH - 2, 4, 4, bright) : "",
+      index === 4 ? rect(x + bodyX + shift + 8, y + bodyY + bodyH - 1, 8, 2, bone) : "",
+      index === 5 ? rect(x + bodyX + shift + 5, y + bodyY + 11, bodyW - 10, 2, amber) + rect(x + bodyX + shift + 8, y + bodyY + 14, 3, 3, bone) : "",
       index === 6 ? rect(x + bodyX + shift + 7, y + bodyY + 12, 10, 4, amber) : ""
     ].join("");
   })).join("");
@@ -89,12 +98,18 @@ const weaponContent = () => {
     const diagonal = index === 3 || index === 7 || index === 10 || index === 11;
     const ring = index === 8;
     return [
+      diagonal ? line(x + 8 + shift, y + 22, x + 25 + shift, y + 5, raised, 5) : rect(x + 5 + shift, y + 12, 23, 8, raised),
       diagonal ? rect(x + 8 + shift, y + 19, 4, 4, color) : rect(x + 6 + shift, y + 14, 19, 4, color),
       diagonal ? line(x + 10 + shift, y + 20, x + 23 + shift, y + 7, color, 3) : rect(x + 21 + shift, y + 12, 6, 8, color),
       rect(x + 7 + shift, y + 16, 8, 4, raised),
+      diagonal ? rect(x + 15 + shift, y + 13, 3, 3, bone) : rect(x + 10 + shift, y + 13, 3, 2, bone),
+      diagonal ? rect(x + 20 + shift, y + 8, 3, 3, amber) : rect(x + 24 + shift, y + 14, 2, 3, bone),
       ring ? `<rect x="${x + 8 + shift}" y="${y + 8}" width="15" height="15" fill="none" stroke="${color}" stroke-width="3"/>` : "",
+      ring ? `<rect x="${x + 11 + shift}" y="${y + 11}" width="9" height="9" fill="none" stroke="${amber}" stroke-width="1"/>` : "",
       index === 4 ? rect(x + 25 + shift, y + 10, 3, 12, danger) : "",
+      index === 4 ? rect(x + 3 + shift, y + 14, 4, 4, amber) : "",
       index === 5 ? rect(x + 23 + shift, y + 7, 3, 3, bright) : "",
+      index === 5 ? rect(x + 16 + shift, y + 10, 3, 3, viridian) : "",
       index === 9 ? rect(x + 24 + shift, y + 8, 4, 4, viridian) : ""
     ].join("");
   })).join("");
@@ -176,7 +191,10 @@ const actorFrame = (index, clip, frameIndex) => {
   const accent = characterColors[index];
   return [shadow, rect(ox + 14, oy + 17, 20, 23, accent), rect(ox + 17, oy + 19, 14, 21, raised),
     rect(ox + 17, oy + 7, 14, 14, accent), rect(ox + 20, oy + 11, 8, 7, bone),
+    rect(ox + 18, oy + 28, 12, 3, accent), rect(ox + 20, oy + 31, 8, 2, bone),
+    rect(ox + 18, oy + 38, 5, 3, raised), rect(ox + 28, oy + 38, 5, 3, raised),
     rect(ox + 31, oy + 23, 13, 3, index % 2 ? bright : amber),
+    rect(ox + 33, oy + 21, 4, 2, bone),
     index === 4 ? rect(ox + 9, oy + 15, 5, 20, danger) : "",
     index === 5 ? `<path d="M${ox + 15} ${oy + 8}L${ox + 8} ${oy + 18}L${ox + 17} ${oy + 16}Z" fill="${violet}"/>` : "",
     index === 6 ? rect(ox + 12, oy + 38, 24, 3, bone) : "",
@@ -212,7 +230,7 @@ const summonFrame = (index, clip, frameIndex) => {
     rect(ox + 25, oy + 28, 3, 3, bone), clip === 3 ? `<path d="M${ox + 4} ${oy + 5}L${ox + 0} ${oy + 14}L${ox + 5} ${oy + 22}" fill="none" stroke="${bright}" stroke-width="2"/>` : ""
   ].join("");
   const color = [bright, amber, bone, bright, danger, bone, amber, violet, bright][index];
-  return [shadow, rect(ox + 11, oy + 15, 26, 24, color), rect(ox + 15, oy + 19, 18, 16, raised), rect(ox + 18, oy + 20, 12, 3, color), rect(ox + 21, oy + 24, 6, 6, bone), rect(ox + 22, oy + 25, 2, 2, ink), rect(ox + 26, oy + 25, 2, 2, ink), index === 6 ? `<path d="M${ox + 12} ${oy + 18}L${ox + 5} ${oy + 11}M${ox + 36} ${oy + 18}L${ox + 43} ${oy + 11}" fill="none" stroke="${amber}" stroke-width="2"/>` : "", index === 7 ? `<rect x="${ox + 7}" y="${oy + 11}" width="34" height="32" fill="none" stroke="${violet}" stroke-width="3"/><rect x="${ox + 12}" y="${oy + 16}" width="24" height="22" fill="none" stroke="${bright}" stroke-width="1"/>` : "", index === 8 ? rect(ox + 15, oy + 12, 18, 3, bright) + rect(ox + 22, oy + 10, 4, 5, amber) : ""].join("");
+  return [shadow, rect(ox + 11, oy + 15, 26, 24, color), rect(ox + 15, oy + 19, 18, 16, raised), rect(ox + 18, oy + 20, 12, 3, color), rect(ox + 21, oy + 24, 6, 6, bone), rect(ox + 22, oy + 25, 2, 2, ink), rect(ox + 26, oy + 25, 2, 2, ink), rect(ox + 17, oy + 35, 4, 4, color), rect(ox + 29, oy + 35, 4, 4, color), index === 3 ? `<path d="M${ox + 14} ${oy + 22}L${ox + 5} ${oy + 17}M${ox + 34} ${oy + 22}L${ox + 43} ${oy + 17}" fill="none" stroke="${bright}" stroke-width="2"/>` : "", index === 6 ? `<path d="M${ox + 12} ${oy + 18}L${ox + 5} ${oy + 11}M${ox + 36} ${oy + 18}L${ox + 43} ${oy + 11}" fill="none" stroke="${amber}" stroke-width="2"/>` : "", index === 7 ? `<rect x="${ox + 7}" y="${oy + 11}" width="34" height="32" fill="none" stroke="${violet}" stroke-width="3"/><rect x="${ox + 12}" y="${oy + 16}" width="24" height="22" fill="none" stroke="${bright}" stroke-width="1"/>` : "", index === 8 ? rect(ox + 15, oy + 12, 18, 3, bright) + rect(ox + 22, oy + 10, 4, 5, amber) : ""].join("");
 };
 
 const premiumSummonContent = () => Array.from({ length: 9 }, (_, index) =>

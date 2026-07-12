@@ -42,4 +42,12 @@ describe("structured upgrade catalogue", () => {
   it("gives every node behavioral tags for runtime routing", () => {
     expect(upgradeCatalogue.every(({ tags }) => tags.length > 0)).toBe(true);
   });
+
+  it("contains explicit, synergistic core-stat upgrades", () => {
+    const tags = new Set(upgradeCatalogue.flatMap((upgrade) => upgrade.tags));
+    for (const tag of ["movement", "size", "fireRate", "reloadSpeed", "ammo", "summonDamage", "summonAttackSpeed"]) {
+      expect(tags.has(tag), tag).toBe(true);
+    }
+    expect(upgradeById.get("brood_cascade")?.requires).toEqual(["larval_split", "host_jump"]);
+  });
 });

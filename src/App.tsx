@@ -566,6 +566,17 @@ export default function App() {
 
         {menu === "run" ? (
           <header className="hud" aria-label="Run status">
+            <div className={`hud-stat health-stat${stats.hpPct <= 30 ? " is-critical" : ""}`} aria-label={`Health ${Math.ceil(stats.hp)} of ${Math.ceil(stats.maxHp)}${stats.shield > 0 ? `, shield ${Math.ceil(stats.shield)}` : ""}`}>
+              <div className="health-line">
+                <span>Health</span>
+                <strong>{Math.ceil(stats.hp)} / {Math.ceil(stats.maxHp)}</strong>
+              </div>
+              <div className="bar health-bar" aria-hidden="true">
+                <span style={{ width: `${stats.hpPct}%` }} />
+              </div>
+              {stats.shield > 0 ? <em className="shield-readout">Shield {Math.ceil(stats.shield)}</em> : null}
+            </div>
+
             <div className="hud-stat timer-stat">
               <span>Timer</span>
               <strong>{stats.time}</strong>

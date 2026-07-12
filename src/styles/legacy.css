@@ -65,7 +65,7 @@ button {
   left: 50%;
   width: min(860px, calc(100vw - max(20px, env(safe-area-inset-left)) - max(20px, env(safe-area-inset-right))));
   display: grid;
-  grid-template-columns: auto minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
+  grid-template-columns: minmax(132px, auto) auto minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 9px;
@@ -1077,7 +1077,7 @@ button {
 @media (max-width: 700px) {
   .hud {
     top: max(7px, env(safe-area-inset-top));
-    grid-template-columns: auto minmax(118px, 1fr) auto auto;
+    grid-template-columns: minmax(112px, auto) auto minmax(104px, 1fr) auto auto;
     width: min(620px, calc(100vw - 14px));
     gap: 6px;
     padding: 6px;
@@ -1130,7 +1130,7 @@ button {
   .hud {
     top: max(6px, env(safe-area-inset-top));
     width: min(780px, calc(100vw - 28px));
-    grid-template-columns: auto minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
+    grid-template-columns: minmax(126px, auto) auto minmax(150px, 1fr) minmax(150px, 1fr) auto auto;
     padding: 5px 6px;
   }
 

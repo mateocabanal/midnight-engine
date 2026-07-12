@@ -7,6 +7,7 @@ import {
   getSpriteDefinition,
   getUpgradeChoices,
   arrangeScytheFormation,
+  applyUpgrade,
   permanentSummonKinds,
   rerollUpgradeChoices,
   spriteCatalog,
@@ -151,6 +152,35 @@ describe("game core", () => {
     game.enemies = [{ ...createGame().enemies[0], x: game.player.x + 64, y: game.player.y }];
     stepGame(game, idleInput, 0.016);
     expect(game.player.orbitals[0].attackCooldown).toBeCloseTo(0.54 / 1.5, 2);
+  });
+
+  it("applies the core movement, weapon, and summon stat upgrades", () => {
+    const game = createGame({ characterId: "lyra", weaponId: "revolver" });
+    const before = {
+      speed: game.player.speed,
+      bulletSize: game.player.bulletSize,
+      fireRate: game.player.fireRate,
+      reloadSpeed: game.player.reloadSpeed,
+      magazine: game.player.magazine,
+      summonDamage: game.player.summonDamage,
+      summonAttackSpeed: game.player.orbitals[0].attackSpeed ?? 1
+    };
+
+    applyUpgrade(game, "split_chamber");
+    applyUpgrade(game, "mirror_chamber");
+    applyUpgrade(game, "quick_hands");
+    applyUpgrade(game, "empty_bell");
+    applyUpgrade(game, "greed_magnet");
+    applyUpgrade(game, "larval_split");
+    applyUpgrade(game, "host_jump");
+
+    expect(game.player.bulletSize).toBeGreaterThan(before.bulletSize);
+    expect(game.player.fireRate).toBeGreaterThan(before.fireRate);
+    expect(game.player.reloadSpeed).toBeGreaterThan(before.reloadSpeed);
+    expect(game.player.magazine).toBeGreaterThan(before.magazine);
+    expect(game.player.speed).toBeGreaterThan(before.speed);
+    expect(game.player.summonDamage).toBeGreaterThan(before.summonDamage);
+    expect(game.player.orbitals[0].attackSpeed).toBeGreaterThan(before.summonAttackSpeed);
   });
 
   it("records defeat and victory summaries", () => {

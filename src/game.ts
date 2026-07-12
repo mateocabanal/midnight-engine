@@ -1380,13 +1380,14 @@ const pickWeightedChoices = (game: Game, pool: UpgradeDef[], amount: number): Up
   return selected;
 };
 
-function applyUpgrade(game: Game, id: UpgradeId) {
+export function applyUpgrade(game: Game, id: UpgradeId) {
   const player = game.player;
   addUpgrade(game, id);
 
   switch (id) {
     case "split_chamber":
       player.bulletPierce += 1;
+      player.bulletSize *= 1.16;
       break;
     case "serrated_lead":
       player.bleedDamage *= 1.22;
@@ -1395,6 +1396,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
     case "powder_wake":
       player.bulletLife *= 1.15;
       player.damage *= 1.08;
+      player.bulletSize *= 1.18;
       break;
     case "mirror_chamber":
       player.fireRate *= 1.06;
@@ -1418,6 +1420,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
     case "empty_bell":
       player.reloadSpeed *= 1.08;
       player.damage *= 1.06;
+      player.magazine += 3;
       break;
     case "frostfire_rounds":
       player.fireDamage *= 1.12;
@@ -1469,6 +1472,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       break;
     case "greed_magnet":
       player.pickupRadius *= 1.45;
+      player.speed *= 1.12;
       break;
     case "compound_interest":
       player.pickupRadius *= 1.1;
@@ -1478,11 +1482,14 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       spawnOrbital(game, 10 * player.summonDamage, 16, "mite");
       break;
     case "larval_split":
+      player.summonDamage *= 1.24;
+      break;
     case "host_jump":
-      player.summonDamage *= 1.2;
+      grantSummonHaste(player, 1.22);
       break;
     case "brood_cascade":
       player.summonDamage *= 1.25;
+      grantSummonHaste(player, 1.12);
       spawnOrbital(game, 14 * player.summonDamage, 20, "mite");
       break;
     case "void_mark":
@@ -1708,7 +1715,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
       break;
     case "familiar_training":
       player.summonDamage *= 1.18;
-      for (const orbital of player.orbitals) orbital.attackSpeed = (orbital.attackSpeed ?? 1) * 1.18;
+      grantSummonHaste(player, 1.18);
       break;
     case "pack_tactics":
       player.summonDamage *= 1.12;
@@ -1795,6 +1802,7 @@ function applyUpgrade(game: Game, id: UpgradeId) {
     case "recursive_gun":
       player.pellets += 1;
       player.bulletPierce += 1;
+      player.bulletSize *= 1.1;
       break;
     case "hive_engine":
       player.summonDamage *= 1.28;
@@ -2210,8 +2218,8 @@ const triggerActiveAbility = (game: Game, input: InputState) => {
   for (const orbital of player.orbitals) {
     orbital.damage *= 1.18;
     if (orbital.life !== null) orbital.life += 4;
-    orbital.attackSpeed = (orbital.attackSpeed ?? 1) * 1.18;
   }
+  grantSummonHaste(player, 1.18);
   burst(game, player.x, player.y, "#f0abfc", 24, 4);
   text(game, player.x, player.y - 34, "Rally Beasts", "#f0abfc");
 };
@@ -3019,6 +3027,16 @@ const chainLightning = (game: Game, x: number, y: number, radius: number, damage
   }
 };
 
+const summonHasteMultiplier = (game: Game) =>
+  (has(game, "familiar_training") ? 1.18 : 1) *
+  (has(game, "host_jump") ? 1.22 : 1) *
+  (has(game, "brood_cascade") ? 1.12 : 1) *
+  (has(game, "hive_engine") ? 1.18 : 1);
+
+const grantSummonHaste = (player: Player, multiplier: number) => {
+  for (const orbital of player.orbitals) orbital.attackSpeed = (orbital.attackSpeed ?? 1) * multiplier;
+};
+
 const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind = "orb") => {
   const player = game.player;
   const existing = player.orbitals.length;
@@ -3032,7 +3050,7 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
     damage,
     life: isPermanentSummon(kind) ? null : life,
     speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(SUMMON_ORBIT_SPEED.min, SUMMON_ORBIT_SPEED.max),
-    attackSpeed: (has(game, "familiar_training") ? 1.18 : 1) * (has(game, "hive_engine") ? 1.18 : 1),
+    attackSpeed: summonHasteMultiplier(game),
     kind,
     attackCooldown: 0,
     attackFlash: 0
@@ -3044,7 +3062,7 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
       damage: damage * 0.75,
       life: isPermanentSummon(kind) ? null : life,
       speed: kind === "blade" ? SCYTHE_ORBIT_SPEED : rand(SUMMON_ORBIT_SPEED.min, SUMMON_ORBIT_SPEED.max),
-      attackSpeed: (has(game, "familiar_training") ? 1.18 : 1) * (has(game, "hive_engine") ? 1.18 : 1),
+      attackSpeed: summonHasteMultiplier(game),
       kind,
       attackCooldown: 0,
       attackFlash: 0

@@ -123,6 +123,9 @@ export type Orbital = {
   kind: SummonKind;
   attackCooldown: number;
   attackFlash: number;
+  // Animation state: when the summon materialized and how long it has left before dissolving.
+  spawnedAt?: number;
+  dying?: number;
 };
 
 type SummonKind = "wisp" | "hound" | "turret" | "drone" | "mite" | "blade" | "wasp" | "chakram" | "orb";
@@ -169,6 +172,7 @@ type Player = {
   invuln: number;
   souls: number;
   orbitals: Orbital[];
+  moving: boolean;
 };
 
 export type Game = {
@@ -1219,7 +1223,8 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       dashCooldown: 0,
       invuln: 22.5,
       souls: 0,
-      orbitals: []
+      orbitals: [],
+      moving: false
     },
     enemies: [],
     bullets: [],
@@ -2093,6 +2098,7 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
 
   const moveLen = len(input.moveX, input.moveY);
   const moving = Math.abs(input.moveX) + Math.abs(input.moveY) > 0.03;
+  player.moving = moving;
   if (moving) {
     player.x += (input.moveX / moveLen) * player.speed * dt;
     player.y += (input.moveY / moveLen) * player.speed * dt;
@@ -2708,6 +2714,18 @@ const summonAttackProfiles: Record<SummonKind, {
   orb: { cooldown: 0.66, damageMultiplier: 1, speed: 380, life: 0.86, radius: 4, element: "void" }
 };
 
+const summonBurstColors: Record<SummonKind, string> = {
+  wisp: "#83C7A4",
+  hound: "#D8B56D",
+  turret: "#D7E4D3",
+  drone: "#83C7A4",
+  mite: "#D35F66",
+  blade: "#77678E",
+  wasp: "#D8B56D",
+  chakram: "#77678E",
+  orb: "#83C7A4"
+};
+
 export const permanentSummonKinds = new Set<SummonKind>(["wisp", "hound", "turret", "drone", "blade"]);
 const SCYTHE_ORBIT_SPEED = 2;
 const SUMMON_ORBIT_SPEED = { min: 1.6, max: 2.7 };
@@ -2749,12 +2767,23 @@ const updateOrbitals = (game: Game, dt: number) => {
   arrangeScytheFormation(player.orbitals, game.time * SCYTHE_ORBIT_SPEED * scytheHaste);
   for (let i = player.orbitals.length - 1; i >= 0; i -= 1) {
     const orbital = player.orbitals[i];
+    if (orbital.dying !== undefined) {
+      orbital.dying -= dt;
+      if (orbital.dying <= 0) player.orbitals.splice(i, 1);
+      continue;
+    }
     orbital.angle += orbital.speed * (orbital.attackSpeed ?? 1) * dt;
     if (orbital.life !== null) orbital.life -= dt;
     orbital.attackCooldown = Math.max(0, orbital.attackCooldown - dt);
     orbital.attackFlash = Math.max(0, orbital.attackFlash - dt);
     const x = player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = player.y + Math.sin(orbital.angle) * orbital.distance;
+    if (orbital.life !== null && orbital.life <= 0) {
+      orbital.dying = 0.5;
+      orbital.life = null;
+      burst(game, x, y, summonBurstColors[orbital.kind], 8, 3);
+      continue;
+    }
     const target = nearestEnemy(game, x, y);
     if (target && orbital.attackCooldown <= 0) fireSummonAttack(game, orbital, x, y, target);
     for (const enemy of game.enemies) {
@@ -2763,7 +2792,6 @@ const updateOrbitals = (game: Game, dt: number) => {
         if (has(game, "conductor") && Math.random() < 0.08) chainLightning(game, x, y, 66, 4 * player.lightningDamage);
       }
     }
-    if (orbital.life !== null && orbital.life <= 0) player.orbitals.splice(i, 1);
   }
 };
 
@@ -3053,7 +3081,8 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
     attackSpeed: summonHasteMultiplier(game),
     kind,
     attackCooldown: 0,
-    attackFlash: 0
+    attackFlash: 0,
+    spawnedAt: game.time
   });
   if (has(game, "twin_spawn") && player.orbitals.length < cap && Math.random() < 0.5) {
     player.orbitals.push({
@@ -3065,7 +3094,8 @@ const spawnOrbital = (game: Game, damage: number, life: number, kind: SummonKind
       attackSpeed: summonHasteMultiplier(game),
       kind,
       attackCooldown: 0,
-      attackFlash: 0
+      attackFlash: 0,
+      spawnedAt: game.time
     });
   }
   arrangeScytheFormation(player.orbitals, game.time * SCYTHE_ORBIT_SPEED);

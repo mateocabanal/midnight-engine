@@ -195,7 +195,8 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
   for (const orbital of game.player.orbitals) {
     const x = game.player.x + Math.cos(orbital.angle) * orbital.distance;
     const y = game.player.y + Math.sin(orbital.angle) * orbital.distance;
-    const animation = orbital.attackFlash > 0 ? "attack" : "move";
+    const spawnElapsed = orbital.spawnedAt === undefined ? Number.POSITIVE_INFINITY : (game.time - orbital.spawnedAt) * 1000;
+    const animation = orbital.dying !== undefined ? "death" : orbital.attackFlash > 0 ? "attack" : spawnElapsed < 420 ? "spawn" : "move";
     const size = orbital.kind === "blade" ? 72 : 50;
     drawSprite(ctx, atlases, artManifest.summons[orbital.kind], x, y, size, animation, stateElapsed(orbital, animation, game.time), "summon", 1, orbital.kind === "blade" || orbital.kind === "chakram" ? orbital.angle : 0);
   }
@@ -208,7 +209,7 @@ const drawWorld = (ctx: CanvasRenderingContext2D, game: Game, camera: { x: numbe
   }
 
   const player = game.player;
-  const playerAnimation: AnimationId = player.activeTimer > 0 ? "active" : player.reload > 0 ? "reload" : player.cooldown > 0 ? "attack" : "move";
+  const playerAnimation: AnimationId = player.activeTimer > 0 ? "active" : player.reload > 0 ? "reload" : player.cooldown > 0 ? "attack" : player.moving ? "move" : "idle";
   drawSprite(ctx, atlases, artManifest.characters[player.characterId], player.x, player.y, 48, playerAnimation, stateElapsed(player, playerAnimation, game.time), "player", player.invuln > 0 ? 0.8 : 1);
   const weaponAnimation: AnimationId = player.activeTimer > 0 ? "active" : player.reload > 0 ? "reload" : player.cooldown > 0 ? "attack" : "idle";
   drawSprite(ctx, atlases, artManifest.weapons[player.weaponId], player.x + 14, player.y - 12, 38, weaponAnimation, stateElapsed(player, weaponAnimation, game.time), "summon");

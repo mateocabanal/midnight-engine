@@ -52,10 +52,10 @@ describe("art manifest", () => {
 
   it("provides the complete first-wave animation vocabulary", () => {
     const actorClips = ["idle", "move", "attack", "reload", "active", "hit", "death", "select"];
-    for (const id of ["saint", "ilya", "nox", "mira"] as const) {
+    for (const id of allArtEntityIds.characterIds) {
       expect(artManifest.characters[id].animations.map(({ id: clip }) => clip)).toEqual(actorClips);
     }
-    for (const id of ["wisp", "hound", "turret", "mite", "blade"] as const) {
+    for (const id of allArtEntityIds.summonIds) {
       expect(artManifest.summons[id].animations.map(({ id: clip }) => clip)).toEqual(["spawn", "idle", "move", "attack", "hit", "death"]);
     }
     for (const sprite of Object.values(artManifest.enemies)) {

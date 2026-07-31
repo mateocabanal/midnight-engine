@@ -17,6 +17,7 @@ const violet = "#77678E";
 
 const rect = (x, y, width, height, fill) => `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${fill}"/>`;
 const line = (x1, y1, x2, y2, stroke, width = 2) => `<path d="M${x1} ${y1}H${x2}V${y2}" fill="none" stroke="${stroke}" stroke-width="${width}"/>`;
+const circle = (cx, cy, r, fill) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>`;
 const detailPixels = (x, y, width, height, colors, seed, count = 12) => Array.from({ length: count }, (_, index) => {
   const px = x + 1 + Math.abs((seed * 17 + index * 11 + index * index * 3) % Math.max(2, width - 2));
   const py = y + 1 + Math.abs((seed * 23 + index * 7 + index * index * 5) % Math.max(2, height - 2));
@@ -209,8 +210,150 @@ const actorFrame = (index, clip, frameIndex) => {
   ].join("");
 };
 
+const actorBodies = [
+  (ox, oy, phase, active, reload, muzzle) => [
+    rect(ox + 15, oy + 2, 20, 5, active ? bright : amber),
+    rect(ox + 21, oy + 0, 8, 2, bone),
+    rect(ox + 16, oy + 15, 17, 28, raised),
+    rect(ox + 12, oy + 22, 25, 20, amber),
+    rect(ox + 17, oy + 18, 15, 24, raised),
+    rect(ox + 18, oy + 7, 14, 12, bone),
+    rect(ox + 20, oy + 9, 10, 8, ink),
+    rect(ox + 22, oy + 12, 2, 2, bone), rect(ox + 26, oy + 12, 2, 2, bone),
+    `<path d="M${ox + 15} ${oy + 35}L${ox + 7} ${oy + 42}M${ox + 20} ${oy + 37}L${ox + 14} ${oy + 42}M${ox + 32} ${oy + 35}L${ox + 40} ${oy + 42}M${ox + 28} ${oy + 37}L${ox + 34} ${oy + 42}" stroke="${bone}" stroke-width="2"/>`,
+    rect(ox + (reload ? 4 : 30), oy + (reload ? 20 : 24), reload ? 17 : 14, 4, amber),
+    rect(ox + (reload ? 5 : 33), oy + (reload ? 21 : 25), 4, 2, bone),
+    muzzle ? rect(ox + 44, oy + 23, 5, 5, bone) : "",
+    active ? `<rect x="${ox + 9 - phase}" y="${oy + 5 - phase}" width="32" height="32" fill="none" stroke="${bright}" stroke-width="2"/>` : ""
+  ],
+  (ox, oy, phase, active, reload, muzzle) => [
+    `<path d="M${ox + 24} ${oy + 5}L${ox + 8} ${oy + 40}H${ox + 40}Z" fill="${viridian}"/>`,
+    `<path d="M${ox + 24} ${oy + 9}L${ox + 14} ${oy + 36}H${ox + 34}Z" fill="${raised}"/>`,
+    rect(ox + 19, oy + 11, 10, 9, bone),
+    rect(ox + 21, oy + 14, 2, 2, ink), rect(ox + 25, oy + 14, 2, 2, ink),
+    rect(ox + 35, oy + 15, 3, 25, bone),
+    `<rect x="${ox + 31}" y="${oy + 28}" width="9" height="9" fill="none" stroke="${active || muzzle ? bright : amber}" stroke-width="2"/>`,
+    rect(ox + 33, oy + 30, 5, 2, amber),
+    active ? [0, 1, 2].map((n) => `<path d="M${ox + 24} ${oy + 4}L${ox + 8 + n * 9} ${oy + ((phase + n) % 3) * 4}" stroke="${bright}" stroke-width="2"/>`).join("") : "",
+    muzzle ? `<path d="M${ox + 38} ${oy + 21}L${ox + 47} ${oy + 17}" stroke="${bright}" stroke-width="3"/>` : ""
+  ],
+  (ox, oy, phase, active, reload, muzzle) => [
+    `<path d="M${ox + 14} ${oy + 40}L${ox + 16} ${oy + 20}H${ox + 32}L${ox + 34} ${oy + 40}Z" fill="${raised}"/>`,
+    rect(ox + 15, oy + 20, 18, 12, viridian),
+    rect(ox + 17, oy + 22, 14, 10, raised),
+    rect(ox + 12, oy + 16, 24, 6, viridian),
+    rect(ox + 18, oy + 7, 12, 11, bone),
+    rect(ox + 20, oy + 10, 2, 2, ink), rect(ox + 26, oy + 10, 2, 2, ink),
+    circle(ox + 8, oy + 24, 4, danger),
+    `<path d="M${ox + 8} ${oy + 28}L${ox + 4} ${oy + 34}M${ox + 13} ${oy + 29}L${ox + 16} ${oy + 34}" stroke="${danger}" stroke-width="2"/>`,
+    rect(ox + 31, oy + 25, 13, 3, amber),
+    muzzle ? rect(ox + 42, oy + 23, 5, 6, viridian) + rect(ox + 45, oy + 25, 3, 3, danger) : "",
+    active ? [0, 1, 2, 3].map((n) => circle(ox + 10 + n * 9, oy + 33 + ((phase + n) % 3) * 3, 2, viridian)).join("") : ""
+  ],
+  (ox, oy, phase, active, reload, muzzle) => [
+    `<path d="M${ox + 13} ${oy + 40}L${ox + 15} ${oy + 17}H${ox + 33}L${ox + 35} ${oy + 40}Z" fill="${raised}"/>`,
+    rect(ox + 16, oy + 18, 16, 20, violet),
+    rect(ox + 18, oy + 20, 12, 18, raised),
+    rect(ox + 16, oy + 6, 16, 14, bone),
+    rect(ox + 18, oy + 9, 5, 8, ink), rect(ox + 25, oy + 9, 5, 8, violet),
+    rect(ox + 20, oy + 13, 2, 2, bone),
+    `<path d="M${ox + 24} ${oy + 22}L${ox + 20} ${oy + 28}L${ox + 24} ${oy + 34}L${ox + 28} ${oy + 28}Z" fill="${bright}"/>`,
+    rect(ox + 4 - (reload ? 2 : 0), oy + 21, 14, 3, bone),
+    rect(ox + 30 + (reload ? 2 : 0), oy + 21, 14, 3, amber),
+    muzzle ? rect(ox + 1, oy + 19, 6, 6, violet) + rect(ox + 41, oy + 19, 6, 6, amber) : "",
+    active ? `<rect x="${ox + 10 - phase}" y="${oy + 3}" width="30" height="37" fill="none" stroke="${violet}" stroke-width="2" opacity=".75"/>` : ""
+  ],
+  (ox, oy, phase, active, reload, muzzle) => {
+    const crest = [0, 1, 2, 1, 0, -1][phase % 6];
+    return [
+      `<path d="M${ox + 19} ${oy + 2}L${ox + 16} ${oy + 9 + crest}L${ox + 23} ${oy + 8}L${ox + 20} ${oy + 14 + crest}L${ox + 27} ${oy + 7}L${ox + 24} ${oy + 1}Z" fill="${danger}"/>`,
+      rect(ox + 18, oy + 8, 12, 11, bone),
+      rect(ox + 20, oy + 11, 2, 2, ink), rect(ox + 26, oy + 11, 2, 2, ink),
+      `<path d="M${ox + 10} ${oy + 40}L${ox + 12} ${oy + 18}H${ox + 36}L${ox + 38} ${oy + 40}Z" fill="${raised}"/>`,
+      `<path d="M${ox + 13} ${oy + 19}H${ox + 35}V${oy + 30}L${ox + 37} ${oy + 40}H${ox + 11}L${ox + 13} ${oy + 30}Z" fill="${danger}"/>`,
+      rect(ox + 15, oy + 21, 18, 8, raised),
+      rect(ox + 29, oy + 25, 14, 4, amber),
+      muzzle ? rect(ox + 43, oy + 24, 5, 5, danger) + rect(ox + 44, oy + 21, 4, 11, amber) : "",
+      active ? `<rect x="${ox + 8 - phase}" y="${oy + 5 - phase}" width="34" height="36" fill="none" stroke="${danger}" stroke-width="2"/>` : ""
+    ];
+  },
+  (ox, oy, phase, active, reload, muzzle, clip, frameIndex) => {
+    const spread = active || (clip === 2 && frameIndex >= 2) ? 3 : 0;
+    return [
+      `<path d="M${ox + 24} ${oy + 4}L${ox + 9 - spread} ${oy + 27}L${ox + 16} ${oy + 40}L${ox + 24} ${oy + 33}L${ox + 32} ${oy + 40}L${ox + 39 + spread} ${oy + 27}Z" fill="${raised}"/>`,
+      `<path d="M${ox + 24} ${oy + 7}L${ox + 14} ${oy + 26}L${ox + 19} ${oy + 30}L${ox + 24} ${oy + 25}L${ox + 29} ${oy + 30}L${ox + 34} ${oy + 26}Z" fill="${violet}"/>`,
+      rect(ox + 18, oy + 9, 12, 9, ink),
+      rect(ox + 20, oy + 12, 2, 2, danger), rect(ox + 26, oy + 12, 2, 2, danger),
+      rect(ox + 21, oy + 14, 8, 2, bone),
+      `<path d="M${ox + 7 - spread} ${oy + 24}L${ox + 2} ${oy + 36}L${ox + 10} ${oy + 30}Z" fill="${violet}"/>`,
+      `<path d="M${ox + 41 + spread} ${oy + 24}L${ox + 46} ${oy + 36}L${ox + 38} ${oy + 30}Z" fill="${violet}"/>`,
+      rect(ox + 30, oy + 22, 13, 3, bone),
+      rect(ox + 40, oy + 20, 6, 7, bright),
+      clip === 3 ? rect(ox + 4, oy + 22, 12, 3, bone) : "",
+      active ? `<path d="M${ox + 24} ${oy + 26}L${ox + 17} ${oy + 38}L${ox + 31} ${oy + 38}Z" fill="none" stroke="${bright}" stroke-width="2"/>` : ""
+    ];
+  },
+  (ox, oy, phase, active, reload, muzzle, clip, frameIndex) => {
+    const bash = clip === 2 && frameIndex >= 3 ? 4 : 0;
+    return [
+      rect(ox + 6, oy + 17, 15, 9, bone), rect(ox + 27, oy + 17, 15, 9, bone),
+      rect(ox + 8, oy + 19, 11, 5, raised), rect(ox + 29, oy + 19, 11, 5, raised),
+      rect(ox + 17, oy + 4, 14, 12, bone),
+      rect(ox + 22, oy + 0, 4, 6, amber),
+      rect(ox + 19, oy + 8, 10, 4, ink), rect(ox + 21, oy + 9, 2, 2, bright), rect(ox + 25, oy + 9, 2, 2, bright),
+      rect(ox + 14, oy + 25, 20, 17, raised), rect(ox + 16, oy + 28, 16, 12, ink),
+      rect(ox + 6 + bash, oy + 24, 11, 16, bone), rect(ox + 8 + bash, oy + 26, 7, 12, raised),
+      rect(ox + 27, oy + 28, 14, 4, amber),
+      muzzle ? rect(ox + 41, oy + 27, 6, 6, bone) : "",
+      active ? `<rect x="${ox + 4 - phase}" y="${oy + 2 - phase}" width="40" height="40" fill="none" stroke="${amber}" stroke-width="2"/>` : ""
+    ];
+  },
+  (ox, oy, phase, active, reload, muzzle) => {
+    const pulse = [0, 1, 2, 1, 0, -1, -2, -1][phase];
+    return [
+      `<path d="M${ox + 13} ${oy + 40}L${ox + 15} ${oy + 18}H${ox + 33}L${ox + 35} ${oy + 40}Z" fill="${raised}"/>`,
+      rect(ox + 16, oy + 19, 16, 20, bright),
+      rect(ox + 18, oy + 21, 12, 18, raised),
+      `<path d="M${ox + 16} ${oy + 17}L${ox + 24} ${oy + 7}L${ox + 32} ${oy + 17}Z" fill="${bright}"/>`,
+      rect(ox + 19, oy + 9, 10, 10, bone), rect(ox + 21, oy + 12, 2, 2, ink), rect(ox + 25, oy + 12, 2, 2, ink),
+      rect(ox + 33, oy + 6, 3, 36, raised),
+      circle(ox + 34, oy + 4, 3 + (pulse > 0 ? 1 : 0), bright),
+      `<circle cx="${ox + 34}" cy="${oy + 4}" r="${5 + (active ? phase % 3 : 0)}" fill="none" stroke="${amber}" stroke-width="1"/>`,
+      rect(ox + 26, oy + 30, 9, 8, amber), rect(ox + 28, oy + 31, 5, 2, bone),
+      muzzle ? `<path d="M${ox + 36} ${oy + 22}L${ox + 46} ${oy + 22}" stroke="${bright}" stroke-width="3"/>` : "",
+      active ? `<rect x="${ox + 7 - phase}" y="${oy}" width="34" height="42" fill="none" stroke="${amber}" stroke-width="2"/>` : ""
+    ];
+  }
+];
+
+const actorFrameV2 = (index, clip, frameIndex) => {
+  const cell = 48;
+  const blockX = (index % 4) * 576;
+  const blockY = Math.floor(index / 4) * 384;
+  const x = blockX + frameIndex * cell;
+  const y = blockY + clip * cell;
+  const phase = frameIndex % 8;
+  const idleBob = [0, 0, -1, -1, 0, 0, 1, 1][phase];
+  const moveBob = [0, -1, -2, -1, 0, -1, -2, -1][phase];
+  const stride = [-2, -1, 0, 1, 2, 1, 0, -1][phase];
+  const recoil = [0, 0, -2, -4, -2, -1, 0, 0][phase];
+  const hit = [0, -3, -1][frameIndex % 3];
+  const sink = clip === 6 ? Math.min(6, frameIndex) : 0;
+  const rise = clip === 7 ? Math.max(0, 10 - frameIndex * 2) : 0;
+  const drop = clip === 3 ? [0, 1, 2, 4, 2, 1, 0, 0][phase] : 0;
+  const bob = clip === 0 ? idleBob : clip === 1 ? moveBob : 0;
+  const ox = x + (clip === 1 ? stride : 0) + (clip === 2 ? recoil : 0) + (clip === 5 ? hit : 0) + (clip === 3 ? drop : 0);
+  const oy = y + bob + sink + rise;
+  const shadow = clip === 6 && frameIndex >= 5 ? "" : rect(x + 10, y + 42, 28, 3, "#020404");
+  const active = clip === 4;
+  const reload = clip === 3;
+  const muzzle = clip === 2 && frameIndex === 2;
+  const actorTexture = detailPixels(ox + 17, oy + 19, 15, 19, [characterColors[index], bone, raised], index * 97 + clip * 13 + frameIndex, 8);
+  return [shadow, ...actorBodies[index](ox, oy, phase, active, reload, muzzle, clip, frameIndex), actorTexture].join("");
+};
+
 const premiumCharacterContent = () => characterColors.flatMap((_, index) =>
-  Array.from({ length: 8 }, (_, clip) => Array.from({ length: 12 }, (_, frameIndex) => actorFrame(index, clip, frameIndex)).join("")).join("")
+  Array.from({ length: 8 }, (_, clip) => Array.from({ length: 12 }, (_, frameIndex) => actorFrameV2(index, clip, frameIndex)).join("")).join("")
 ).join("");
 
 const summonFrame = (index, clip, frameIndex) => {
@@ -241,8 +384,152 @@ const summonFrame = (index, clip, frameIndex) => {
   return [shadow, summonTexture, rect(ox + 11, oy + 15, 26, 24, color), rect(ox + 15, oy + 19, 18, 16, raised), rect(ox + 18, oy + 20, 12, 3, color), rect(ox + 21, oy + 24, 6, 6, bone), rect(ox + 22, oy + 25, 2, 2, ink), rect(ox + 26, oy + 25, 2, 2, ink), rect(ox + 17, oy + 35, 4, 4, color), rect(ox + 29, oy + 35, 4, 4, color), index === 3 ? `<path d="M${ox + 14} ${oy + 22}L${ox + 5} ${oy + 17}M${ox + 34} ${oy + 22}L${ox + 43} ${oy + 17}" fill="none" stroke="${bright}" stroke-width="2"/>` : "", index === 6 ? `<path d="M${ox + 12} ${oy + 18}L${ox + 5} ${oy + 11}M${ox + 36} ${oy + 18}L${ox + 43} ${oy + 11}" fill="none" stroke="${amber}" stroke-width="2"/>` : "", index === 7 ? `<rect x="${ox + 7}" y="${oy + 11}" width="34" height="32" fill="none" stroke="${violet}" stroke-width="3"/><rect x="${ox + 12}" y="${oy + 16}" width="24" height="22" fill="none" stroke="${bright}" stroke-width="1"/>` : "", index === 8 ? rect(ox + 15, oy + 12, 18, 3, bright) + rect(ox + 22, oy + 10, 4, 5, amber) : "", summonTexture].join("");
 };
 
+const summonColors = [bright, amber, bone, bright, danger, violet, amber, violet, bright];
+
+const summonBodies = [
+  (ox, oy, phase, clip) => {
+    const flick = [0, -1, 0, -2, 0, -1][phase % 6];
+    return [
+      `<path d="M${ox + 24} ${oy + 4 + flick}L${ox + 13} ${oy + 25}L${ox + 19} ${oy + 29}L${ox + 14} ${oy + 38}L${ox + 24} ${oy + 32}L${ox + 34} ${oy + 38}L${ox + 29} ${oy + 29}L${ox + 35} ${oy + 25}Z" fill="${bright}"/>`,
+      `<path d="M${ox + 17} ${oy + 11}L${ox + 8} ${oy + 19}L${ox + 16} ${oy + 21}M${ox + 31} ${oy + 11}L${ox + 40} ${oy + 19}L${ox + 32} ${oy + 21}" fill="none" stroke="${viridian}" stroke-width="2"/>`,
+      rect(ox + 19, oy + 14, 10, 15, raised), rect(ox + 21, oy + 16, 6, 9, bone),
+      rect(ox + 20, oy + 19, 2, 2, ink), rect(ox + 26, oy + 19, 2, 2, ink),
+      clip === 3 ? rect(ox + 34, oy + 16, 9, 3, bone) + rect(ox + 41, oy + 15, 3, 6, bright) : "",
+      clip === 5 ? rect(ox + 9, oy + 33, 5, 5, amber) + rect(ox + 33, oy + 32, 5, 5, amber) : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const wag = [0, 1, 0, -1][phase % 4];
+    const legA = [0, -1, 0, 1][phase % 4];
+    const legB = [0, 1, 0, -1][phase % 4];
+    const chomp = clip === 3 && phase < 4 ? 2 : 0;
+    return [
+      rect(ox + 9, oy + 26, 30, 9, bone),
+      rect(ox + 11, oy + 28, 26, 5, raised),
+      rect(ox + 14, oy + 16, 16, 12, bone),
+      rect(ox + 27, oy + 21, 9, 5, bone),
+      rect(ox + 16, oy + 13, 4, 5, amber), rect(ox + 24, oy + 13, 4, 5, amber),
+      rect(ox + 17, oy + 19, 2, 2, ink), rect(ox + 22, oy + 19, 2, 2, ink),
+      rect(ox + 30 + chomp, oy + 23, 6, 3, danger),
+      rect(ox + 36, oy + 19 + wag, 6, 3, bone),
+      rect(ox + 12, oy + 35 + legA, 4, 6, bone), rect(ox + 20, oy + 35 + legB, 4, 6, bone),
+      rect(ox + 29, oy + 35 + legB, 4, 6, bone), rect(ox + 36, oy + 35 + legA, 4, 6, bone),
+      rect(ox + 16, oy + 24, 13, 3, amber)
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const aim = [0, 1, 2, 1, 0, -1, -2, -1][phase];
+    const kick = clip === 3 && phase >= 2 && phase < 5 ? -2 : 0;
+    return [
+      rect(ox + 9, oy + 33, 30, 7, raised), rect(ox + 12, oy + 35, 24, 3, ink),
+      rect(ox + 11, oy + 38, 5, 4, bone), rect(ox + 32, oy + 38, 5, 4, bone),
+      rect(ox + 13, oy + 23, 22, 12, bone), rect(ox + 15, oy + 25, 18, 8, raised),
+      rect(ox + 18, oy + 19, 12, 6, amber),
+      rect(ox + 16, oy + 27 + kick + aim, 17, 4, raised),
+      rect(ox + 20, oy + 28 + kick + aim, 5, 2, bone),
+      rect(ox + 33, oy + 26 + kick + aim, 3, 6, amber),
+      clip === 3 && phase >= 2 && phase < 5 ? rect(ox + 37, oy + 25 + aim, 7, 7, bone) + rect(ox + 39, oy + 27 + aim, 3, 3, amber) : "",
+      clip === 5 ? rect(ox + 8, oy + 30, 8, 5, bone) + rect(ox + 34, oy + 31, 8, 5, bone) : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const spin = phase % 2 === 0 ? 0 : 3;
+    return [
+      rect(ox + 8 + spin, oy + 6, 30 - spin * 2, 3, bone),
+      rect(ox + 21, oy + 3, 6, 5, raised),
+      `<path d="M${ox + 13} ${oy + 15}L${ox + 35} ${oy + 15}L${ox + 32} ${oy + 30}L${ox + 16} ${oy + 30}Z" fill="${raised}"/>`,
+      `<path d="M${ox + 15} ${oy + 18}L${ox + 33} ${oy + 18}L${ox + 31} ${oy + 28}L${ox + 17} ${oy + 28}Z" fill="${bright}"/>`,
+      circle(ox + 24, oy + 23, 4, bone),
+      circle(ox + 24, oy + 23, 2, bright),
+      rect(ox + 28, oy + 25, 9, 3, amber),
+      clip === 3 ? rect(ox + 32, oy + 22, 8, 3, bright) : "",
+      clip === 5 ? rect(ox + 9, oy + 34, 6, 5, amber) + rect(ox + 31, oy + 33, 6, 5, bone) : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    return [
+      circle(ox + 17, oy + 21, 8, danger),
+      circle(ox + 15, oy + 18, 3, raised),
+      rect(ox + 25, oy + 17, 9, 8, bone),
+      rect(ox + 27, oy + 19, 2, 2, ink), rect(ox + 31, oy + 19, 2, 2, ink),
+      rect(ox + 33, oy + 21, 4, 3, raised),
+      [0, 1, 2].map((n) => `<path d="M${ox + 10 + n * 4} ${oy + 25}L${ox + 7 + n * 4} ${oy + 33 + ((phase + n) % 2) * 3}" stroke="${bone}" stroke-width="2"/>`).join(""),
+      [0, 1, 2].map((n) => `<path d="M${ox + 24 + n * 4} ${oy + 25}L${ox + 28 + n * 4} ${oy + 33 + ((phase + n + 1) % 2) * 3}" stroke="${bone}" stroke-width="2"/>`).join(""),
+      clip === 3 ? rect(ox + 32, oy + 14, 6, 4, danger) : "",
+      clip === 5 ? `<circle cx="${ox + 17}" cy="${oy + 22}" r="11" fill="none" stroke="${danger}" stroke-width="3"/>` : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const tilt = clip === 3 ? [0, -1, -2, -3, -2, -1, 0, 0][phase] : 0;
+    const pulse = [0, 1, 0, -1][phase % 4];
+    return [
+      rect(ox + 22, oy + 4, 3, 38, raised),
+      `<path d="M${ox + 25 + tilt} ${oy + 4}L${ox + 38} ${oy + 12 + tilt}L${ox + 25 + tilt} ${oy + 24}Z" fill="${violet}"/>`,
+      `<path d="M${ox + 25 + tilt} ${oy + 7}L${ox + 33} ${oy + 12 + tilt}L${ox + 25 + tilt} ${oy + 20}Z" fill="${bright}"/>`,
+      rect(ox + 12, oy + 18, 8, 5, amber), rect(ox + 13, oy + 19, 6, 2, bone),
+      circle(ox + 11, oy + 14 + pulse, 3, amber),
+      clip === 3 ? `<path d="M${ox + 8} ${oy + 4}L${ox + 3} ${oy + 14}L${ox + 9} ${oy + 13}Z" fill="${bright}"/>` : "",
+      clip === 5 ? rect(ox + 6, oy + 30, 7, 6, violet) + rect(ox + 32, oy + 32, 7, 5, bone) : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const wing = phase % 2 === 0 ? 0 : 5;
+    return [
+      `<path d="M${ox + 10} ${oy + 12 - wing}L${ox + 0} ${oy + 15 - wing}L${ox + 9} ${oy + 20 - wing}Z" fill="${bone}" opacity=".75"/>`,
+      `<path d="M${ox + 30} ${oy + 12 - wing}L${ox + 40} ${oy + 15 - wing}L${ox + 31} ${oy + 20 - wing}Z" fill="${bone}" opacity=".75"/>`,
+      `<path d="M${ox + 14} ${oy + 22}L${ox + 27} ${oy + 19}L${ox + 30} ${oy + 30}L${ox + 14} ${oy + 30}Z" fill="${raised}"/>`,
+      `<path d="M${ox + 16} ${oy + 23}L${ox + 27} ${oy + 21}L${ox + 28} ${oy + 28}L${ox + 16} ${oy + 28}Z" fill="${amber}"/>`,
+      circle(ox + 29, oy + 20, 4, bone), rect(ox + 30, oy + 19, 2, 2, ink),
+      rect(ox + 9, oy + 27, 6, 10, amber), rect(ox + 11, oy + 34, 3, 7, bone),
+      clip === 3 ? rect(ox + 8, oy + 37, 3, 4, danger) : "",
+      clip === 5 ? rect(ox + 12, oy + 32, 5, 5, amber) + rect(ox + 30, oy + 33, 5, 5, bone) : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const spin = phase * 0.6;
+    return [
+      `<circle cx="${ox + 24}" cy="${oy + 23}" r="13" fill="${raised}" stroke="${violet}" stroke-width="4"/>`,
+      `<circle cx="${ox + 24}" cy="${oy + 23}" r="8" fill="none" stroke="${bright}" stroke-width="1"/>`,
+      [0, 1, 2, 3].map((n) => { const a = spin + n * Math.PI / 2; return rect(ox + 23 + Math.round(Math.cos(a) * 11), oy + 22 + Math.round(Math.sin(a) * 11), 3, 3, n % 2 ? bone : amber); }).join(""),
+      clip === 3 ? `<circle cx="${ox + 24}" cy="${oy + 23}" r="16" fill="none" stroke="${bright}" stroke-width="2"/>` : "",
+      clip === 5 ? rect(ox + 8, oy + 16, 8, 5, violet) + rect(ox + 33, oy + 27, 7, 5, bone) : ""
+    ];
+  },
+  (ox, oy, phase, clip) => {
+    const pulse = [0, 1, 2, 1, 0, -1, -2, -1][phase];
+    return [
+      `<circle cx="${ox + 24}" cy="${oy + 22}" r="${11 + pulse}" fill="${raised}" stroke="${bright}" stroke-width="2"/>`,
+      `<circle cx="${ox + 24}" cy="${oy + 22}" r="5" fill="${bone}"/>`,
+      rect(ox + 22, oy + 20, 4, 4, ink),
+      [0, 1, 2].map((n) => { const a = n * 2.094 + phase * 0.5; return rect(ox + 23 + Math.round(Math.cos(a) * 13), oy + 21 + Math.round(Math.sin(a) * 12), 3, 3, n === 1 ? amber : bright); }).join(""),
+      clip === 3 ? `<circle cx="${ox + 24}" cy="${oy + 22}" r="15" fill="none" stroke="${amber}" stroke-width="2"/>` + rect(ox + 38, oy + 18, 6, 6, bright) : "",
+      clip === 5 ? `<circle cx="${ox + 24}" cy="${oy + 22}" r="${Math.max(2, 11 - phase * 1.5)}" fill="${violet}"/>` : ""
+    ];
+  }
+];
+
+const summonFrameV2 = (index, clip, frameIndex) => {
+  const blockX = (index % 4) * 384;
+  const blockY = Math.floor(index / 4) * 288;
+  const x = blockX + frameIndex * 48;
+  const y = blockY + clip * 48;
+  const phase = frameIndex % 8;
+  const bob = clip === 1 || clip === 2 ? [0, -1, -2, -1, 0, 1, 2, 1][phase] : 0;
+  const rise = clip === 0 ? Math.max(0, 8 - frameIndex * 2) : 0;
+  const lungeScale = [0, 1, 0, 0, 1, 0, 1, 0, 0][index];
+  const lunge = clip === 3 ? [0, 1, 3, 6, 4, 2, 0, 0][phase] * lungeScale : 0;
+  const hit = clip === 4 ? [0, -3, 1, 0][phase % 4] : 0;
+  const collapse = clip === 5 ? Math.min(6, frameIndex) : 0;
+  const ox = x + lunge;
+  const oy = y + bob + rise + collapse + hit;
+  const shadow = clip === 5 && frameIndex >= 5 ? "" : rect(x + 10, y + 40, 28, 3, "#020404");
+  const spawnRing = clip === 0 ? `<circle cx="${x + 24}" cy="${y + 40}" r="${Math.max(2, 8 - frameIndex)}" fill="none" stroke="${summonColors[index]}" stroke-width="2"/>` : "";
+  const summonTexture = detailPixels(ox + 16, oy + 19, 17, 18, [bone, viridian, amber], index * 83 + clip * 11 + frameIndex, 8);
+  return [shadow, spawnRing, ...summonBodies[index](ox, oy, phase, clip, frameIndex), summonTexture].join("");
+};
+
 const premiumSummonContent = () => Array.from({ length: 9 }, (_, index) =>
-  Array.from({ length: 6 }, (_, clip) => Array.from({ length: 8 }, (_, frameIndex) => summonFrame(index, clip, frameIndex)).join("")).join("")
+  Array.from({ length: 6 }, (_, clip) => Array.from({ length: 8 }, (_, frameIndex) => summonFrameV2(index, clip, frameIndex)).join("")).join("")
 ).join("");
 
 const bulletContent = () => Array.from({ length: 6 }, (_, index) => Array.from({ length: 4 }, (_, clip) =>
@@ -279,11 +566,11 @@ const premiumEnemyFrame = (index, clip, frameIndex) => {
   const y = blockY + clip * cell;
   const phase = frameIndex % 8;
   const bob = clip === 1 ? [0, -1, -2, -1, 0, 1, 0, -1][phase] : clip === 2 ? [0, -2, -3, -1, 0, -2, -3, -1][phase] : 0;
-  const stride = clip === 2 ? [-3, -2, 0, 2, 3, 2, 0, -2][phase] : 0;
-  const lunge = clip === 3 ? [0, 2, 5, 9, 6, 3, 0, 0][phase] : 0;
+  const stride = clip === 2 ? [-2, -1, 0, 2, 2, 1, 0, -1][phase] : 0;
+  const lunge = clip === 3 ? [0, 2, 4, 7, 5, 2, 0, 0][phase] : 0;
   const hit = clip === 4 ? [0, -5, 3, 0][frameIndex % 4] : 0;
-  const spawn = clip === 0 ? Math.max(0, 18 - frameIndex * 4) : 0;
-  const death = clip === 5 ? Math.min(24, frameIndex * 4) : 0;
+  const spawn = clip === 0 ? Math.max(0, 6 - frameIndex) : 0;
+  const death = clip === 5 ? Math.min(6, frameIndex) : 0;
   const ox = x + stride + lunge + hit;
   const oy = y + bob + spawn + death;
   const shadow = death < 20 ? `<ellipse cx="${x + 32}" cy="${y + 57}" rx="22" ry="4" fill="#020404" opacity=".85"/>` : "";
@@ -356,7 +643,7 @@ const premiumWeaponFrame = (index, clip, frameIndex) => {
   const y = blockY + clip * 48;
   const phase = frameIndex % 8;
   const recoil = clip === 1 ? [0, 0, -2, -5, -3, -1, 0, 0][phase] : 0;
-  const reload = clip === 2 ? [0, 2, 5, 8, 8, 5, 2, 0][phase] : 0;
+  const reload = clip === 2 ? [0, 1, 3, 5, 5, 3, 1, 0][phase] : 0;
   const active = clip === 3;
   const ox = x + recoil;
   const oy = y + reload;

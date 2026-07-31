@@ -154,6 +154,39 @@ describe("game core", () => {
     expect(game.player.orbitals[0].attackCooldown).toBeCloseTo(0.54 / 1.5, 2);
   });
 
+  it("tracks whether the player is moving so the renderer can pick idle vs move", () => {
+    const game = createGame();
+    expect(game.player.moving).toBe(false);
+    stepGame(game, { ...idleInput, moveX: 1, moveY: 0 }, 0.016);
+    expect(game.player.moving).toBe(true);
+    stepGame(game, idleInput, 0.016);
+    expect(game.player.moving).toBe(false);
+  });
+
+  it("animates temporary summons through spawn and death instead of vanishing instantly", () => {
+    const game = createGame();
+    game.enemies = [];
+    game.player.orbitals.push({
+      angle: 0,
+      distance: 40,
+      damage: 8,
+      life: 0.02,
+      speed: 2,
+      kind: "mite",
+      attackCooldown: 0,
+      attackFlash: 0,
+      spawnedAt: game.time
+    });
+
+    stepGame(game, idleInput, 0.03);
+
+    expect(game.player.orbitals[0].dying).toBeDefined();
+    expect(game.player.orbitals[0].life).toBeNull();
+    expect(game.particles.length).toBeGreaterThan(0);
+    for (let frame = 0; frame < 40; frame += 1) stepGame(game, idleInput, 0.03);
+    expect(game.player.orbitals).toHaveLength(0);
+  });
+
   it("applies the core movement, weapon, and summon stat upgrades", () => {
     const game = createGame({ characterId: "lyra", weaponId: "revolver" });
     const before = {

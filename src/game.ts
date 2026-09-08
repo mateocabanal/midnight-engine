@@ -173,6 +173,7 @@ type Player = {
   souls: number;
   orbitals: Orbital[];
   moving: boolean;
+  facingAngle: number;
 };
 
 export type Game = {
@@ -1224,7 +1225,8 @@ export const createGame = (loadout: LoadoutConfig = DEFAULT_LOADOUT): Game => {
       invuln: 22.5,
       souls: 0,
       orbitals: [],
-      moving: false
+      moving: false,
+      facingAngle: 0
     },
     enemies: [],
     bullets: [],
@@ -2097,8 +2099,11 @@ export const stepGame = (game: Game, input: InputState, dt: number): boolean => 
   game.spawnTimer -= dt;
 
   const moveLen = len(input.moveX, input.moveY);
+  const aimLen = len(input.aimX, input.aimY);
   const moving = Math.abs(input.moveX) + Math.abs(input.moveY) > 0.03;
   player.moving = moving;
+  if (aimLen > 0.1) player.facingAngle = Math.atan2(input.aimY, input.aimX);
+  else if (moving) player.facingAngle = Math.atan2(input.moveY, input.moveX);
   if (moving) {
     player.x += (input.moveX / moveLen) * player.speed * dt;
     player.y += (input.moveY / moveLen) * player.speed * dt;
